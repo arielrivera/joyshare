@@ -124,6 +124,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
       <li><a href="#costs">Costs</a></li>
       <li><a href="#risks">Risks and gaps</a></li>
       <li><a href="#status">Phase 1 results</a></li>
+      <li><a href="#status2">Phase 2 results</a></li>
       <li><a href="#roadmap">Build plan</a></li>
       <li><a href="#changelog">Changelog</a></li>
     </ol>
@@ -131,7 +132,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v5</span><span>Phase 1 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v5.1</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -546,8 +547,31 @@ flowchart LR
       <ul>
         <li>Every output is H.264 + AAC MP4 (or AAC M4A) with fast start, checked with ffprobe.</li>
         <li>Not tested yet: Instagram and Facebook, the iPhone share sheet, and anything on the Mac mini.</li>
-        <li>No sign-in yet, so the app only answers on the laptop itself (localhost).</li>
         <li>The interface is plain on purpose. It is a single page of HTML for now; the SvelteKit interface and 3D scenes come in the look-and-feel phase.</li>
+      </ul>
+    </section>
+
+    <section id="status2">
+      <h2>Phase 2 results</h2>
+      <p class="sub">Sign-in and accounts, checked on the laptop on 12 Nov 2026.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>What</th><th>How it works</th><th>Checked by</th></tr></thead>
+        <tbody>
+          <tr><td>First device</td><td>A one-time setup code is printed in the server log. It works once and lasts 24 hours.</td><td>Automated test</td></tr>
+          <tr><td>Sign in</td><td>Passkey only. No passwords anywhere.</td><td>Automated test with a software passkey</td></tr>
+          <tr><td>More devices</td><td>A signed-in device shows a QR code and a 12-character code, valid once for 10 minutes.</td><td>Automated test</td></tr>
+          <tr><td>People</td><td>Admin invites a member by QR code. Members see only their own videos and can't invite others.</td><td>Automated test</td></tr>
+          <tr><td>Sensitive actions</td><td>Adding devices, inviting people and creating tokens need a passkey check from the last 10 minutes.</td><td>Automated test</td></tr>
+          <tr><td>Access tokens</td><td>For the iPhone Shortcut. Can add videos, can't manage devices or people. Revocable.</td><td>Real download on the laptop</td></tr>
+          <tr><td>Shortcut endpoint</td><td>One call looks up a link, starts the suggested size and returns a page to open.</td><td>Real download on the laptop</td></tr>
+          <tr><td>Guessing protection</td><td>10 wrong codes or passkeys from one address, then a wait of a few minutes.</td><td>Automated test</td></tr>
+          <tr><td>Other sites</td><td>A passkey from another site is rejected. Another site can't act with your session.</td><td>Automated test</td></tr>
+          <tr><td>Lockout recovery</td><td><code>docker compose exec web python -m app.cli setup-code</code> on the server.</td><td>Automated test</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li>Not tried yet: a real Touch ID or Face ID prompt, the Devices screen with a signed-in person, and anything on an iPhone. Phones need the https address, which arrives with the go-live phase or a temporary tunnel.</li>
+        <li>The setup guide has the steps for the first device, extra devices, inviting people and building the iPhone Shortcut.</li>
       </ul>
     </section>
 
@@ -555,7 +579,7 @@ flowchart LR
       <h2>Build plan</h2>
       <ol class="flow">
         <li><div><strong>Core, on your laptop.</strong> <span class="pill decided">Built</span> Docker Compose, FastAPI, worker with its scheduler, SQLite with users and settings tables, X and YouTube (tested), Instagram and Facebook (built, untested), all presets including audio only, size check, cleanup, a plain UI, storage in Mode A.</div></li>
-        <li><div><strong>Access.</strong> Passkeys, admin and member roles, device QR flow, tokens, iOS Shortcut. Test from the iPhone through a temporary dev tunnel.</div></li>
+        <li><div><strong>Access.</strong> <span class="pill decided">Built</span> Passkeys, admin and member roles, device QR flow, tokens, iOS Shortcut. Test from the iPhone through a temporary dev tunnel.</div></li>
         <li><div><strong>Admin panel and ops.</strong> All admin pages, ntfy events, disk checks, worker heartbeat, nightly backups and platform check, yt-dlp auto-update, the R2 storage setting and setup guide.</div></li>
         <li><div><strong>Look and feel.</strong> The interface design, the Three.js progress scenes (first three: Demolition, Compressor, Voyage), PWA icon and full-screen mode, share viewer page.</div></li>
         <li><div><strong>Go live.</strong> Move to the Mac mini with the move guide (the first real test of it), turn on R2, connect the Cloudflare Tunnel, set up Uptime Kuma on DigitalOcean.</div></li>
@@ -573,6 +597,7 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>12 Nov 2026</time><div>v5.1. Phase 2 is built: passkey sign-in, setup code for the first device, extra devices by QR code, member accounts, access tokens, a one-call endpoint for the iPhone Shortcut, and a recovery command. 51 automated tests. Not yet tried with a real Touch ID or on an iPhone.</div></li>
         <li><time>12 Nov 2026</time><div>v5. Phase 1 is built and tested on the laptop: X and YouTube downloads through every preset, share links, cleanup, 37 automated tests. Data now lives in a Docker volume instead of a plain folder, because a database in a Mac shared folder is unreliable with two containers.</div></li>
         <li><time>12 Nov 2026</time><div>v4.3. Added the README as the repo's front page. All commits and GitHub activity are under the owner's name only.</div></li>
         <li><time>12 Nov 2026</time><div>v4.2. Cookies are per user, private and optional, with in-app explanations and a second-account tip. Docs and the admin panel will state that leaving Cloudflare requires a web server. Cloudflare Access skip confirmed.</div></li>

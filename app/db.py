@@ -99,6 +99,60 @@ MIGRATIONS = [
         created_at INTEGER NOT NULL
     );
     """,
+    # 2: sign-in (passkeys, sessions, invites, access tokens)
+    """
+    ALTER TABLE users ADD COLUMN handle BLOB;
+    CREATE TABLE credentials (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        credential_id BLOB NOT NULL UNIQUE,
+        public_key BLOB NOT NULL,
+        sign_count INTEGER NOT NULL DEFAULT 0,
+        name TEXT NOT NULL,
+        transports TEXT,
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER
+    );
+    CREATE TABLE sessions (
+        token_hash TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        credential_pk INTEGER,
+        created_at INTEGER NOT NULL,
+        authenticated_at INTEGER NOT NULL,
+        last_seen_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        user_agent TEXT
+    );
+    CREATE TABLE invites (
+        code_hash TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('setup', 'device', 'user')),
+        user_id INTEGER REFERENCES users(id),
+        role TEXT,
+        name TEXT,
+        created_by INTEGER,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        used_at INTEGER
+    );
+    CREATE TABLE challenges (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        challenge BLOB NOT NULL,
+        invite_hash TEXT,
+        user_handle BLOB,
+        device_name TEXT,
+        expires_at INTEGER NOT NULL
+    );
+    CREATE TABLE api_tokens (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        name TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        revoked_at INTEGER
+    );
+    """,
 ]
 
 
@@ -114,6 +168,15 @@ def connect() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=10000")
     return conn
+
+
+def get_conn():
+    """FastAPI dependency: one connection per request."""
+    conn = connect()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def init() -> None:

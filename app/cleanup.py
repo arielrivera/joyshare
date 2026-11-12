@@ -60,8 +60,18 @@ def check_disk(conn: sqlite3.Connection) -> dict:
     return report
 
 
+def delete_expired_auth(conn: sqlite3.Connection) -> None:
+    """Old sessions, used-up sign-in challenges and expired invite codes."""
+    moment = db.now()
+    conn.execute("DELETE FROM sessions WHERE expires_at<=?", (moment,))
+    conn.execute("DELETE FROM challenges WHERE expires_at<=?", (moment,))
+    conn.execute("DELETE FROM invites WHERE expires_at<=? OR used_at IS NOT NULL AND used_at<=?",
+                 (moment - 86400, moment - 86400))
+
+
 def run(conn: sqlite3.Connection, in_use: set[int] = frozenset()) -> dict:
     removed = delete_expired(conn, in_use)
+    delete_expired_auth(conn)
     delete_stale_tmp()
     disk = check_disk(conn)
     if removed:

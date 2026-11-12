@@ -9,71 +9,156 @@
 </head>
 <body>
   <main>
-    <header>
-      <h1>joy<span>share</span></h1>
-      <p class="tagline">Share the video, not the app.</p>
+    <header class="top">
+      <div>
+        <h1>joy<span>share</span></h1>
+        <p class="tagline">Share the video, not the app.</p>
+      </div>
+      <nav id="nav" hidden>
+        <span id="who" class="muted"></span>
+        <button id="open-devices" type="button" class="quiet">Devices</button>
+        <button id="sign-out" type="button" class="quiet">Sign out</button>
+      </nav>
     </header>
 
-    <form id="lookup" autocomplete="off">
-      <label for="url">Video link</label>
-      <div class="row">
-        <input id="url" name="url" type="url" inputmode="url" required
-               placeholder="Paste a link from X, YouTube, Instagram or Facebook">
-        <button id="lookup-button" type="submit">Look up</button>
+    <!-- Signed out -->
+    <section id="auth" hidden>
+      <div id="signin-box">
+        <h2>Welcome back</h2>
+        <p class="muted">Use the passkey saved on this device: Face ID, Touch ID or your screen lock.</p>
+        <button id="sign-in" type="button">Sign in with a passkey</button>
       </div>
-      <p id="lookup-error" class="error" role="alert" hidden></p>
-    </form>
-
-    <section id="media" hidden aria-live="polite">
-      <div class="media-head">
-        <img id="thumb" alt="" referrerpolicy="no-referrer">
-        <div>
-          <h2 id="title"></h2>
-          <p id="meta" class="muted"></p>
-          <p id="experimental" class="note" hidden>This platform is experimental and hasn't been tested yet.</p>
-        </div>
-      </div>
-
-      <form id="make">
-        <fieldset>
-          <legend>Pick a size</legend>
-          <div id="presets"></div>
-        </fieldset>
-        <button id="make-button" type="submit">Make it</button>
-        <p id="make-error" class="error" role="alert" hidden></p>
+      <p id="auth-error" class="error" role="alert" hidden></p>
+      <form id="join" autocomplete="off">
+        <h2 id="join-title">New device?</h2>
+        <p id="join-help" class="muted">On a device that's already signed in, open Devices and choose "Add a device". Enter the code it shows.</p>
+        <label for="join-code">Code</label>
+        <input id="join-code" type="text" required placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
+        <label for="join-name">Name for this device</label>
+        <input id="join-name" type="text" required maxlength="60">
+        <button type="submit" class="secondary">Register this device</button>
       </form>
     </section>
 
-    <section id="job" hidden aria-live="polite">
-      <p id="stage"></p>
-      <progress id="bar" max="100" value="0"></progress>
-      <button id="cancel" type="button" class="quiet">Cancel</button>
-    </section>
+    <!-- Signed in -->
+    <div id="app" hidden>
+      <form id="lookup" autocomplete="off">
+        <label for="url">Video link</label>
+        <div class="row">
+          <input id="url" name="url" type="url" inputmode="url" required
+                 placeholder="Paste a link from X, YouTube, Instagram or Facebook">
+          <button id="lookup-button" type="submit">Look up</button>
+        </div>
+        <p id="lookup-error" class="error" role="alert" hidden></p>
+      </form>
 
-    <section id="result" hidden aria-live="polite">
-      <h2 id="result-title">Ready</h2>
-      <p id="result-meta" class="muted"></p>
-      <div id="player"></div>
-      <div class="actions">
-        <button id="share" type="button" hidden>Share</button>
-        <a id="download" class="button" href="#">Download</a>
-        <button id="link" type="button" class="secondary">Get a link for friends</button>
-      </div>
-      <p id="share-note" class="muted" hidden></p>
-      <div id="link-box" class="row" hidden>
-        <label for="link-url" class="sr">Share link</label>
-        <input id="link-url" type="text" readonly>
-        <button id="copy" type="button" class="secondary">Copy</button>
-      </div>
-      <p id="link-note" class="muted" hidden></p>
-      <p class="muted">Want it smaller or sharper? Pick another size above and press Make it again.</p>
-    </section>
+      <section id="media" hidden aria-live="polite">
+        <div class="media-head">
+          <img id="thumb" alt="" referrerpolicy="no-referrer">
+          <div>
+            <h2 id="title"></h2>
+            <p id="meta" class="muted"></p>
+            <p id="experimental" class="note" hidden>This platform is experimental and hasn't been tested yet.</p>
+          </div>
+        </div>
 
-    <section id="recent" hidden>
-      <h2>Recent</h2>
-      <ul id="recent-list"></ul>
-    </section>
+        <form id="make">
+          <fieldset>
+            <legend>Pick a size</legend>
+            <div id="presets"></div>
+          </fieldset>
+          <button id="make-button" type="submit">Make it</button>
+          <p id="make-error" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section id="job" hidden aria-live="polite">
+        <p id="stage"></p>
+        <progress id="bar" max="100" value="0"></progress>
+        <button id="cancel" type="button" class="quiet">Cancel</button>
+      </section>
+
+      <section id="result" hidden aria-live="polite">
+        <h2 id="result-title">Ready</h2>
+        <p id="result-meta" class="muted"></p>
+        <div id="player"></div>
+        <div class="actions">
+          <button id="share" type="button" hidden>Share</button>
+          <a id="download" class="button" href="#">Download</a>
+          <button id="link" type="button" class="secondary">Get a link for friends</button>
+        </div>
+        <p id="share-note" class="muted" hidden></p>
+        <div id="link-box" class="row" hidden>
+          <label for="link-url" class="sr">Share link</label>
+          <input id="link-url" type="text" readonly>
+          <button id="copy" type="button" class="secondary">Copy</button>
+        </div>
+        <p id="link-note" class="muted" hidden></p>
+        <p class="muted">Want it smaller or sharper? Pick another size above and press Make it again.</p>
+      </section>
+
+      <section id="recent" hidden>
+        <h2>Recent</h2>
+        <ul id="recent-list"></ul>
+      </section>
+    </div>
+
+    <!-- Devices and people -->
+    <div id="devices" hidden>
+      <button id="close-devices" type="button" class="quiet">← Back</button>
+      <p id="devices-error" class="error" role="alert" hidden></p>
+
+      <section>
+        <h2>Your devices</h2>
+        <p class="muted">Each device signs in with its own passkey. Only these devices can open joyshare as you.</p>
+        <ul id="passkey-list" class="rows"></ul>
+        <button id="add-device" type="button">Add a device</button>
+        <div id="invite-box" hidden>
+          <p id="invite-help"></p>
+          <img id="invite-qr" alt="QR code for the invite link" width="220" height="220">
+          <p>Or type this code: <strong id="invite-code" class="code"></strong></p>
+          <p id="invite-expiry" class="muted"></p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Access tokens</h2>
+        <p class="muted">For the iPhone Shortcut and other scripts. A token can add videos as you, but can't manage devices or people.</p>
+        <ul id="token-list" class="rows"></ul>
+        <form id="token-form" class="row" autocomplete="off">
+          <label for="token-name" class="sr">Token name</label>
+          <input id="token-name" type="text" required maxlength="60" placeholder="Name, for example iPhone Shortcut">
+          <button type="submit" class="secondary">Create token</button>
+        </form>
+        <div id="token-box" hidden>
+          <p class="note">Copy this token now. It is shown only once.</p>
+          <div class="row">
+            <label for="token-value" class="sr">New token</label>
+            <input id="token-value" type="text" readonly>
+            <button id="token-copy" type="button" class="secondary">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="people" hidden>
+        <h2>People</h2>
+        <p class="muted">People you invite get their own account and only see their own videos.</p>
+        <ul id="people-list" class="rows"></ul>
+        <form id="person-form" class="row" autocomplete="off">
+          <label for="person-name" class="sr">Person's name</label>
+          <input id="person-name" type="text" required maxlength="40" placeholder="Name of the person to invite">
+          <button type="submit" class="secondary">Invite</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Sign out everywhere</h2>
+        <p class="muted">Signs you out on every device. Your passkeys keep working, so you can sign back in.</p>
+        <button id="sign-out-all" type="button" class="quiet">Sign out everywhere</button>
+      </section>
+    </div>
   </main>
+  <script src="/auth.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

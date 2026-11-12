@@ -1,13 +1,6 @@
 import pytest
-from fastapi.testclient import TestClient
 
-from app import config, db, main, media, store
-
-
-@pytest.fixture()
-def client(conn):
-    with TestClient(main.app) as c:
-        yield c
+from app import config, media, store
 
 
 FAKE_INFO = {
@@ -27,7 +20,7 @@ def fake_media(monkeypatch):
 
 
 def test_health_and_static(client):
-    assert client.get("/api/health").json()["ok"] is True
+    assert client.get("/api/health").json() == {"ok": True, "worker_alive": False}
     page = client.get("/")
     assert page.status_code == 200 and "joyshare" in page.text
     assert "default-src 'self'" in page.headers["content-security-policy"]

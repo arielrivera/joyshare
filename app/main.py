@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, db, media, platforms, presets, settings, store
+from . import auth, config, db, media, platforms, presets, settings, store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("joyshare.web")
@@ -27,10 +27,14 @@ MAX_QUEUED_PER_USER = 20
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     db.init()
+    with closing(db.connect()) as conn:
+        auth.ensure_setup_code(conn)  # printed in the log until the first device registers
     yield
 
 
 app = FastAPI(title="joyshare", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.include_router(auth.router)
+app.include_router(auth.admin_router)
 
 
 @app.middleware("http")
@@ -47,16 +51,6 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-def get_conn():
-    with closing(db.connect()) as conn:
-        yield conn
-
-
-def current_user() -> int:
-    """Phase 1: one built-in owner. Phase 2 replaces this with passkey sign-in."""
-    return config.DEFAULT_USER_ID
-
-
 # ---------- request bodies ----------
 
 class InspectBody(BaseModel):
@@ -66,6 +60,12 @@ class InspectBody(BaseModel):
 class JobBody(BaseModel):
     media_id: int
     preset: str
+    target_mb: int | None = None
+
+
+class QuickBody(BaseModel):
+    url: str
+    preset: str | None = None
     target_mb: int | None = None
 
 
@@ -160,18 +160,14 @@ def file_response(conn, row, download: bool) -> FileResponse:
 # ---------- API ----------
 
 @app.get("/api/health")
-def health(conn=Depends(get_conn)):
+def health(conn=Depends(db.get_conn)):
+    """Public on purpose (uptime monitors call it), so it says very little."""
     beat, _ = db.get_state(conn, "worker_heartbeat")
-    disk, _ = db.get_state(conn, "disk")
-    return {
-        "ok": True,
-        "worker_alive": bool(beat and db.now() - int(beat) < 90),
-        "disk": json.loads(disk) if disk else None,
-    }
+    return {"ok": True, "worker_alive": bool(beat and db.now() - int(beat) < 90)}
 
 
 @app.get("/api/config")
-def get_config(conn=Depends(get_conn)):
+def get_config(conn=Depends(db.get_conn), _user: int = Depends(auth.current_user)):
     cfg = settings.get_all(conn)
     return {
         "max_file_mb": cfg["max_file_mb"],
@@ -185,11 +181,10 @@ def get_config(conn=Depends(get_conn)):
     }
 
 
-@app.post("/api/inspect")
-def inspect(body: InspectBody, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def do_inspect(conn, user_id: int, raw_url: str) -> dict:
     cfg = settings.get_all(conn)
     try:
-        platform, url = platforms.detect(body.url, cfg["platforms"])
+        platform, url = platforms.detect(raw_url, cfg["platforms"])
         info = media.inspect(url)
     except (platforms.LinkError, media.MediaError) as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -241,17 +236,16 @@ def inspect(body: InspectBody, conn=Depends(get_conn), user_id: int = Depends(cu
     }
 
 
-@app.post("/api/jobs")
-def create_job(body: JobBody, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int | None) -> dict:
     cfg = settings.get_all(conn)
-    if body.preset not in presets.BY_ID:
+    if preset not in presets.BY_ID:
         raise HTTPException(422, "Unknown preset.")
-    item = conn.execute("SELECT * FROM media WHERE id=? AND user_id=?", (body.media_id, user_id)).fetchone()
+    item = conn.execute("SELECT * FROM media WHERE id=? AND user_id=?", (media_id, user_id)).fetchone()
     if not item:
         raise HTTPException(404, "Look up the link again first.")
-    target_mb = None
-    if body.preset == "fit":
-        target_mb = body.target_mb
+    if preset != "fit":
+        target_mb = None
+    else:
         if not target_mb or target_mb < 1 or target_mb > cfg["max_file_mb"]:
             raise HTTPException(422, f"Pick a size between 1 and {cfg['max_file_mb']} MB.")
         try:
@@ -268,13 +262,42 @@ def create_job(body: JobBody, conn=Depends(get_conn), user_id: int = Depends(cur
         raise HTTPException(429, "Too many videos are already in progress. Wait for some to finish.")
     job_id = conn.execute(
         "INSERT INTO jobs (user_id, media_id, preset, target_mb, created_at) VALUES (?,?,?,?,?)",
-        (user_id, body.media_id, body.preset, target_mb, db.now()),
+        (user_id, media_id, preset, target_mb, db.now()),
     ).lastrowid
     return store.job_view(conn, job_id, user_id)
 
 
+@app.post("/api/inspect")
+def inspect(body: InspectBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+    return do_inspect(conn, user_id, body.url)
+
+
+@app.post("/api/jobs")
+def create_job(body: JobBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb)
+
+
+@app.post("/api/quick")
+def quick(body: QuickBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+    """One call for the iOS Shortcut: look up a link and start the suggested preset.
+
+    Returns the job and a page to open, where progress and the Share button appear.
+    """
+    found = do_inspect(conn, user_id, body.url)
+    preset = body.preset
+    if not preset:
+        pick = next((p for p in found["presets"] if p.get("recommended")), None)
+        if not pick:
+            raise HTTPException(422, "No size of this video fits within the limits.")
+        preset = pick["id"]
+    job = do_create_job(conn, user_id, found["media"]["id"], preset, body.target_mb)
+    return {"job": job, "media": found["media"], "page_url": f"{config.PUBLIC_URL}/#job={job['id']}"}
+
+
+
+
 @app.get("/api/jobs")
-def list_jobs(limit: int = 20, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def list_jobs(limit: int = 20, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     rows = conn.execute(
         "SELECT id FROM jobs WHERE user_id=? ORDER BY id DESC LIMIT ?", (user_id, max(1, min(limit, 100)))
     ).fetchall()
@@ -282,7 +305,7 @@ def list_jobs(limit: int = 20, conn=Depends(get_conn), user_id: int = Depends(cu
 
 
 @app.get("/api/jobs/{job_id}")
-def get_job(job_id: int, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def get_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     view = store.job_view(conn, job_id, user_id)
     if not view:
         raise HTTPException(404, "Job not found.")
@@ -290,7 +313,7 @@ def get_job(job_id: int, conn=Depends(get_conn), user_id: int = Depends(current_
 
 
 @app.delete("/api/jobs/{job_id}")
-def cancel_job(job_id: int, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def cancel_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     view = store.job_view(conn, job_id, user_id)
     if not view:
         raise HTTPException(404, "Job not found.")
@@ -302,7 +325,7 @@ def cancel_job(job_id: int, conn=Depends(get_conn), user_id: int = Depends(curre
 
 
 @app.get("/api/jobs/{job_id}/events")
-async def job_events(job_id: int, user_id: int = Depends(current_user)):
+async def job_events(job_id: int, user_id: int = Depends(auth.current_user)):
     """Live progress as Server-Sent Events."""
     def read():
         with closing(db.connect()) as conn:
@@ -336,17 +359,17 @@ async def job_events(job_id: int, user_id: int = Depends(current_user)):
 
 
 @app.get("/api/files/{file_id}/stream")
-def stream_file(file_id: int, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def stream_file(file_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     return file_response(conn, owned_file(conn, file_id, user_id), download=False)
 
 
 @app.get("/api/files/{file_id}/download")
-def download_file(file_id: int, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def download_file(file_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     return file_response(conn, owned_file(conn, file_id, user_id), download=True)
 
 
 @app.post("/api/files/{file_id}/share")
-def share_file(file_id: int, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def share_file(file_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     row = owned_file(conn, file_id, user_id)
     link = conn.execute(
         "SELECT * FROM share_links WHERE file_id=? AND user_id=? AND revoked_at IS NULL AND expires_at>?",
@@ -367,7 +390,7 @@ def share_file(file_id: int, conn=Depends(get_conn), user_id: int = Depends(curr
 
 
 @app.delete("/api/share/{token}")
-def revoke_share(token: str, conn=Depends(get_conn), user_id: int = Depends(current_user)):
+def revoke_share(token: str, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     done = conn.execute(
         "UPDATE share_links SET revoked_at=? WHERE token=? AND user_id=? AND revoked_at IS NULL",
         (db.now(), token, user_id),
@@ -413,7 +436,7 @@ def live_share(conn, token: str):
 
 
 @app.get("/v/{token}", response_class=HTMLResponse)
-def share_page(token: str, conn=Depends(get_conn)):
+def share_page(token: str, conn=Depends(db.get_conn)):
     link, row = live_share(conn, token)
     if not link:
         return share_shell(
@@ -452,7 +475,7 @@ def share_page(token: str, conn=Depends(get_conn)):
 
 
 @app.get("/v/{token}/file")
-def share_file_bytes(token: str, download: int = 0, conn=Depends(get_conn)):
+def share_file_bytes(token: str, download: int = 0, conn=Depends(db.get_conn)):
     link, row = live_share(conn, token)
     if not link:
         raise HTTPException(410, "This video has expired.")

@@ -7,7 +7,7 @@ Ever seen something in your feed you wanted to keep on your own device before it
 
 joyshare is a small private web app you run on your own computer. Paste a link, get a video file you can send anywhere.
 
-> **Status: in development.** The core works on your own computer today: paste a link, pick a size, get a file or a share link. Sign-in, the admin panel, alerts and the 3D progress scenes are still being built, so don't put it on the internet yet.
+> **Status: in development.** The core works on your own computer today: sign in with a passkey, paste a link, pick a size, get a file or a share link. The admin panel, alerts, going live on a domain and the 3D progress scenes are still being built.
 
 ## How it works
 
@@ -50,13 +50,13 @@ git clone https://github.com/arielrivera/joyshare.git
 cd joyshare && docker compose up -d --build
 ```
 
-Then open http://localhost:8080 and paste a link.
+Then open http://localhost:8080, register your device with the setup code from the log, and paste a link.
 
 The full walkthrough is in the [setup guide](docs/SETUP.md).
 
 ## Dig deeper
 
-- **[Setup guide](docs/SETUP.md)**: running it, everyday commands, settings, troubleshooting
+- **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut, troubleshooting
 - **Moving guide** (coming): moving between a cloud server, a Mac mini and a Raspberry Pi, and what changes if you don't use Cloudflare
 - **How it's built**: the project plan (`docs/proposal.html`) and a one-page visual of the process and stack (`docs/infographic.html`)
 

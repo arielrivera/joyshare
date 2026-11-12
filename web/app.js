@@ -1,5 +1,5 @@
-// joyshare phase 1 interface. Plain on purpose: the API is the part that lasts.
-const $ = (id) => document.getElementById(id);
+// The main screen: look up a link, make a file, send it. Plain on purpose for now.
+// $, api(), showError() and fmtWhen() come from auth.js.
 const MB = 1024 * 1024;
 const SHARE_SHEET_MAX = 100 * MB; // bigger files are too heavy to hand to the phone's share sheet
 
@@ -17,24 +17,6 @@ const fmtDuration = (s) => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : `${m}:${String(sec).padStart(2, "0")}`;
 };
-const fmtWhen = (epoch) => new Date(epoch * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-
-async function api(path, options = {}) {
-  const res = await fetch(path, {
-    ...options,
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-  });
-  let data = null;
-  try { data = await res.json(); } catch { /* empty body */ }
-  if (!res.ok) throw new Error((data && data.detail) || "Something went wrong. Try again.");
-  return data;
-}
-
-function showError(el, message) {
-  el.textContent = message || "";
-  el.hidden = !message;
-}
-
 // ---------- look up a link ----------
 
 $("lookup").addEventListener("submit", async (e) => {
@@ -297,4 +279,12 @@ async function loadRecent() {
   $("recent").hidden = jobs.length === 0;
 }
 
-loadRecent();
+// Runs each time someone signs in. A link like /#job=12 (opened by the iPhone Shortcut) jumps to that job.
+document.addEventListener("joyshare:signed-in", () => {
+  loadRecent();
+  const match = location.hash.match(/^#job=(\d+)$/);
+  if (match) {
+    history.replaceState(null, "", location.pathname);
+    watch(Number(match[1]));
+  }
+});
