@@ -1,0 +1,21 @@
+/* The public page a friend sees when opening a share link. */
+:root {
+  --bg: #f4f6f8; --ink: #141a24; --muted: #586374; --accent: #1f4fd8; --accent-ink: #ffffff;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f131a; --ink: #e6eaf1; --muted: #9aa5b6; --accent: #7ea2ff; --accent-ink: #0f131a; }
+}
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(32px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+video { width: 100%; max-height: 75vh; border-radius: 10px; background: #000; }
+audio { width: 100%; }
+h1 { font-size: 22px; line-height: 1.25; margin: 4px 0 0; overflow-wrap: anywhere; }
+p { margin: 0; }
+.credit, .brand { color: var(--muted); font-size: 14px; }
+.brand { margin-top: 16px; }
+.button { display: inline-block; font-weight: 600; text-decoration: none; background: var(--accent);
+  color: var(--accent-ink); border-radius: 8px; padding: 10px 16px; }

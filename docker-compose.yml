@@ -1,0 +1,35 @@
+# joyshare: two containers from one image.
+#   web    - the website and API
+#   worker - downloads, converts, cleans up
+# All data (database + videos) lives in the "joyshare_data" volume.
+
+x-app: &app
+  image: joyshare:dev
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  volumes:
+    - joyshare_data:/data
+
+services:
+  web:
+    <<: *app
+    build: .   # the worker reuses the image built here
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+    ports:
+      # Phase 1 has no sign-in yet, so the site is only reachable from this computer.
+      - "127.0.0.1:${JOYSHARE_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: python -m app.worker
+    stop_grace_period: 30s
+
+volumes:
+  joyshare_data:

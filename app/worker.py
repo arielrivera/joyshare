@@ -1,0 +1,202 @@
+"""The worker: takes queued jobs, downloads and converts, and runs scheduled housekeeping.
+
+Run with:  python -m app.worker
+"""
+import json
+import logging
+import shutil
+import signal
+import threading
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+
+from . import cleanup, config, db, media, presets, settings, store
+
+log = logging.getLogger("joyshare.worker")
+
+CLEANUP_EVERY = 300
+HEARTBEAT_EVERY = 30
+MB = 1024 * 1024
+
+
+class Worker:
+    def __init__(self):
+        self.stop = threading.Event()
+        self.guard = threading.Lock()
+        self.in_use: set[int] = set()          # file ids a running job is reading
+        self.source_locks: dict[tuple, threading.Lock] = {}
+
+    # ---------- main loop ----------
+
+    def main(self) -> None:
+        db.init()
+        conn = db.connect()
+        # Jobs that were running when the worker last stopped start over.
+        conn.execute(
+            "UPDATE jobs SET status='queued', stage=NULL, progress=0, started_at=NULL WHERE status='running'"
+        )
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda *_: self.stop.set())
+        threading.Thread(target=self.scheduler, name="scheduler", daemon=True).start()
+        log.info("Worker ready")
+        active = set()
+        with ThreadPoolExecutor(max_workers=8, thread_name_prefix="job") as pool:
+            while not self.stop.is_set():
+                active = {f for f in active if not f.done()}
+                cfg = settings.get_all(conn)
+                disk, _ = db.get_state(conn, "disk")
+                paused = bool(disk and json.loads(disk).get("level") == "paused")
+                if not paused and len(active) < cfg["max_concurrent_jobs"]:
+                    job_id = self.claim(conn)
+                    if job_id:
+                        active.add(pool.submit(self.run_job, job_id))
+                        continue
+                self.stop.wait(0.5)
+            log.info("Stopping, waiting for running jobs to wind down")
+        conn.close()
+
+    @staticmethod
+    def claim(conn) -> int | None:
+        row = conn.execute(
+            "UPDATE jobs SET status='running', started_at=?, stage='starting', progress=0 "
+            "WHERE id=(SELECT id FROM jobs WHERE status='queued' ORDER BY id LIMIT 1) RETURNING id",
+            (db.now(),),
+        ).fetchone()
+        return row["id"] if row else None
+
+    def scheduler(self) -> None:
+        conn = db.connect()
+        last_cleanup = 0.0
+        while not self.stop.is_set():
+            try:
+                if time.time() - last_cleanup >= CLEANUP_EVERY:
+                    with self.guard:
+                        busy = set(self.in_use)
+                    cleanup.run(conn, busy)
+                    last_cleanup = time.time()
+                db.set_state(conn, "worker_heartbeat", str(db.now()))
+            except Exception:
+                log.exception("Scheduled task failed")
+            self.stop.wait(HEARTBEAT_EVERY)
+
+    # ---------- one job ----------
+
+    def source_lock(self, media_id: int, key: str) -> threading.Lock:
+        with self.guard:
+            return self.source_locks.setdefault((media_id, key), threading.Lock())
+
+    def run_job(self, job_id: int) -> None:
+        conn = db.connect()
+        held: list[int] = []
+        try:
+            job = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            item = conn.execute("SELECT * FROM media WHERE id=?", (job["media_id"],)).fetchone()
+            cfg = settings.get_all(conn)
+            last = {"write": 0.0, "cancel_check": 0.0, "cancel": False}
+
+            def set_stage(stage: str) -> None:
+                conn.execute("UPDATE jobs SET stage=?, progress=0 WHERE id=?", (stage, job_id))
+                last["write"] = 0.0
+
+            def on_progress(fraction: float) -> None:
+                if time.time() - last["write"] >= 0.4:
+                    conn.execute("UPDATE jobs SET progress=? WHERE id=?", (fraction, job_id))
+                    last["write"] = time.time()
+
+            def should_cancel() -> bool:
+                if self.stop.is_set():
+                    return True
+                if time.time() - last["cancel_check"] >= 1.0:
+                    row = conn.execute("SELECT cancel_requested FROM jobs WHERE id=?", (job_id,)).fetchone()
+                    last["cancel"] = bool(row and row["cancel_requested"])
+                    last["cancel_check"] = time.time()
+                return last["cancel"]
+
+            def finish(file_id: int, reused: bool = False) -> None:
+                conn.execute(
+                    "UPDATE jobs SET status='done', stage='done', progress=1, file_id=?, reused=?, "
+                    "finished_at=? WHERE id=?",
+                    (file_id, int(reused), db.now(), job_id),
+                )
+
+            user_id, media_id = job["user_id"], job["media_id"]
+            preset_id, target_mb = job["preset"], job["target_mb"]
+
+            # Same video and preset asked for again: hand back the file we already have.
+            out_key = presets.output_key(preset_id, target_mb)
+            existing = store.find_file(conn, user_id, media_id, "output", out_key)
+            if existing:
+                finish(existing["id"], reused=True)
+                return
+
+            key = presets.source_key(preset_id, target_mb, item["duration"])
+            with self.source_lock(media_id, key):
+                source = store.find_file(conn, user_id, media_id, "source", key)
+                if source:
+                    source_id = source["id"]
+                    source_path = store.abs_path(source)
+                else:
+                    set_stage("downloading")
+                    tmp = config.TMP_DIR / uuid.uuid4().hex
+                    try:
+                        got = media.download(item["url"], key, tmp, cfg["max_source_mb"] * MB,
+                                             on_progress, should_cancel)
+                        source_path = config.SOURCES_DIR / f"{uuid.uuid4().hex}{got.suffix}"
+                        shutil.move(got, source_path)
+                    finally:
+                        shutil.rmtree(tmp, ignore_errors=True)
+                    source_id = store.add_file(
+                        conn, user_id=user_id, media_id=media_id, kind="source", key=key,
+                        path=source_path, ttl_seconds=cfg["source_ttl_min"] * 60,
+                    )
+                with self.guard:
+                    self.in_use.add(source_id)
+                held.append(source_id)
+
+            set_stage("converting")
+            out = media.convert(source_path, config.OUTPUTS_DIR, preset_id, target_mb,
+                                on_progress, should_cancel)
+            size = out.stat().st_size
+            if size > cfg["max_file_mb"] * MB:
+                out.unlink(missing_ok=True)
+                raise media.MediaError(
+                    f"The finished file is {size / MB:.0f} MB, over the {cfg['max_file_mb']} MB limit. "
+                    "Use Fit a size to shrink it."
+                )
+            file_id = store.add_file(
+                conn, user_id=user_id, media_id=media_id, kind="output", key=out_key, path=out,
+                ttl_seconds=cfg["output_ttl_hours"] * 3600, meta=media.probe(out),
+            )
+            finish(file_id)
+            log.info("Job %s done: %s, %.1f MB", job_id, preset_id, size / MB)
+        except media.Canceled:
+            if self.stop.is_set():
+                conn.execute("UPDATE jobs SET status='queued', stage=NULL, progress=0 WHERE id=?", (job_id,))
+            else:
+                conn.execute(
+                    "UPDATE jobs SET status='canceled', stage=NULL, finished_at=? WHERE id=?",
+                    (db.now(), job_id),
+                )
+        except (media.MediaError, presets.PresetError) as exc:
+            self.fail(conn, job_id, str(exc))
+        except Exception:
+            log.exception("Job %s crashed", job_id)
+            self.fail(conn, job_id, "Something went wrong on the server. The details are in the server log.")
+        finally:
+            with self.guard:
+                self.in_use.difference_update(held)
+            conn.close()
+
+    @staticmethod
+    def fail(conn, job_id: int, message: str) -> None:
+        log.warning("Job %s failed: %s", job_id, message)
+        conn.execute(
+            "UPDATE jobs SET status='failed', error=?, finished_at=? WHERE id=?",
+            (message, db.now(), job_id),
+        )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    Worker().main()

@@ -1,0 +1,194 @@
+<title>Joyshare at a Glance</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: poster-style vertical stack of four bands (process, where things run, delivery modes, retention to scale, stack by layer). Same tokens as the proposal page. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #141a24; --muted: #586374; --line: #dde2ea;
+  --accent: #1f4fd8; --accent-soft: #e6ecfc;
+  --cf: #c25e00; --cf-soft: #fcefe0;
+  --home: #1d7a4c; --home-soft: #e3f3ea;
+  --do: #0b6fa8; --do-soft: #e2f1fa;
+  --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f131a; --surface: #161c26; --ink: #e6eaf1; --muted: #9aa5b6; --line: #273041;
+  --accent: #7ea2ff; --accent-soft: #1b2645; --cf: #f5a356; --cf-soft: #2e2113;
+  --home: #5fd39a; --home-soft: #14291f; --do: #6cc2f0; --do-soft: #11283a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f131a; --surface: #161c26; --ink: #e6eaf1; --muted: #9aa5b6; --line: #273041;
+  --accent: #7ea2ff; --accent-soft: #1b2645; --cf: #f5a356; --cf-soft: #2e2113;
+  --home: #5fd39a; --home-soft: #14291f; --do: #6cc2f0; --do-soft: #11283a; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page { max-width: 1100px; margin: 0 auto; padding-block: 40px 72px; display: grid; gap: 52px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 16px; }
+h1 { font: 700 clamp(36px, 6vw, 56px)/1 var(--font-display); letter-spacing: -.02em; margin: 0; }
+h1 span { color: var(--accent); }
+.lede { color: var(--muted); font-size: 17px; max-width: 60ch; margin: 0; }
+h2 { font: 700 24px/1.15 var(--font-display); margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+.mono { font-family: var(--font-mono); font-size: .86em; }
+
+/* Process strip */
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; position: relative; }
+.step { position: relative; padding: 0 14px 0 0; display: grid; gap: 8px; align-content: start; }
+.dot { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--surface); font: 700 18px/44px var(--font-display); text-align: center; position: relative; z-index: 1; }
+.step:not(:last-child)::after { content: ""; position: absolute; top: 21px; left: 44px; right: 0; height: 2px; background: var(--accent); opacity: .35; }
+.step h3 { margin: 4px 0 0; font: 600 16px/1.25 var(--font-body); }
+.step p { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* Where things run */
+.places { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.place { min-width: 0; border-radius: 12px; padding: 16px; border: 1.5px solid var(--line); background: var(--surface); display: grid; gap: 10px; align-content: start; }
+.place .tag { font: 500 11px/1 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; }
+.place h3 { margin: 0; font: 700 19px/1.15 var(--font-display); }
+.place ul { margin: 0; padding-left: 18px; font-size: 14px; }
+.place li { margin-bottom: 3px; }
+.home { border-color: var(--home); } .home .tag { color: var(--home); }
+.cf { border-color: var(--cf); } .cf .tag { color: var(--cf); }
+.do { border-color: var(--do); } .do .tag { color: var(--do); }
+.you { border-color: var(--accent); } .you .tag { color: var(--accent); }
+
+/* Delivery modes */
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.mode { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+.mode h3 { margin: 0; font: 600 16px/1.3 var(--font-body); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { font: 500 11px/1 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.chip.live { background: var(--home-soft); color: var(--home); }
+.path { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; }
+.node { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+.node.cf { border-color: var(--cf); background: var(--cf-soft); }
+.node.home { border-color: var(--home); background: var(--home-soft); }
+.arrow { color: var(--muted); font-family: var(--font-mono); }
+.mode .label { font: 500 11px/1 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.mode p { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* Retention scale */
+.scale { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 8px; overflow-x: auto; }
+.scale-inner { min-width: 560px; display: grid; gap: 12px; }
+.row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; font-size: 14px; }
+.track { position: relative; height: 18px; background: var(--bg); border-radius: 4px; }
+.bar { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; }
+.bar.orig { width: 2.08%; min-width: 4px; background: var(--cf); }
+.bar.out { width: 100%; background: var(--accent); opacity: .85; }
+.bar.link { width: 100%; background: var(--home); opacity: .85; }
+.bar.meta { width: 100%; background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 10px); opacity: .5; }
+.ticks { position: relative; height: 28px; margin-left: 184px; font: 500 11.5px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ticks span { position: absolute; top: 6px; transform: translateX(-50%); white-space: nowrap; }
+.ticks span::before { content: ""; position: absolute; left: 50%; top: -8px; height: 6px; width: 1px; background: var(--muted); }
+.ticks span:first-child { transform: none; } .ticks span:first-child::before { left: 0; }
+.ticks span:last-child { transform: translateX(-100%); } .ticks span:last-child::before { left: auto; right: 0; }
+.note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+
+/* Stack by layer */
+.layers { display: grid; gap: 8px; }
+.layer { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.layer b { font: 600 13px/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pills span { padding: 5px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; }
+
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer a { color: var(--accent); }
+
+@media (max-width: 860px) {
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .step { grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; padding: 0; }
+  .step .dot { grid-row: span 2; }
+  .step h3 { margin: 0; align-self: end; }
+  .step:not(:last-child)::after { top: 44px; bottom: -16px; left: 21px; right: auto; width: 2px; height: auto; }
+  .places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modes { grid-template-columns: minmax(0, 1fr); }
+  .layer { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+@media (max-width: 520px) { .places { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow"><span>Infographic v3</span><span>Updated 12 Nov 2026</span></div>
+    <h1>joy<span>share</span> at a glance</h1>
+    <p class="lede">How a video link becomes something you can send, where each part runs, and how long everything is kept.</p>
+  </header>
+
+  <section aria-labelledby="h-process">
+    <h2 id="h-process">The process</h2>
+    <p class="sub">What happens from the moment you paste a link.</p>
+    <div class="steps">
+      <div class="step"><div class="dot">1</div><h3>Paste or share</h3><p>A link from X, YouTube, Instagram or Facebook. Home-screen app or iOS Shortcut. Face ID unlocks it.</p></div>
+      <div class="step"><div class="dot">2</div><h3>Inspect</h3><p>yt-dlp reads title, author and length, then estimates size per preset. Over 200 MB is refused.</p></div>
+      <div class="step"><div class="dot">3</div><h3>Process</h3><p>The worker downloads and, only if needed, converts to H.264 MP4 or M4A audio. A 3D scene shows live progress.</p></div>
+      <div class="step"><div class="dot">4</div><h3>Adjust</h3><p>See the real size. Make it smaller or sharper from the cached original.</p></div>
+      <div class="step"><div class="dot">5</div><h3>Send</h3><p>Share sheet to WhatsApp or iMessage, Download, or a 48-hour link for friends.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-places">
+    <h2 id="h-places">Where things run</h2>
+    <p class="sub">The app lives at home. Cloudflare is the front door. A small cloud server watches from outside.</p>
+    <div class="places">
+      <div class="place you"><span class="tag">Your devices</span><h3>iPhone, Mac, any browser</h3><ul><li>Home-screen app (PWA)</li><li>Passkey sign-in</li><li>ntfy app for alerts</li></ul></div>
+      <div class="place cf"><span class="tag">Cloudflare</span><h3>Front door and storage</h3><ul><li>Your domain and DNS</li><li>Tunnel to the Mac mini</li><li>R2 bucket for shared videos</li><li>Optional Access lock</li></ul></div>
+      <div class="place home"><span class="tag">Home</span><h3>Mac mini</h3><ul><li>Docker: web + admin, worker, cloudflared</li><li>SQLite + media in one data volume</li><li>Scheduler: cleanup, disk checks, yt-dlp updates</li></ul></div>
+      <div class="place do"><span class="tag">DigitalOcean</span><h3>Uptime Kuma</h3><ul><li>Checks the site every minute</li><li>Waits for the worker heartbeat</li><li>Alerts through ntfy if home goes quiet</li></ul></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-modes">
+    <h2 id="h-modes">How a share link delivers the video</h2>
+    <p class="sub">The link and the viewer page are the same in both modes. Only where the video file comes from changes. It's one setting.</p>
+    <div class="modes">
+      <div class="mode">
+        <h3>Mode A: from the server <span class="chip">Built first, local testing</span></h3>
+        <div class="label">Page and video</div>
+        <div class="path"><span class="node">Phone</span><span class="arrow">→</span><span class="node home">Mac mini disk</span></div>
+        <p>Used while developing on your laptop and on your home network. Simple, nothing extra to set up.</p>
+      </div>
+      <div class="mode">
+        <h3>Mode B: from R2 <span class="chip live">On when it goes live</span></h3>
+        <div class="label">Viewer page</div>
+        <div class="path"><span class="node">Phone</span><span class="arrow">→</span><span class="node cf">Cloudflare</span><span class="arrow">→</span><span class="node cf">Tunnel</span><span class="arrow">→</span><span class="node home">Mac mini</span></div>
+        <div class="label">Video file</div>
+        <div class="path"><span class="node">Phone</span><span class="arrow">→</span><span class="node cf">R2 signed link</span></div>
+        <p>Video never passes through Cloudflare's regular proxy, so it stays inside their terms, and your home upload isn't used when friends watch.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-retention">
+    <h2 id="h-retention">How long things are kept</h2>
+    <p class="sub">Drawn to scale over 48 hours.</p>
+    <div class="scale">
+      <div class="scale-inner">
+        <div class="row"><span>Downloaded original</span><div class="track"><div class="bar orig" title="1 hour"></div></div></div>
+        <div class="row"><span>Finished MP4</span><div class="track"><div class="bar out" title="48 hours"></div></div></div>
+        <div class="row"><span>Share link</span><div class="track"><div class="bar link" title="48 hours"></div></div></div>
+        <div class="row"><span>Video details and logs</span><div class="track"><div class="bar meta" title="Kept"></div></div></div>
+        <div class="ticks" aria-hidden="true"><span style="left:0">0 h</span><span style="left:2.08%">1 h</span><span style="left:25%">12 h</span><span style="left:50%">24 h</span><span style="left:75%">36 h</span><span style="left:100%">48 h</span></div>
+      </div>
+      <p class="note">Disk alert at 90% full. New jobs pause at 95%. Video details and logs are kept beyond 48 hours.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-stack">
+    <h2 id="h-stack">The stack, by layer</h2>
+    <div class="layers">
+      <div class="layer"><b>Interface</b><div class="pills"><span>SvelteKit (static)</span><span>Three.js progress scenes</span><span>PWA</span><span>SSE progress</span></div></div>
+      <div class="layer"><b>Sign-in</b><div class="pills"><span>Passkeys</span><span>Admin and member roles</span><span>Device QR invites</span><span>Shortcut tokens</span><span>Cloudflare Access (optional)</span></div></div>
+      <div class="layer"><b>Admin</b><div class="pills"><span>Stats and logs</span><span>Limits</span><span>Storage switch</span><span>Users and devices</span><span>yt-dlp updates</span></div></div>
+      <div class="layer"><b>App</b><div class="pills"><span>Python + FastAPI</span><span>Worker process</span><span>yt-dlp</span><span>ffmpeg</span></div></div>
+      <div class="layer"><b>Data</b><div class="pills"><span>SQLite (WAL)</span><span>Docker data volume</span><span>Cloudflare R2</span></div></div>
+      <div class="layer"><b>Network</b><div class="pills"><span>Cloudflare DNS</span><span>Cloudflare Tunnel</span></div></div>
+      <div class="layer"><b>Run</b><div class="pills"><span>Docker Compose</span><span>Mac mini</span><span>Works on Ubuntu or Pi</span></div></div>
+      <div class="layer"><b>Watch</b><div class="pills"><span>ntfy alerts</span><span>Uptime Kuma on DigitalOcean</span><span>Nightly backup to R2</span></div></div>
+    </div>
+  </section>
+
+  <footer>Companion to the <a href="https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya">joyshare proposal</a>. Updated whenever the plan changes.</footer>
+</div>

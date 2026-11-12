@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>joyshare</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>joy<span>share</span></h1>
+      <p class="tagline">Share the video, not the app.</p>
+    </header>
+
+    <form id="lookup" autocomplete="off">
+      <label for="url">Video link</label>
+      <div class="row">
+        <input id="url" name="url" type="url" inputmode="url" required
+               placeholder="Paste a link from X, YouTube, Instagram or Facebook">
+        <button id="lookup-button" type="submit">Look up</button>
+      </div>
+      <p id="lookup-error" class="error" role="alert" hidden></p>
+    </form>
+
+    <section id="media" hidden aria-live="polite">
+      <div class="media-head">
+        <img id="thumb" alt="" referrerpolicy="no-referrer">
+        <div>
+          <h2 id="title"></h2>
+          <p id="meta" class="muted"></p>
+          <p id="experimental" class="note" hidden>This platform is experimental and hasn't been tested yet.</p>
+        </div>
+      </div>
+
+      <form id="make">
+        <fieldset>
+          <legend>Pick a size</legend>
+          <div id="presets"></div>
+        </fieldset>
+        <button id="make-button" type="submit">Make it</button>
+        <p id="make-error" class="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section id="job" hidden aria-live="polite">
+      <p id="stage"></p>
+      <progress id="bar" max="100" value="0"></progress>
+      <button id="cancel" type="button" class="quiet">Cancel</button>
+    </section>
+
+    <section id="result" hidden aria-live="polite">
+      <h2 id="result-title">Ready</h2>
+      <p id="result-meta" class="muted"></p>
+      <div id="player"></div>
+      <div class="actions">
+        <button id="share" type="button" hidden>Share</button>
+        <a id="download" class="button" href="#">Download</a>
+        <button id="link" type="button" class="secondary">Get a link for friends</button>
+      </div>
+      <p id="share-note" class="muted" hidden></p>
+      <div id="link-box" class="row" hidden>
+        <label for="link-url" class="sr">Share link</label>
+        <input id="link-url" type="text" readonly>
+        <button id="copy" type="button" class="secondary">Copy</button>
+      </div>
+      <p id="link-note" class="muted" hidden></p>
+      <p class="muted">Want it smaller or sharper? Pick another size above and press Make it again.</p>
+    </section>
+
+    <section id="recent" hidden>
+      <h2>Recent</h2>
+      <ul id="recent-list"></ul>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

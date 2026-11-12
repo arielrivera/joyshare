@@ -1,0 +1,7 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+# Deliberately unpinned: platforms change often and yt-dlp must stay current.
+yt-dlp[default]
+# Tests
+pytest>=8,<10
+httpx>=0.27,<1
