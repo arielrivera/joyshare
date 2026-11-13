@@ -78,6 +78,7 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 | People | Invite a person, or turn a person off and on. |
 | Limits | Biggest file, longest video, how long things are kept, disk alert levels, which platforms are allowed. Changes apply right away. |
 | Alerts | Where alerts go and which ones you want. |
+| System | The yt-dlp version in use, checking for updates, going back a version, and the daily platform checks. |
 | Activity log | Sign-in problems and every change to devices, people, links and settings. |
 
 ### Turn on alerts
@@ -167,7 +168,7 @@ Two containers run from the same image:
 
 ## What works today
 
-- X (Twitter) and YouTube: tested.
+- X (Twitter), YouTube and TikTok: tested. TikTok refuses some videos depending on where your server is.
 - Instagram and Facebook: built in, marked experimental, **not tested yet**. Many of their videos need a signed-in account, which arrives with Connected accounts.
 - Presets: best quality, 720p, 480p, fit under a size, audio only.
 - Share links that expire after 48 hours.
@@ -199,14 +200,10 @@ The platform wants a login for that video. This is solved by Connected accounts 
 **"No video was found at that link"**
 The post may have no video, or it was deleted. Open the link in a browser to check.
 
-**YouTube suddenly stops working**
-Platforms change often and yt-dlp releases fixes quickly. Rebuild to pick up the newest version:
+**A platform suddenly stops working**
+Platforms change often and yt-dlp releases fixes quickly. joyshare checks for a new yt-dlp once a day, tests it, and switches to it by itself. To check right away, open **Admin panel → System** and press **Check for updates now**. If an update made things worse, **Go back to version …** on the same tab undoes it.
 
-```bash
-docker compose build --no-cache && docker compose up -d
-```
-
-Phase 3 makes this automatic.
+The System tab also shows the daily platform checks: one known video per platform is looked up every day, and you get an alert when one stops working.
 
 **A job sits at "Waiting in line"**
 The worker isn't running. Check `docker compose logs worker`.

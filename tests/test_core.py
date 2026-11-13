@@ -14,6 +14,8 @@ MB = 1024 * 1024
     ("youtu.be/jNQXAC9IVRw", "youtube"),
     ("https://www.youtube.com/watch?v=jNQXAC9IVRw", "youtube"),
     ("https://m.youtube.com/shorts/abc", "youtube"),
+    ("https://www.tiktok.com/@someone/video/7059698374567611694", "tiktok"),
+    ("https://vm.tiktok.com/ZMabc123/", "tiktok"),
     ("https://www.instagram.com/reel/abc/", "instagram"),
     ("https://fb.watch/abc/", "facebook"),
     ("https://www.facebook.com/watch/?v=1", "facebook"),

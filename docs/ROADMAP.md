@@ -51,7 +51,8 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 ### 3a. Alerts and admin settings (server) — done, no screen yet
 - [x] `app/notify.py`: alerts through ntfy (`ntfy_url`, `ntfy_topic`, `ntfy_token` settings), in the admin's language. A failed alert never breaks a job.
 - [x] Events, each switchable: video ready, job failed, disk 90%, disk 95% (jobs paused), new device, repeated failed sign-ins, test.
-- [ ] Events still to add with their features: platform blocking, yt-dlp updated / update failed, backup failed, nightly platform check failed.
+- [x] Added with 3c: yt-dlp updated, yt-dlp update failed, platform stopped working in the daily check.
+- [ ] Events still to add with their features: backup failed.
 - [x] Disk alert repeats at most every 6 hours.
 - [x] Admin API in `app/admin.py` under `/api/admin`: `overview`, `settings` (read and change, validated), `alerts/test`, `jobs`, `share-links` (list and revoke), `audit`. Admin only; changes need a recent passkey check and go in the audit log. The ntfy token is never sent back.
 - [x] "Pause new jobs" setting (`paused`).
@@ -63,15 +64,24 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] Limits tab edits: max file size, max length, videos at once, how long originals / files / links are kept, disk alert levels, biggest download, platforms on or off.
 - [x] "Pause new videos" button on Overview.
 - [x] Alerts tab: ntfy topic, server address, token (never shown again once saved), a switch per event, "Save and send a test alert".
-- [ ] Storage, Platforms and System tabs: built together with 3c–3f.
+- [x] System tab (yt-dlp updates and platform checks).
+- [ ] Storage and Platforms tabs: built together with 3d–3f.
 - [ ] Activity log shows details as raw text; make them readable sentences.
 - [ ] "Fit a size" target list (`fit_targets_mb`) has no field yet.
 - [ ] Checked in the browser at phone width in the Comic look only. Look at it in the other looks, especially Windows 95 and Clay.
 
-### 3c. Keeping yt-dlp current
-- [ ] Daily check in the worker's scheduler; install the new version into the data volume (no image rebuild); worker finishes its job, restarts, runs a test lookup; roll back and alert if it fails.
-- [ ] System page: current and latest version, "Update now", auto-update on or off.
-- [ ] Nightly test lookup of one known video per platform; alert when one breaks.
+### 3c. Keeping yt-dlp current — done
+- [x] `app/engine.py`: daily check in the worker's scheduler. A newer version is installed into the data volume (`/data/ytdlp/<version>`, no image rebuild), test-run on a known video, then `/data/ytdlp/current` is pointed at it. A version that fails its test (while the current one passes) is removed and an alert goes out.
+- [x] Both containers notice the change and restart themselves (`app/__init__.py` puts the chosen folder first on the import path). Proven for real: install, switch, restart, switch back.
+- [x] System tab: version in use, newest known, last checked, "Check for updates now", automatic on or off, "Go back to version X" after an update.
+- [x] Daily lookup of one known video per platform (`canary_urls` setting, YouTube and X for now); alert only when a platform newly breaks; "Test platforms now" button.
+- [ ] The test-video addresses can't be edited in the panel yet, and TikTok, Instagram and Facebook have none.
+- [ ] Not yet seen: a real newer release arriving (the installed version was already the newest).
+
+### 3c-bis. A second engine, in case yt-dlp itself stops working (not started, owner to decide)
+- [ ] First fallback, small: let the updater switch to yt-dlp's nightly builds when the stable one is broken.
+- [ ] Second fallback, bigger: a self-hosted **cobalt** container (open source, covers X, YouTube, TikTok, Instagram, Facebook) called when yt-dlp fails for a link. `gallery-dl` is a lighter option for X and Instagram only.
+- [ ] Design note: `app/media.py` is the only file that talks to yt-dlp, so a second engine means one more implementation of `inspect` and `download` there.
 
 ### 3d. Connected accounts (cookies)
 - [ ] Per person, per platform, under Settings → Connected accounts. Stored encrypted (key from `.env`), removable, never shared, never visible to the admin in the app.
@@ -107,7 +117,7 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 
 ## Not yet tested
 - A passkey on a phone, the iPhone share sheet and the Shortcut (all need the https address).
-- Facebook links. Instagram worked once for the owner.
+- Facebook links. Instagram worked once for the owner. TikTok: one public video downloaded and converted fine; another was refused by TikTok for this network address.
 - Real expiry after 1 hour and 48 hours (covered by automated tests only).
 - The Devices screen and the finished-file step in every look.
 

@@ -20,6 +20,12 @@ PLATFORMS = {
         "extractors": ["youtube.*"],
         "experimental": False,
     },
+    "tiktok": {
+        "label": "TikTok",
+        "hosts": {"tiktok.com", "vm.tiktok.com", "vt.tiktok.com"},
+        "extractors": ["tiktok", r"vm\.tiktok"],
+        "experimental": False,
+    },
     "instagram": {
         "label": "Instagram",
         "hosts": {"instagram.com"},
@@ -68,7 +74,7 @@ def detect(url: str, enabled: list[str] | None = None) -> tuple[str, str]:
                 raise LinkError(T("{platform} is turned off on this server.", platform=spec["label"]))
             clean = parts._replace(scheme="https", fragment="").geturl()
             return platform, clean
-    raise LinkError("joyshare works with links from X, YouTube, Instagram and Facebook.")
+    raise LinkError("joyshare works with links from X, YouTube, TikTok, Instagram and Facebook.")
 
 
 def allowed_extractors() -> list[str]:

@@ -112,7 +112,7 @@ footer a { color: var(--accent); }
 
 <div class="page">
   <header>
-    <div class="eyebrow"><span>Infographic v3</span><span>Updated 12 Nov 2026</span></div>
+    <div class="eyebrow"><span>Infographic v4</span><span>Updated 12 Nov 2026</span></div>
     <h1>joy<span>share</span> at a glance</h1>
     <p class="lede">How a video link becomes something you can send, where each part runs, and how long everything is kept.</p>
   </header>
@@ -121,7 +121,7 @@ footer a { color: var(--accent); }
     <h2 id="h-process">The process</h2>
     <p class="sub">What happens from the moment you paste a link.</p>
     <div class="steps">
-      <div class="step"><div class="dot">1</div><h3>Paste or share</h3><p>A link from X, YouTube, Instagram or Facebook. Home-screen app or iOS Shortcut. Face ID unlocks it.</p></div>
+      <div class="step"><div class="dot">1</div><h3>Paste or share</h3><p>A link from X, YouTube, TikTok, Instagram or Facebook. Home-screen app or iOS Shortcut. Face ID unlocks it.</p></div>
       <div class="step"><div class="dot">2</div><h3>Inspect</h3><p>yt-dlp reads title, author and length, then estimates size per preset. Over 200 MB is refused.</p></div>
       <div class="step"><div class="dot">3</div><h3>Process</h3><p>The worker downloads and, only if needed, converts to H.264 MP4 or M4A audio. A 3D scene shows live progress.</p></div>
       <div class="step"><div class="dot">4</div><h3>Adjust</h3><p>See the real size. Make it smaller or sharper from the cached original.</p></div>
@@ -135,7 +135,7 @@ footer a { color: var(--accent); }
     <div class="places">
       <div class="place you"><span class="tag">Your devices</span><h3>iPhone, Mac, any browser</h3><ul><li>Home-screen app (PWA)</li><li>Passkey sign-in</li><li>ntfy app for alerts</li></ul></div>
       <div class="place cf"><span class="tag">Cloudflare</span><h3>Front door and storage</h3><ul><li>Your domain and DNS</li><li>Tunnel to the Mac mini</li><li>R2 bucket for shared videos</li><li>Optional Access lock</li></ul></div>
-      <div class="place home"><span class="tag">Home</span><h3>Mac mini</h3><ul><li>Docker: web + admin, worker, cloudflared</li><li>SQLite + media in one data volume</li><li>Scheduler: cleanup, disk checks, yt-dlp updates</li></ul></div>
+      <div class="place home"><span class="tag">Home</span><h3>Mac mini</h3><ul><li>Docker: web + admin, worker, cloudflared</li><li>SQLite + media in one data volume</li><li>Scheduler: cleanup, disk checks, daily yt-dlp update and platform checks</li></ul></div>
       <div class="place do"><span class="tag">DigitalOcean</span><h3>Uptime Kuma</h3><ul><li>Checks the site every minute</li><li>Waits for the worker heartbeat</li><li>Alerts through ntfy if home goes quiet</li></ul></div>
     </div>
   </section>

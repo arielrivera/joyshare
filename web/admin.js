@@ -253,9 +253,64 @@ async function loadLog() {
   }));
 }
 
+// ---------- System: keeping yt-dlp current, nightly platform checks ----------
+
+let systemTimer = null;
+
+async function loadSystem() {
+  clearTimeout(systemTimer);
+  const data = await api("/api/admin/system");
+  const y = data.ytdlp;
+  const busy = y.status === "checking" || y.restart_pending;
+  $("sys-tiles").replaceChildren(
+    tile(t("sys.inUse"), y.version),
+    tile(t("sys.newest"), y.latest || "—"),
+    tile(t("sys.lastChecked"), y.checked_at ? fmtWhen(y.checked_at) : t("sys.never")),
+  );
+  const message = y.restart_pending ? t("sys.restarting") : (y.status === "checking" ? t("sys.working") : y.message);
+  $("sys-message").textContent = message || "";
+  $("sys-message").hidden = !message;
+  $("sys-auto").checked = y.auto_update;
+  $("sys-update").disabled = busy;
+  $("sys-rollback").hidden = !y.can_roll_back || busy;
+  $("sys-rollback").textContent = t("sys.rollback", { version: y.previous_version || "" });
+
+  $("sys-checks").replaceChildren(...data.platform_checks.map((check) => {
+    const li = row(check.label, `${check.ok ? t("sys.works") : t("sys.broken")} · ${fmtWhen(check.at)}`);
+    if (!check.ok && check.error) {
+      const why = document.createElement("span");
+      why.className = "bad";
+      why.textContent = check.error;
+      li.firstChild.append(document.createElement("br"), why);
+    }
+    return li;
+  }));
+  $("sys-checks-empty").hidden = data.platform_checks.length > 0;
+  $("sys-test-platforms").disabled = data.checking_platforms;
+
+  // While the worker is busy, keep looking until it's done.
+  if (busy || data.checking_platforms) {
+    systemTimer = setTimeout(() => {
+      if (adminTab === "system" && !$("admin").hidden) loadSystem().catch(() => { systemTimer = setTimeout(loadSystem, 5000); });
+    }, 4000);
+  }
+}
+
+async function systemAction(action) {
+  await api("/api/admin/system", { method: "POST", body: JSON.stringify({ action }) });
+  await loadSystem();
+}
+
+$("sys-update").addEventListener("click", () => adminAct(() => systemAction("update")));
+$("sys-rollback").addEventListener("click", () => adminAct(() => systemAction("rollback")));
+$("sys-test-platforms").addEventListener("click", () => adminAct(() => systemAction("platforms")));
+$("sys-auto").addEventListener("change", () => adminAct(async () => {
+  await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { ytdlp_auto_update: $("sys-auto").checked } }) });
+}, t("adm.saved")));
+
 const ADMIN_LOADERS = {
   overview: loadOverview, videos: loadAdminJobs, links: loadAdminLinks, people: loadPeople,
-  limits: loadLimits, alerts: loadAlerts, log: loadLog,
+  limits: loadLimits, alerts: loadAlerts, system: loadSystem, log: loadLog,
 };
 
 // ---------- opening and closing ----------

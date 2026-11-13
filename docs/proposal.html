@@ -133,7 +133,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v5.6</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v5.7</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -295,6 +295,7 @@ flowchart LR
         <thead><tr><th>Platform</th><th>Phase</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td>X (Twitter)</td><td>1</td><td>Most used. Videos are usually already H.264 MP4, so most presets need no re-encode. Public posts work without login. Sensitive or protected posts need your cookies.</td></tr>
+          <tr><td>TikTok</td><td>Added</td><td>Works for public videos. Usually already H.264 MP4. TikTok refuses some videos by region.</td></tr>
           <tr><td>YouTube</td><td>1</td><td>Best quality is often VP9 or AV1, so we choose MP4 streams or convert them. The platform most likely to block data-center IPs.</td></tr>
           <tr><td>Instagram</td><td>1, untested</td><td>Built in phase 1 and labeled "experimental" until tested. Usually needs cookies.</td></tr>
           <tr><td>Facebook</td><td>1, untested</td><td>Built in phase 1 and labeled "experimental" until tested. Public videos mostly work. Others need cookies.</td></tr>
@@ -615,6 +616,7 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>12 Nov 2026</time><div>v5.7. TikTok added and tested with a real video. yt-dlp now keeps itself current: a daily check, a test of the new version before it is used, automatic restart, and a "go back" button, all on a new System tab. A daily lookup of one known video per platform alerts when one breaks. 80 automated tests. A second engine in case yt-dlp itself fails (cobalt or gallery-dl) is noted in the roadmap as an open decision.</div></li>
         <li><time>12 Nov 2026</time><div>v5.6. The admin panel has its first seven tabs: Overview (with the pause button), Videos, Share links, People, Limits, Alerts and Activity log, in English and Spanish. Storage, Platforms and System tabs come with automatic updates, cloud storage and backups.</div></li>
         <li><time>12 Nov 2026</time><div>v5.5. Three more looks built: Windows 95, Comic and Vaporwave. Phase 3 started with its server side: alerts through ntfy (video ready, failed, disk 90% and 95%, new device, repeated failed sign-ins), an admin API for numbers, settings, jobs, share links and the audit log, and a "pause new jobs" setting. No admin screen yet. A hand-off roadmap of everything left is in <code>docs/ROADMAP.md</code>. 68 automated tests.</div></li>
         <li><time>12 Nov 2026</time><div>v5.4. Two more looks are built and switchable: Zine (paper, ink, red marker, typewriter text) and Clay (puffy pastel shapes). Each look brings its own lettering. A second round of sketches, including Windows 95, is in <code>docs/design/look-options-2.html</code>.</div></li>

@@ -210,6 +210,7 @@
         <button type="button" class="chip" data-tab="people" data-i18n="ppl.title"></button>
         <button type="button" class="chip" data-tab="limits" data-i18n="adm.tab.limits"></button>
         <button type="button" class="chip" data-tab="alerts" data-i18n="adm.tab.alerts"></button>
+        <button type="button" class="chip" data-tab="system" data-i18n="adm.tab.system"></button>
         <button type="button" class="chip" data-tab="log" data-i18n="adm.tab.log"></button>
       </div>
       <p id="admin-error" class="error" role="alert" hidden></p>
@@ -298,6 +299,28 @@
             <button id="adm-clear-token" type="button" class="quiet" data-i18n="adm.clearToken" hidden></button>
           </div>
         </form>
+      </section>
+
+      <section class="card" data-pane="system" hidden>
+        <h2 data-i18n="adm.tab.system"></h2>
+        <p class="label">yt-dlp</p>
+        <p class="muted" data-i18n="sys.help"></p>
+        <div id="sys-tiles" class="tiles"></div>
+        <p id="sys-message" class="note" hidden></p>
+        <div class="checks">
+          <label for="sys-auto"><input id="sys-auto" type="checkbox"><span data-i18n="sys.auto"></span></label>
+        </div>
+        <div class="actions">
+          <button id="sys-update" type="button" data-i18n="sys.updateNow"></button>
+          <button id="sys-rollback" type="button" class="quiet" hidden></button>
+        </div>
+        <p class="label" data-i18n="sys.platformChecks"></p>
+        <p class="muted" data-i18n="sys.platformHelp"></p>
+        <ul id="sys-checks" class="rows"></ul>
+        <p id="sys-checks-empty" class="muted" data-i18n="sys.noChecks" hidden></p>
+        <div class="actions">
+          <button id="sys-test-platforms" type="button" class="secondary" data-i18n="sys.testNow"></button>
+        </div>
       </section>
 
       <section class="card" data-pane="log" hidden>

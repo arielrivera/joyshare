@@ -2,7 +2,7 @@
 
 **Share the video, not the app.**
 
-Ever wanted to send a friend a video, but they don't have an account on X, Instagram or wherever you found it?
+Ever wanted to send a friend a video, but they don't have an account on X, TikTok, Instagram or wherever you found it?
 Ever seen something in your feed you wanted to keep on your own device before it disappears?
 
 joyshare is a small private web app you run on your own computer. Paste a link, get a video file you can send anywhere.
@@ -11,7 +11,7 @@ joyshare is a small private web app you run on your own computer. Paste a link, 
 
 ## How it works
 
-1. **Paste a link** from X (Twitter), YouTube, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
+1. **Paste a link** from X (Twitter), YouTube, TikTok, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
 2. **Pick a size.** joyshare shows how big the file will be before you commit: original, 720p, 480p, "fit under 25 MB", or audio only.
 3. **Watch something fun** while it works. Progress is shown as a random 3D scene, not a boring bar.
 4. **Send it.** Share it to WhatsApp or iMessage, download it, or copy a link your friend can open in any browser. No account needed on their side.

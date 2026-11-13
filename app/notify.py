@@ -20,6 +20,9 @@ EVENTS = {
     "disk_paused": ("urgent", "rotating_light"),
     "new_device": ("high", "iphone"),
     "failed_signins": ("high", "lock"),
+    "ytdlp_updated": ("low", "arrows_counterclockwise"),
+    "ytdlp_failed": ("high", "warning"),
+    "platform_check_failed": ("high", "no_entry"),
     "test": ("default", "wave"),
 }
 PRIORITY = {"low": 2, "default": 3, "high": 4, "urgent": 5}

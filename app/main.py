@@ -7,7 +7,9 @@ import html
 import json
 import logging
 import mimetypes
+import os
 import secrets
+import signal
 from contextlib import asynccontextmanager, closing
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -16,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import admin, auth, config, db, i18n, media, platforms, presets, settings, store
+from . import admin, auth, config, db, engine, i18n, media, platforms, presets, settings, store
 from .i18n import T
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -34,7 +36,19 @@ async def lifespan(_app: FastAPI):
     db.init()
     with closing(db.connect()) as conn:
         auth.ensure_setup_code(conn)  # printed in the log until the first device registers
+
+    async def reload_when_ytdlp_changes():
+        # The worker installs yt-dlp updates. When one is ready, stop cleanly; Docker starts us again with it.
+        while True:
+            await asyncio.sleep(20)
+            if engine.needs_restart():
+                log.info("Restarting to load the updated yt-dlp")
+                os.kill(os.getpid(), signal.SIGTERM)
+                return
+
+    watcher = asyncio.create_task(reload_when_ytdlp_changes())
     yield
+    watcher.cancel()
 
 
 app = FastAPI(title="joyshare", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)

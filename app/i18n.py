@@ -63,8 +63,8 @@ ES = {
     "That doesn't look like a web link.": "Eso no parece un enlace web.",
     "That doesn't look like a normal video link.": "Eso no parece un enlace de video normal.",
     "{platform} is turned off on this server.": "{platform} está desactivado en este servidor.",
-    "joyshare works with links from X, YouTube, Instagram and Facebook.":
-        "Funciona con enlaces de X, YouTube, Instagram y Facebook.",
+    "joyshare works with links from X, YouTube, TikTok, Instagram and Facebook.":
+        "Funciona con enlaces de X, YouTube, TikTok, Instagram y Facebook.",
 
     # ---- reading and downloading ----
     "The platform only shows this video to signed-in accounts. Connecting your account is coming in a later version.":
@@ -187,6 +187,20 @@ ES = {
         "{count} intentos fallidos desde {ip}. Esa dirección ahora tiene que esperar.",
     "New device added": "Dispositivo nuevo añadido",
     "{device} was registered for {person}.": "{device} se registró para {person}.",
+
+    # ---- keeping yt-dlp current ----
+    "Checking for a newer version…": "Buscando una versión más nueva…",
+    "You have the newest version.": "Tienes la versión más nueva.",
+    "Version {new} failed its test, so {old} stays in use.": "La versión {new} falló su prueba, así que se sigue usando la {old}.",
+    "Updated from {old} to {new}. Restarting to load it.": "Actualizado de {old} a {new}. Reiniciando para cargarla.",
+    "The update check failed: {reason}": "Falló la búsqueda de actualizaciones: {reason}",
+    "Went back to version {old}. Restarting to load it.": "Se volvió a la versión {old}. Reiniciando para cargarla.",
+    "yt-dlp update failed": "Falló la actualización de yt-dlp",
+    "yt-dlp updated": "yt-dlp actualizado",
+    "{old} → {new}": "{old} → {new}",
+    "{platform} stopped working": "{platform} dejó de funcionar",
+    "The nightly test video failed: {reason}": "Falló el video de prueba nocturno: {reason}",
+    "Unknown action.": "Acción desconocida.",
 
     # ---- the page friends see ----
     "This video has expired": "Este video ha caducado",

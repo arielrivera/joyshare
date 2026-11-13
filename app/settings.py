@@ -17,7 +17,7 @@ DEFAULTS = {
     "link_ttl_hours": 48,        # how long share links work
     "disk_warn_pct": 90,
     "disk_pause_pct": 95,
-    "platforms": ["x", "youtube", "instagram", "facebook"],
+    "platforms": ["x", "youtube", "tiktok", "instagram", "facebook"],
     "fit_targets_mb": [8, 16, 25, 50, 100],
     "paused": False,             # the admin's "pause new jobs" switch
     # Alerts through ntfy. No topic means alerts are off.
@@ -25,7 +25,15 @@ DEFAULTS = {
     "ntfy_topic": "",
     "ntfy_token": "",
     "alerts": {"job_done": True, "job_failed": True, "disk_warn": True, "disk_paused": True,
-               "new_device": True, "failed_signins": True},
+               "new_device": True, "failed_signins": True, "ytdlp_updated": True, "ytdlp_failed": True,
+               "platform_check_failed": True},
+    # yt-dlp is checked for updates once a day. See app/engine.py.
+    "ytdlp_auto_update": True,
+    # One known, long-lived public video per platform, looked up once a day to notice breakage early.
+    "canary_urls": {
+        "youtube": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+        "x": "https://x.com/BrooklynNets/status/1349794411333394432",
+    },
 }
 
 

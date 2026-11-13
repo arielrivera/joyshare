@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from . import auth, db, i18n, notify, platforms, settings, store
+from . import auth, db, engine, i18n, notify, platforms, settings, store
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -52,7 +52,7 @@ def check_setting(key: str, value, merged: dict):
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
             raise HTTPException(422, T("{key} must be a whole number from {low} to {high}.", key=key, low=low, high=high))
         return value
-    if key == "paused":
+    if key in ("paused", "ytdlp_auto_update"):
         if not isinstance(value, bool):
             raise HTTPException(422, T("Unknown setting: {key}", key=key))
         return value
@@ -163,6 +163,49 @@ def audit_log(limit: int = 100, _admin: auth.Auth = Depends(auth.admin_auth), co
         "LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT ?", (max(1, min(limit, 500)),)
     ).fetchall()
     return [dict(row) for row in rows]
+
+
+@router.get("/system")
+def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.get_conn)):
+    lang = i18n.pick_lang(request)
+    state = engine.read_state(conn)
+    asked, _ = db.get_state(conn, "engine_request")
+    raw, _ = db.get_state(conn, "canary")
+    checks = json.loads(raw) if raw else {}
+    return {
+        "ytdlp": {
+            "version": engine.loaded_version(),
+            "latest": state.get("latest"),
+            "status": "checking" if asked in ("update", "rollback") else state.get("status"),
+            "message": i18n.unpack(state.get("message"), lang),
+            "checked_at": state.get("checked_at"),
+            "updated_at": state.get("updated_at"),
+            "can_roll_back": state.get("status") == "updated" and "previous" in state,
+            "previous_version": state.get("previous_version"),
+            "restart_pending": engine.needs_restart(),
+            "auto_update": settings.get(conn, "ytdlp_auto_update"),
+        },
+        "platform_checks": [
+            {"platform": name, "label": platforms.PLATFORMS[name]["label"] if name in platforms.PLATFORMS else name,
+             "ok": result["ok"], "at": result["at"], "error": i18n.unpack(result.get("error"), lang)}
+            for name, result in checks.items()
+        ],
+        "checking_platforms": asked == "platforms",
+    }
+
+
+class SystemAction(BaseModel):
+    action: str   # "update", "rollback" or "platforms"
+
+
+@router.post("/system")
+def system_action(body: SystemAction, admin: auth.Auth = Depends(changing_admin), conn=Depends(db.get_conn)):
+    """Leaves a note for the worker, which does the work within half a minute."""
+    if body.action not in ("update", "rollback", "platforms"):
+        raise HTTPException(422, "Unknown action.")
+    db.set_state(conn, "engine_request", body.action)
+    db.audit(conn, admin.user_id, f"system.{body.action}", None)
+    return {"ok": True}
 
 
 # ---------- changing ----------

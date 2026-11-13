@@ -11,7 +11,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cleanup, config, db, i18n, media, notify, presets, settings, store
+from . import cleanup, config, db, engine, i18n, media, notify, presets, settings, store
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -48,6 +48,13 @@ class Worker:
                 cfg = settings.get_all(conn)
                 disk, _ = db.get_state(conn, "disk")
                 paused = bool(disk and json.loads(disk).get("level") == "paused")
+                if engine.needs_restart():
+                    # A new yt-dlp is installed. Let running jobs finish, then stop; Docker starts us again.
+                    if not active:
+                        log.info("Restarting to load the updated yt-dlp")
+                        break
+                    self.stop.wait(0.5)
+                    continue
                 if not paused and len(active) < cfg["max_concurrent_jobs"]:
                     job_id = self.claim(conn)
                     if job_id:
@@ -77,9 +84,23 @@ class Worker:
                     cleanup.run(conn, busy)
                     last_cleanup = time.time()
                 db.set_state(conn, "worker_heartbeat", str(db.now()))
+                self.engine_tasks(conn)
             except Exception:
                 log.exception("Scheduled task failed")
             self.stop.wait(HEARTBEAT_EVERY)
+
+    @staticmethod
+    def engine_tasks(conn) -> None:
+        """Daily yt-dlp update and platform check, plus anything the admin asked for from the System tab."""
+        asked, _ = db.get_state(conn, "engine_request")
+        if asked:
+            db.set_state(conn, "engine_request", "")
+        if asked == "rollback":
+            engine.roll_back(conn)
+        elif asked == "update" or engine.due(conn):
+            engine.check_and_update(conn)
+        if asked == "platforms" or (not engine.needs_restart() and engine.platforms_due(conn)):
+            engine.check_platforms(conn)
 
     # ---------- one job ----------
 

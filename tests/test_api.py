@@ -29,7 +29,7 @@ def test_health_and_static(client):
 def test_inspect_rejects_unknown_site(client):
     res = client.post("/api/inspect", json={"url": "https://example.com/video"})
     assert res.status_code == 422
-    assert "X, YouTube" in res.json()["detail"]
+    assert "X, YouTube, TikTok" in res.json()["detail"]
 
 
 def test_inspect_marks_oversized_presets(client, fake_media):
