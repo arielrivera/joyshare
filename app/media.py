@@ -23,6 +23,8 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 class MediaError(Exception):
     """Something went wrong that the user should hear about. The message is shown as is."""
 
+    needs_login = False  # True when the platform wanted a signed-in account
+
 
 class Canceled(Exception):
     pass
@@ -60,13 +62,23 @@ def _ydl_opts(extra: dict | None = None) -> dict:
     return opts
 
 
+def wants_login(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(w in text for w in ("sign in", "log in", "login", "cookies", "authentication", "age-restricted"))
+
+
+def as_media_error(exc: Exception) -> MediaError:
+    error = MediaError(friendly_error(exc))
+    error.needs_login = wants_login(exc)
+    return error
+
+
 def friendly_error(exc: Exception) -> str:
     """Turn a yt-dlp error into one plain sentence."""
     raw = _ANSI.sub("", str(exc)).replace("ERROR: ", "").strip()
     text = raw.lower()
-    if any(w in text for w in ("sign in", "log in", "login", "cookies", "authentication", "age-restricted")):
-        return ("The platform only shows this video to signed-in accounts. "
-                "Connecting your account is coming in a later version.")  # one string: it is a lookup key
+    if wants_login(exc):
+        return "The platform only shows this video to signed-in accounts."
     if "private" in text:
         return "This video is private."
     if "unsupported url" in text or "no suitable extractor" in text:
@@ -80,13 +92,13 @@ def friendly_error(exc: Exception) -> str:
 
 # ---------- reading a link ----------
 
-def inspect(url: str) -> dict:
+def inspect(url: str, cookiefile: Path | None = None) -> dict:
     """Ask the platform about a link without downloading anything."""
-    with YoutubeDL(_ydl_opts()) as ydl:
+    with YoutubeDL(_ydl_opts({"cookiefile": str(cookiefile)} if cookiefile else None)) as ydl:
         try:
             info = ydl.extract_info(url, download=False)
         except DownloadError as exc:
-            raise MediaError(friendly_error(exc)) from exc
+            raise as_media_error(exc) from exc
         if info and info.get("_type") in ("playlist", "multi_video"):
             entries = [e for e in (info.get("entries") or []) if e]
             info = entries[0] if entries else None
@@ -144,7 +156,8 @@ def estimate(info: dict, key: str) -> dict | None:
 
 # ---------- downloading ----------
 
-def download(url: str, key: str, dest_dir: Path, max_bytes: int, on_progress, should_cancel) -> Path:
+def download(url: str, key: str, dest_dir: Path, max_bytes: int, on_progress, should_cancel,
+             cookiefile: Path | None = None) -> Path:
     """Download the streams for a source key into dest_dir. Returns the file."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     seen = {"finished": 0, "finished_bytes": 0}
@@ -183,6 +196,7 @@ def download(url: str, key: str, dest_dir: Path, max_bytes: int, on_progress, sh
         "merge_output_format": "mkv",
         "progress_hooks": [hook],
         "overwrites": True,
+        **({"cookiefile": str(cookiefile)} if cookiefile else {}),
     })
     try:
         with YoutubeDL(opts) as ydl:
@@ -194,7 +208,7 @@ def download(url: str, key: str, dest_dir: Path, max_bytes: int, on_progress, sh
         if problem.get("canceled") or isinstance(exc, Canceled):
             raise Canceled() from exc
         if isinstance(exc, DownloadError):
-            raise MediaError(friendly_error(exc)) from exc
+            raise as_media_error(exc) from exc
         raise
     files = [p for p in dest_dir.glob("source.*") if p.suffix not in (".part", ".ytdl")]
     if not files:

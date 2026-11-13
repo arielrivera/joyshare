@@ -66,6 +66,26 @@ The code works once and lasts 10 minutes.
 
 Admins open **Admin panel → People** from the ☰ menu. Type a name and press **Invite**, then have that person scan the QR code on their own device. They get their own account as a *member*: they only see their own videos and can't invite others. You can turn a person off (and back on) from the same list.
 
+## Connected accounts
+
+Some videos are only shown to signed-in accounts: most of Instagram, and age-restricted or sensitive posts elsewhere. When that happens joyshare says so and points you here.
+
+Open **☰ → Connected accounts**. For each platform you can upload a cookie file from a browser where you're signed in to that platform.
+
+1. On a computer, add a browser extension that exports cookies in the "cookies.txt" format.
+2. Sign in to the platform in that browser. A spare account is safer than your main one.
+3. On the platform's site, export its cookies to a file with the extension.
+4. In joyshare, press **Upload cookie file** next to that platform.
+
+What happens to the file:
+
+- Only that platform's cookies are kept. Everything else in the file is thrown away.
+- They are stored encrypted, used only for your own videos, and never shown to anyone, including the admin.
+- They are used only when the platform asks for a sign-in. Public videos are fetched without them.
+- **Remove** deletes them. If a platform stops accepting them, the screen says so and you upload a fresh file.
+
+For stronger protection, set `JOYSHARE_SECRET` in `.env` to a long random text before anyone uploads a file. Without it, joyshare creates a key and keeps it in the data volume. Changing the secret later means everyone uploads their files again.
+
 ## Admin panel
 
 Admins see **Admin panel** in the ☰ menu. Changing anything there asks for your passkey again if the last check was more than 10 minutes ago.
@@ -141,6 +161,7 @@ Copy `.env.example` to `.env` to change these. All are optional.
 | `JOYSHARE_PORT` | The port on your computer | `8080` |
 | `JOYSHARE_PUBLIC_URL` | The address people use to reach joyshare. Share links and passkeys are tied to it. | `http://localhost:8080` |
 | `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `joyshare` |
+| `JOYSHARE_SECRET` | Long random text used to encrypt connected accounts | made automatically |
 | `JOYSHARE_BIND` | Who can reach joyshare directly. `127.0.0.1` means only this computer. | `127.0.0.1` |
 
 Limits such as the 200 MB maximum, how long files are kept (originals 1 hour, finished files and share links 48 hours) and the disk alert levels are changed in **Admin panel → Limits**.
@@ -169,7 +190,7 @@ Two containers run from the same image:
 ## What works today
 
 - X (Twitter), YouTube and TikTok: tested. TikTok refuses some videos depending on where your server is.
-- Instagram and Facebook: built in, marked experimental, **not tested yet**. Many of their videos need a signed-in account, which arrives with Connected accounts.
+- Instagram and Facebook: built in, marked experimental. Many of their videos need a signed-in account: see Connected accounts.
 - Presets: best quality, 720p, 480p, fit under a size, audio only.
 - Share links that expire after 48 hours.
 - Sign-in with passkeys, extra devices by QR code, member accounts, access tokens.
@@ -194,8 +215,11 @@ Docker isn't running. Open Docker Desktop and wait for it to finish starting, th
 **The page doesn't load**
 Run `docker compose ps`. Both `web` and `worker` should say "Up". If not, `docker compose logs web` shows why. If port 8080 is taken by another app, set `JOYSHARE_PORT=8081` in `.env` and start again.
 
-**"The platform only shows this video to signed-in accounts"**
-The platform wants a login for that video. This is solved by Connected accounts in a later phase.
+**"… only shows this video to signed-in accounts"**
+The platform wants a login for that video. Connect an account for that platform under **☰ → Connected accounts**.
+
+**"… didn't accept your connected account"**
+The cookies expired or the platform signed that browser out. Export a fresh cookie file and upload it again.
 
 **"No video was found at that link"**
 The post may have no video, or it was deleted. Open the link in a browser to check.

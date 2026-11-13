@@ -67,8 +67,19 @@ ES = {
         "Funciona con enlaces de X, YouTube, TikTok, Instagram y Facebook.",
 
     # ---- reading and downloading ----
-    "The platform only shows this video to signed-in accounts. Connecting your account is coming in a later version.":
-        "La plataforma solo muestra este video a cuentas con sesión iniciada. Conectar tu cuenta llegará en una próxima versión.",
+    "The platform only shows this video to signed-in accounts.":
+        "La plataforma solo muestra este video a cuentas con sesión iniciada.",
+    "{platform} only shows this video to signed-in accounts. Connect your account under Connected accounts in the menu.":
+        "{platform} solo muestra este video a cuentas con sesión iniciada. Conecta tu cuenta en Cuentas conectadas, en el menú.",
+    "{platform} didn't accept your connected account. Upload a fresh cookie file under Connected accounts.":
+        "{platform} no aceptó tu cuenta conectada. Sube un archivo de cookies nuevo en Cuentas conectadas.",
+    "That file is too big to be a cookie file.": "Ese archivo es demasiado grande para ser un archivo de cookies.",
+    "No {platform} cookies were found in that file. Export it in the cookies.txt format while signed in to {platform}.":
+        "No se encontraron cookies de {platform} en ese archivo. Expórtalo en formato cookies.txt con la sesión iniciada en {platform}.",
+    "Unknown platform.": "Plataforma desconocida.",
+    "That account isn't connected.": "Esa cuenta no está conectada.",
+    "A connected account stopped working": "Una cuenta conectada dejó de funcionar",
+    "{platform} no longer accepts the account {person} connected.": "{platform} ya no acepta la cuenta que conectó {person}.",
     "This video is private.": "Este video es privado.",
     "That link doesn't point to a video joyshare can read.": "Ese enlace no lleva a un video que se pueda leer.",
     "No video was found at that link. It may have been removed, or the post has no video.":

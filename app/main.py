@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import admin, auth, config, db, engine, i18n, media, platforms, presets, settings, store
+from . import account, admin, auth, config, cookies, db, engine, i18n, media, platforms, presets, settings, store
 from .i18n import T
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -55,6 +55,7 @@ app = FastAPI(title="joyshare", lifespan=lifespan, docs_url=None, redoc_url=None
 app.include_router(auth.router)
 app.include_router(auth.admin_router)
 app.include_router(admin.router)
+app.include_router(account.router)
 
 
 @app.middleware("http")
@@ -217,7 +218,10 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
     cfg = settings.get_all(conn)
     try:
         platform, url = platforms.detect(raw_url, cfg["platforms"])
-        info = media.inspect(url)
+        # Try without the person's connected account first; bring it in only if the platform asks for a sign-in.
+        info, used_account = cookies.with_login(
+            conn, user_id, platform,
+            lambda cookie_file: media.inspect(url) if cookie_file is None else media.inspect(url, cookiefile=cookie_file))
     except (platforms.LinkError, media.MediaError) as exc:
         raise HTTPException(422, exc.args[0]) from exc
 
@@ -250,6 +254,8 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (*fields, user_id, source_id, db.now()),
         ).lastrowid
+
+    conn.execute("UPDATE media SET needs_login=? WHERE id=?", (int(used_account), media_id))
 
     return {
         "media": {

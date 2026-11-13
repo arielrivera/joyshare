@@ -119,7 +119,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); overflow-x: hidden;
 main { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; display: grid; gap: 18px;
   padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
            max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-#app, #devices, #admin, #stage { display: grid; gap: 22px; }
+#app, #devices, #admin, #accounts, #stage { display: grid; gap: 22px; }
 #stage:not(:has(> section:not([hidden]))) { display: none; }
 
 /* ---------- top ---------- */
@@ -239,6 +239,13 @@ ul.rows li > span:first-child { min-width: 0; overflow-wrap: anywhere; flex: 1 1
 .code { font-size: 18px; }
 #invite-box, #token-box, .invite { display: grid; gap: 8px; justify-items: start; }
 #invite-qr, .qr { background: #fff; border-radius: 12px; border: 2px solid var(--edge); }
+
+/* ---------- connected accounts ---------- */
+dl.explain { margin: 0; display: grid; gap: 10px; }
+dl.explain dt { font-weight: 700; }
+dl.explain dd { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+#accounts-list .actions { flex: none; }
 
 /* ---------- admin panel ---------- */
 .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: thin; }

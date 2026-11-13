@@ -26,6 +26,7 @@
           <div id="menu-panel" class="menu-panel" hidden>
             <p id="who" class="muted"></p>
             <button id="open-devices" type="button" class="quiet" data-i18n="nav.devices"></button>
+            <button id="open-accounts" type="button" class="quiet" data-i18n="acc.title"></button>
             <button id="open-admin" type="button" class="quiet" data-i18n="nav.adminPanel" hidden></button>
             <button id="sign-out" type="button" class="quiet" data-i18n="nav.signout"></button>
           </div>
@@ -200,6 +201,40 @@
         <button id="sign-out-all" type="button" class="quiet" data-i18n="out.title"></button>
       </section>
     </div>
+    <!-- Connected accounts: each person's own cookie files -->
+    <div id="accounts" hidden>
+      <button id="close-accounts" type="button" class="quiet" data-i18n="dev.back"></button>
+      <p id="accounts-error" class="error" role="alert" hidden></p>
+      <p id="accounts-ok" class="note" role="status" hidden></p>
+
+      <section class="card">
+        <h2 data-i18n="acc.title"></h2>
+        <p class="muted" data-i18n="acc.optional"></p>
+        <ul id="accounts-list" class="rows"></ul>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="acc.aboutTitle"></h2>
+        <dl class="explain">
+          <div><dt data-i18n="acc.whyQ"></dt><dd data-i18n="acc.whyA"></dd></div>
+          <div><dt data-i18n="acc.whoQ"></dt><dd data-i18n="acc.whoA"></dd></div>
+          <div><dt data-i18n="acc.skipQ"></dt><dd data-i18n="acc.skipA"></dd></div>
+          <div><dt data-i18n="acc.tipQ"></dt><dd data-i18n="acc.tipA"></dd></div>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="acc.howTitle"></h2>
+        <ol class="steps">
+          <li data-i18n="acc.how1"></li>
+          <li data-i18n="acc.how2"></li>
+          <li data-i18n="acc.how3"></li>
+          <li data-i18n="acc.how4"></li>
+        </ol>
+        <p class="muted" data-i18n="acc.howNote"></p>
+      </section>
+    </div>
+
     <!-- Admin panel (admins only) -->
     <div id="admin" hidden>
       <button id="close-admin" type="button" class="quiet" data-i18n="dev.back"></button>
@@ -333,5 +368,6 @@
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
   <script src="/admin.js"></script>
+  <script src="/accounts.js"></script>
 </body>
 </html>

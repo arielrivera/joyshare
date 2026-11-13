@@ -83,11 +83,16 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] Second fallback, bigger: a self-hosted **cobalt** container (open source, covers X, YouTube, TikTok, Instagram, Facebook) called when yt-dlp fails for a link. `gallery-dl` is a lighter option for X and Instagram only.
 - [ ] Design note: `app/media.py` is the only file that talks to yt-dlp, so a second engine means one more implementation of `inspect` and `download` there.
 
-### 3d. Connected accounts (cookies)
-- [ ] Per person, per platform, under Settings → Connected accounts. Stored encrypted (key from `.env`), removable, never shared, never visible to the admin in the app.
-- [ ] Worker passes the job owner's cookie file to yt-dlp for that platform only. Reuse of finished files stays per person (already true).
-- [ ] The page must explain in plain words: why connect, that only you use it, what happens if you skip it, and the tip to use a second account. Wording is in the project plan, section "Connected accounts".
-- [ ] Alert the person when a platform stops accepting their cookies.
+### 3d. Connected accounts (cookies) — done
+- [x] Per person, per platform, on the "Connected accounts" screen in the ☰ menu (`web/accounts.js`, `app/account.py`, `app/cookies.py`). Passkey sign-in only, not access tokens.
+- [x] Only that platform's cookies are kept from the uploaded file; the rest is discarded. Stored encrypted (`app/secretbox.py`, key from `JOYSHARE_SECRET` or a generated key in the data volume). Never sent back out, not to the admin either.
+- [x] Used only when the platform asks for a sign-in: lookups and downloads try without it first (`cookies.with_login`). The video then remembers it needs the account (`media.needs_login`).
+- [x] The screen explains why, who can use it, what happens if you skip it, the second-account tip and how to get the file, in both languages.
+- [x] A platform refusing a connected account marks it "rejected" on the screen and alerts once.
+- [ ] That alert goes to the admin's ntfy topic. When people get their own topics, send it to the person instead.
+- [ ] How-to has text steps only. Add pictures per browser.
+- [ ] Not yet tried with a real signed-in cookie file against a real sign-in wall (tests fake the wall; a real lookup and download with a harmless cookie file worked).
+- [ ] Optional proxy setting per platform (was planned for a Platforms tab).
 
 ### 3e. Storage switch (Cloudflare R2)
 - [ ] `STORAGE` setting: `local` (today) or `r2`. Worker uploads finished files to R2; pages hand out signed R2 links that last about an hour; the share page itself still expires after 48 hours.

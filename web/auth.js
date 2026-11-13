@@ -144,7 +144,7 @@ function paintAuthText() {
 
 // The signed-in screens: the main app, Devices, and the admin panel. Only one shows.
 function showScreen(name) {
-  for (const id of ["app", "devices", "admin"]) $(id).hidden = id !== name;
+  for (const id of ["app", "devices", "admin", "accounts"]) $(id).hidden = id !== name;
 }
 
 function showSignedOut() {

@@ -11,7 +11,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cleanup, config, db, engine, i18n, media, notify, presets, settings, store
+from . import cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, store
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -162,8 +162,14 @@ class Worker:
                     set_stage("downloading")
                     tmp = config.TMP_DIR / uuid.uuid4().hex
                     try:
-                        got = media.download(item["url"], key, tmp, cfg["max_source_mb"] * MB,
-                                             on_progress, should_cancel)
+                        def fetch(cookie_file):
+                            extra = {"cookiefile": cookie_file} if cookie_file else {}
+                            return media.download(item["url"], key, tmp, cfg["max_source_mb"] * MB,
+                                                  on_progress, should_cancel, **extra)
+
+                        # The owner's connected account is used only if this video needs a sign-in.
+                        got, _ = cookies.with_login(conn, user_id, item["platform"], fetch,
+                                                    prefer=bool(item["needs_login"]))
                         source_path = config.SOURCES_DIR / f"{uuid.uuid4().hex}{got.suffix}"
                         shutil.move(got, source_path)
                     finally:

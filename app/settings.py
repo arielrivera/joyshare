@@ -26,7 +26,7 @@ DEFAULTS = {
     "ntfy_token": "",
     "alerts": {"job_done": True, "job_failed": True, "disk_warn": True, "disk_paused": True,
                "new_device": True, "failed_signins": True, "ytdlp_updated": True, "ytdlp_failed": True,
-               "platform_check_failed": True},
+               "platform_check_failed": True, "cookies_rejected": True},
     # yt-dlp is checked for updates once a day. See app/engine.py.
     "ytdlp_auto_update": True,
     # One known, long-lived public video per platform, looked up once a day to notice breakage early.

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app import auth, config, db, main  # noqa: E402
 
 TABLES = ("share_links", "jobs", "files", "media", "settings", "state", "audit_log",
-          "sessions", "credentials", "invites", "challenges", "api_tokens")
+          "sessions", "credentials", "invites", "challenges", "api_tokens", "cookies")
 
 
 @pytest.fixture()

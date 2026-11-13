@@ -157,6 +157,20 @@ MIGRATIONS = [
     """
     ALTER TABLE users ADD COLUMN prefs TEXT;
     """,
+    # 4: connected accounts (each person's own cookie file per platform, encrypted)
+    """
+    CREATE TABLE cookies (
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        platform TEXT NOT NULL,
+        data BLOB NOT NULL,
+        cookie_count INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'ok',
+        updated_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        PRIMARY KEY (user_id, platform)
+    );
+    ALTER TABLE media ADD COLUMN needs_login INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 
