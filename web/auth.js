@@ -5,6 +5,7 @@ const fmtWhen = (epoch) => new Date(epoch * 1000).toLocaleString(LANG, { dateSty
 
 let me = null;          // { id, name, role } once signed in
 let firstRun = false;   // true until the very first device is registered
+let joining = false;    // true when the page was opened from an invite link or QR code
 
 // ---------- talking to the server ----------
 
@@ -135,9 +136,19 @@ function guessDeviceName() {
 }
 
 function paintAuthText() {
+  // Three situations, and in each one the thing to do next is the big button at the top:
+  //   first run: only the setup form;  invite link: register first, sign-in small below;  otherwise: sign in first.
+  const registerFirst = firstRun || joining;
   $("signin-box").hidden = firstRun;
-  $("join-title").textContent = firstRun ? t("join.titleSetup", { name: brandName() }) : t("join.titleNew");
-  $("join-help").textContent = firstRun ? t("join.helpSetup") : t("join.helpNew");
+  $("auth").classList.toggle("joining", joining && !firstRun);
+  $("signin-title").textContent = joining ? t("auth.already") : t("auth.welcome");
+  $("signin-help").textContent = joining ? t("auth.alreadyHelp") : t("auth.welcomeHelp");
+  $("sign-in").className = joining ? "quiet" : "";
+  $("join-submit").className = registerFirst ? "big" : "secondary";
+  $("join-cancel").hidden = !joining || firstRun;
+  $("join-title").textContent = firstRun ? t("join.titleSetup", { name: brandName() })
+    : (joining ? t("join.titleInvite") : t("join.titleNew"));
+  $("join-help").textContent = firstRun ? t("join.helpSetup") : (joining ? t("join.helpInvite") : t("join.helpNew"));
   if (me) $("who").textContent = me.role === "admin" ? `${me.name} · ${t("nav.admin")}` : me.name;
   $("open-admin").hidden = !me || me.role !== "admin";
 }
@@ -152,12 +163,18 @@ function showSignedOut() {
   showScreen(null);
   $("nav").hidden = true;
   $("auth").hidden = false;
-  paintAuthText();
   if (!$("join-name").value) $("join-name").value = guessDeviceName();
   const match = location.hash.match(/^#join=([A-Za-z0-9-]+)$/);
   if (match) {
+    // Opened from an invite: the code is already in, so the only thing left is to name the device and register.
+    joining = true;
     $("join-code").value = match[1];
     history.replaceState(null, "", location.pathname);
+  }
+  paintAuthText();
+  if (joining) {
+    $("join-name").focus();
+    $("join-name").select();
   }
 }
 
@@ -190,9 +207,17 @@ $("join").addEventListener("submit", async (e) => {
   try {
     await passkeyRegister($("join-code").value, $("join-name").value);
     $("join-code").value = "";
+    joining = false;
     await enter();
   } catch (err) {
     showError($("auth-error"), passkeyProblem(err));
+    // Already has a passkey here: the next step is signing in, so make that the main button again.
+    if (err && err.name === "InvalidStateError") {
+      joining = false;
+      $("join-code").value = "";
+      paintAuthText();
+      $("sign-in").focus();
+    }
   }
 });
 
@@ -266,6 +291,17 @@ function showInvite(invite, help, prefix = "invite") {
   $(`${prefix}-help`).textContent = help;
   $(`${prefix}-qr`).src = invite.qr;
   $(`${prefix}-code`).textContent = invite.code;
+  // The same invite as a link: handy when the new "device" is this same computer at another address,
+  // or to send to the other device in a message.
+  const link = $(`${prefix}-link`);
+  link.href = invite.url;
+  link.textContent = invite.url.replace(/^https?:\/\//, "").replace(/#join=.*/, "") + " …";
+  $(`${prefix}-copy`).onclick = async () => {
+    const button = $(`${prefix}-copy`);
+    try { await navigator.clipboard.writeText(invite.url); button.textContent = t("copied"); }
+    catch { button.textContent = invite.url; }
+    setTimeout(() => { button.textContent = t("dev.copyLink"); }, 2500);
+  };
   $(`${prefix}-expiry`).textContent = t("dev.expires", { when: fmtWhen(invite.expires_at) });
   $(`${prefix}-box`).hidden = false;
   $(`${prefix}-box`).scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -308,6 +344,21 @@ $("sign-out-all").addEventListener("click", () => act(async () => {
 document.addEventListener("joyshare:prefs", () => {
   paintAuthText();
   if (me && !$("devices").hidden) loadDevices().catch(() => {});
+});
+
+// "Cancel" on the register screen: forget the invite and go back to the normal sign-in screen.
+$("join-cancel").addEventListener("click", () => {
+  joining = false;
+  $("join-code").value = "";
+  showError($("auth-error"), "");
+  paintAuthText();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// An invite link opened in a tab where the page is already showing only changes the end of the address,
+// so the page isn't loaded again. Notice that and switch to the register screen.
+window.addEventListener("hashchange", () => {
+  if (!me && /^#join=/.test(location.hash)) showSignedOut();
 });
 
 // ---------- start ----------

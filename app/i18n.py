@@ -63,7 +63,7 @@ ES = {
     "That doesn't look like a web link.": "Eso no parece un enlace web.",
     "That doesn't look like a normal video link.": "Eso no parece un enlace de video normal.",
     "{platform} is turned off on this server.": "{platform} está desactivado en este servidor.",
-    "joyshare works with links from X, YouTube, TikTok, Instagram and Facebook.":
+    "This works with links from X, YouTube, TikTok, Instagram and Facebook.":
         "Funciona con enlaces de X, YouTube, TikTok, Instagram y Facebook.",
 
     # ---- reading and downloading ----
@@ -81,7 +81,7 @@ ES = {
     "A connected account stopped working": "Una cuenta conectada dejó de funcionar",
     "{platform} no longer accepts the account {person} connected.": "{platform} ya no acepta la cuenta que conectó {person}.",
     "This video is private.": "Este video es privado.",
-    "That link doesn't point to a video joyshare can read.": "Ese enlace no lleva a un video que se pueda leer.",
+    "That link doesn't point to a video that can be read.": "Ese enlace no lleva a un video que se pueda leer.",
     "No video was found at that link. It may have been removed, or the post has no video.":
         "No se encontró ningún video en ese enlace. Puede que lo hayan borrado o que la publicación no tenga video.",
     "The platform didn't answer in time. Try again in a moment.":
@@ -142,7 +142,7 @@ ES = {
     # ---- sign-in ----
     "Too many failed attempts. Wait a few minutes and try again.":
         "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.",
-    "This request didn't come from joyshare.": "Esta solicitud no vino de esta aplicación.",
+    "This request didn't come from this app.": "Esta solicitud no vino de esta aplicación.",
     "Sign in to continue.": "Inicia sesión para continuar.",
     "Access tokens can't manage devices or people.": "Los tokens de acceso no pueden gestionar dispositivos ni personas.",
     "Confirm it's you to continue.": "Confirma que eres tú para continuar.",
@@ -165,6 +165,7 @@ ES = {
     "You can't turn off your own account.": "No puedes desactivar tu propia cuenta.",
     "The last admin can't be turned off.": "No se puede desactivar al último administrador.",
     "That name is too long.": "Ese nombre es demasiado largo.",
+    "There has to be at least one admin.": "Tiene que haber al menos un administrador.",
     "Unknown choice.": "Opción desconocida.",
 
     # ---- admin ----

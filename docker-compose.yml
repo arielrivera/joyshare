@@ -31,5 +31,17 @@ services:
     command: python -m app.worker
     stop_grace_period: 30s
 
+  # Optional: the Cloudflare Tunnel, in the same private network as the app, so it reaches it as http://web:8080.
+  # Put CLOUDFLARE_TUNNEL_TOKEN in .env, then start everything with:  docker compose --profile tunnel up -d
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+
 volumes:
   joyshare_data:

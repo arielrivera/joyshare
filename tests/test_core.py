@@ -146,5 +146,5 @@ def test_find_file_ignores_expired_and_missing(conn):
 def test_download_name():
     assert store.download_name("Me at the zoo", "jawed", ".mp4") == "Me at the zoo - jawed.mp4"
     assert store.download_name('a/b:c*?"<>|', None, ".mp4") == "a b c.mp4"
-    assert store.download_name(None, None, ".m4a") == "joyshare.m4a"
+    assert store.download_name(None, None, ".m4a") == "video.m4a"
     assert len(store.download_name("x" * 300, None, ".mp4")) <= 84

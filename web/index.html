@@ -1,10 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="void" data-font="unbounded">
+<html lang="en" data-theme="zine" data-font="mono">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <title>joyshare</title>
+  <title>vidshare</title>
+  <!-- Lets the app be added to a phone's home screen and open full-screen like an app. -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta id="app-title" name="apple-mobile-web-app-title" content="vidshare">
+  <meta id="theme-color" name="theme-color" content="#efe8d8">
   <link rel="stylesheet" href="/style.css">
   <script src="/i18n.js"></script>
   <script src="/prefs.js"></script>
@@ -14,8 +23,14 @@
   <main>
     <header class="top">
       <div class="brand">
-        <h1 id="brand">joyshare</h1>
+        <h1 id="brand">vidshare</h1>
         <button id="open-style" type="button" class="icon" data-i18n-aria="style.open" title="">✎</button>
+        <!-- Shown the first time, and now and then after that, until the pencil has been used. -->
+        <div id="pencil-hint" class="hint" role="status" hidden>
+          <div id="hint-mascot" class="hint-mascot"></div>
+          <p data-i18n="hint.pencil"></p>
+          <button id="hint-close" type="button" class="hint-close" data-i18n-aria="hint.close">×</button>
+        </div>
       </div>
       <div class="tools">
         <!-- One small button: shows the current language, a tap switches to the other. -->
@@ -65,14 +80,26 @@
         <button type="button" data-theme-pick="comic" class="swatch swatch-comic" data-i18n="theme.comic"></button>
         <button type="button" data-theme-pick="vapor" class="swatch swatch-vapor" data-i18n="theme.vapor"></button>
       </div>
+      <p class="label" data-i18n="scn.title"></p>
+      <div id="style-scenes" class="choices">
+        <button type="button" data-scene="random" data-i18n="scn.random"></button>
+        <button type="button" data-scene="demolition" data-i18n="scn.demolition"></button>
+        <button type="button" data-scene="compressor" data-i18n="scn.compressor"></button>
+        <button type="button" data-scene="voyage" data-i18n="scn.voyage"></button>
+        <button type="button" data-scene="none" data-i18n="scn.none"></button>
+      </div>
+      <div id="scene-preview" class="scene-canvas" hidden></div>
+      <div id="scene-motion-row" class="checks" hidden>
+        <label for="scene-motion"><input id="scene-motion" type="checkbox"><span data-i18n="scn.always"></span></label>
+      </div>
       <button id="close-style" type="button" data-i18n="style.done"></button>
     </section>
 
     <!-- Signed out -->
     <section id="auth" class="card" hidden>
       <div id="signin-box">
-        <h2 data-i18n="auth.welcome"></h2>
-        <p class="muted" data-i18n="auth.welcomeHelp"></p>
+        <h2 id="signin-title"></h2>
+        <p id="signin-help" class="muted"></p>
         <button id="sign-in" type="button" data-i18n="auth.signin"></button>
       </div>
       <p id="auth-error" class="error" role="alert" hidden></p>
@@ -83,7 +110,8 @@
         <input id="join-code" type="text" required placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
         <label for="join-name" data-i18n="join.deviceName"></label>
         <input id="join-name" type="text" required maxlength="60">
-        <button type="submit" class="secondary" data-i18n="join.submit"></button>
+        <button id="join-submit" type="submit" class="secondary" data-i18n="join.submit"></button>
+        <button id="join-cancel" type="button" class="quiet" data-i18n="join.cancel" hidden></button>
       </form>
     </section>
 
@@ -122,6 +150,13 @@
 
         <section id="job" class="card" hidden aria-live="polite">
           <p id="job-title" class="muted"></p>
+          <div id="scene" class="scene" hidden>
+            <div id="scene-canvas" class="scene-canvas"></div>
+            <p id="scene-note" class="scene-note muted" hidden>
+              <span data-i18n="scn.calm"></span>
+              <button id="scene-full" type="button" class="quiet" data-i18n="scn.full"></button>
+            </p>
+          </div>
           <p id="percent" class="percent" tabindex="-1">0%</p>
           <p id="stage-text"></p>
           <div class="meter"><div id="bar" class="meter-fill"></div></div>
@@ -172,6 +207,8 @@
           <p id="invite-help"></p>
           <img id="invite-qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
           <p><span data-i18n="dev.orType"></span> <strong id="invite-code" class="code"></strong></p>
+          <p><span data-i18n="dev.orLink"></span> <a id="invite-link" target="_blank" rel="noopener"></a></p>
+          <button id="invite-copy" type="button" class="quiet" data-i18n="dev.copyLink"></button>
           <p id="invite-expiry" class="muted"></p>
         </div>
       </section>
@@ -287,16 +324,24 @@
       <section class="card" data-pane="people" hidden>
         <h2 data-i18n="ppl.title"></h2>
         <p class="muted" data-i18n="ppl.help"></p>
+        <p class="muted" data-i18n="ppl.adminHelp"></p>
         <ul id="people-list" class="rows"></ul>
         <form id="person-form" class="row" autocomplete="off">
           <label for="person-name" class="sr" data-i18n="ppl.nameLabel"></label>
           <input id="person-name" type="text" required maxlength="40" data-i18n-ph="ppl.placeholder">
+          <label for="person-role" class="sr" data-i18n="ppl.roleLabel"></label>
+          <select id="person-role">
+            <option value="member" data-i18n="ppl.asMember"></option>
+            <option value="admin" data-i18n="ppl.asAdmin"></option>
+          </select>
           <button type="submit" class="secondary" data-i18n="ppl.invite"></button>
         </form>
         <div id="pinvite-box" class="invite" hidden>
           <p id="pinvite-help"></p>
           <img id="pinvite-qr" class="qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
           <p><span data-i18n="dev.orType"></span> <strong id="pinvite-code" class="code"></strong></p>
+          <p><span data-i18n="dev.orLink"></span> <a id="pinvite-link" target="_blank" rel="noopener"></a></p>
+          <button id="pinvite-copy" type="button" class="quiet" data-i18n="dev.copyLink"></button>
           <p id="pinvite-expiry" class="muted"></p>
         </div>
       </section>

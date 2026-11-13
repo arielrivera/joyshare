@@ -11,6 +11,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# The compose command. Set JOYSHARE_COMPOSE="podman compose" to use Podman instead of Docker.
+COMPOSE="${JOYSHARE_COMPOSE:-docker compose}"
+
 say() { printf '%s\n' "$*"; }
 die() { say "Error: $*" >&2; exit 1; }
 
@@ -23,7 +26,7 @@ confirm() {
 # Runs a command in a throwaway container that sees the data volume at /data and one host folder.
 in_data() { # in_data HOST_FOLDER MOUNT_POINT COMMAND...
   local host="$1" mount="$2"; shift 2
-  docker compose run --rm --no-deps -T --user root -v "$host:$mount" web "$@"
+  $COMPOSE run --rm --no-deps -T --user root -v "$host:$mount" web "$@"
 }
 
 command="${1:-}"
@@ -37,9 +40,9 @@ case "$command" in
     skip=(--exclude=./cache --exclude=./ytdlp --exclude=./backups)
     [[ "${2:-}" == "--with-videos" ]] || skip+=(--exclude=./media)
     say "Stopping joyshare for a moment so the copy is consistent…"
-    docker compose stop web worker >/dev/null
-    in_data "$PWD/backups" /out tar czf "/out/$name" "${skip[@]}" -C /data . || { docker compose start web worker >/dev/null; die "The backup failed."; }
-    docker compose start web worker >/dev/null
+    $COMPOSE stop web worker >/dev/null
+    in_data "$PWD/backups" /out tar czf "/out/$name" "${skip[@]}" -C /data . || { $COMPOSE start web worker >/dev/null; die "The backup failed."; }
+    $COMPOSE start web worker >/dev/null
     say "Saved backups/$name ($(du -h "backups/$name" | cut -f1))"
     say "Keep your .env file with it: it is not inside the backup."
     ;;
@@ -49,10 +52,10 @@ case "$command" in
     [[ -f "$file" ]] || die "Give the backup file, for example: ./joyshare restore backups/joyshare-backup-20261113-101500.tar.gz"
     folder="$(cd "$(dirname "$file")" && pwd)"; name="$(basename "$file")"
     confirm "This replaces ALL current joyshare data with $name."
-    docker compose stop web worker >/dev/null 2>&1 || true
+    $COMPOSE stop web worker >/dev/null 2>&1 || true
     in_data "$folder" /in sh -c "find /data -mindepth 1 -delete && tar xzf '/in/$name' -C /data && mkdir -p /data/media && chown -R app:app /data" \
       || die "The restore failed."
-    docker compose up -d >/dev/null
+    $COMPOSE up -d >/dev/null
     say "Restored from $name. joyshare is starting."
     ;;
 
@@ -61,15 +64,15 @@ case "$command" in
     [[ -f "$file" && "$file" == *.db.gz ]] || die "Give a nightly snapshot, for example: ./joyshare restore-db joyshare-20261113-030000.db.gz"
     folder="$(cd "$(dirname "$file")" && pwd)"; name="$(basename "$file")"
     confirm "This replaces the joyshare database (people, settings, history) with $name. Videos are not touched."
-    docker compose stop web worker >/dev/null 2>&1 || true
+    $COMPOSE stop web worker >/dev/null 2>&1 || true
     in_data "$folder" /in sh -c "gunzip -c '/in/$name' > /data/joyshare.db.new && rm -f /data/joyshare.db-wal /data/joyshare.db-shm && mv /data/joyshare.db.new /data/joyshare.db && chown app:app /data/joyshare.db" \
       || die "The restore failed."
-    docker compose up -d >/dev/null
+    $COMPOSE up -d >/dev/null
     say "Database restored from $name. joyshare is starting."
     ;;
 
   setup-code)
-    docker compose exec web python -m app.cli setup-code
+    $COMPOSE exec web python -m app.cli setup-code
     ;;
 
   *)

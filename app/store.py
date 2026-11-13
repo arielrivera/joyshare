@@ -90,8 +90,8 @@ def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None,
 def download_name(title: str | None, uploader: str | None, suffix: str) -> str:
     """A tidy file name such as 'Me at the zoo - jawed.mp4'."""
     parts = [p for p in (title, uploader) if p]
-    name = " - ".join(parts) if parts else "joyshare"
+    name = " - ".join(parts) if parts else "video"
     name = unicodedata.normalize("NFKC", name)
     name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', " ", name)
     name = re.sub(r"\s+", " ", name).strip(" .")
-    return (name[:80].rstrip(" .") or "joyshare") + suffix
+    return (name[:80].rstrip(" .") or "video") + suffix

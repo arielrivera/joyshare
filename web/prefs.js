@@ -7,14 +7,19 @@ const THEME_CHOICES = ["void", "acid", "sunset", "zine", "clay", "win95", "comic
 // Each look comes with lettering that suits it. Picking a look switches to it; you can still change it after.
 const THEME_FONT = { void: "unbounded", acid: "warp", sunset: "syne", zine: "mono", clay: "fredoka", win95: "win", comic: "bangers", vapor: "audiowide" };
 
-const prefs = { name: "", font: "unbounded", theme: "void", lang: "" };
-let defaultName = "joyshare";
+const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "none"];
+// scene: which 3D progress scene to show ("random", one of them, or "none").
+// motion: "auto" follows the device's Reduce Motion setting, "full" always shows the full scenes.
+const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto" };
+let defaultName = "vidshare";
 let prefsSignedIn = false;
 
 try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || "{}")); } catch { /* private window */ }
 if (!["en", "es"].includes(prefs.lang)) prefs.lang = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";
-if (!FONT_CHOICES.includes(prefs.font)) prefs.font = "unbounded";
-if (!THEME_CHOICES.includes(prefs.theme)) prefs.theme = "void";
+if (!FONT_CHOICES.includes(prefs.font)) prefs.font = "mono";
+if (!THEME_CHOICES.includes(prefs.theme)) prefs.theme = "zine";
+if (!SCENE_CHOICES.includes(prefs.scene)) prefs.scene = "random";
+if (prefs.motion !== "full") prefs.motion = "auto";
 
 function brandName() {
   return prefs.name || defaultName;
@@ -28,12 +33,17 @@ function applyPrefs() {
   // The server reads this cookie to answer in the same language (also for live progress updates).
   document.cookie = `joyshare_lang=${prefs.lang}; path=/; max-age=31536000; samesite=lax`;
   document.title = brandName();
+  // The name and color a phone uses when the app is added to the home screen.
+  const appTitle = document.getElementById("app-title"), themeColor = document.getElementById("theme-color");
+  if (appTitle) appTitle.content = brandName();
+  if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#07050d";
   if (!document.body) return; // called once from <head> before the page exists
   document.getElementById("brand").textContent = brandName();
   document.getElementById("ticker").textContent = t("ticker").repeat(8);
   document.getElementById("lang-toggle").textContent = prefs.lang === "es" ? "🇲🇽 ES" : "🇺🇸 EN";
   for (const b of document.querySelectorAll("[data-font]")) b.setAttribute("aria-pressed", String(b.dataset.font === prefs.font));
   for (const b of document.querySelectorAll("[data-theme-pick]")) b.setAttribute("aria-pressed", String(b.dataset.themePick === prefs.theme));
+  for (const b of document.querySelectorAll("[data-scene]")) b.setAttribute("aria-pressed", String(b.dataset.scene === prefs.scene));
   translatePage();
   document.dispatchEvent(new CustomEvent("joyshare:prefs"));
 }
@@ -49,7 +59,7 @@ function setPrefs(changes) {
     fetch("/api/auth/prefs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang }),
+      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion }),
     }).catch(() => { /* saved locally; the account copy catches up next time */ });
   }, 500);
 }
@@ -63,6 +73,8 @@ function adoptAccountPrefs(status) {
     prefs.name = saved.name === defaultName ? "" : saved.name;
     prefs.font = saved.font;
     prefs.theme = saved.theme;
+    prefs.scene = saved.scene || "random";
+    prefs.motion = saved.motion || "auto";
     if (saved.lang) prefs.lang = saved.lang;
     try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* private window */ }
   }

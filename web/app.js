@@ -2,6 +2,9 @@
 // One step shows at a time, so the finished file is never hidden below the fold.
 // $, api(), showError(), fmtWhen(), copyFrom() come from auth.js; t() from i18n.js.
 const MB = 1024 * 1024;
+// Where this script was loaded from, for example "/a/3f9c2b1d7e44/". Files loaded later use the same
+// versioned address, so they always match this script.
+const ASSET_BASE = new URL(".", document.currentScript.src).pathname;
 const SHARE_SHEET_MAX = 100 * MB; // bigger files are too heavy to hand to the phone's share sheet
 
 let current = null;    // { media, presets } for the link being worked on
@@ -32,6 +35,7 @@ function showStep(step) {
 
 function startOver() {
   if (events) { events.close(); events = null; }
+  stopScene();
   current = null;
   lastJob = null;
   showStep(null);
@@ -163,9 +167,60 @@ $("make").addEventListener("submit", async (e) => {
   }
 });
 
+// ---------- the 3D progress scene ----------
+
+let stage3d = null;     // the running scene, if any
+let scenesLoading = null;
+const FINALE = 1700;    // how long the ending plays before the next step shows (milliseconds)
+// A job goes through stages that each count from 0 to 100%. The scene needs one number for the whole trip.
+const STAGE_SPAN = { starting: [0, 0], downloading: [0, 0.65], converting: [0.65, 0.95], uploading: [0.95, 1], done: [1, 1] };
+
+function overallProgress(job) {
+  const [from, to] = STAGE_SPAN[job.stage] || [0, 0];
+  return from + (to - from) * (job.progress || 0);
+}
+
+// "Reduce motion" on the device means calm scenes, unless the person asked for the full ones.
+const deviceWantsCalm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const useCalm = () => deviceWantsCalm() && prefs.motion !== "full";
+
+async function loadScenes() {
+  if (!window.joyshareScenes) {
+    scenesLoading = scenesLoading || import(`${ASSET_BASE}scenes/index.js`);   // fetched only when first needed
+    await scenesLoading;
+  }
+  return window.joyshareScenes;
+}
+
+async function startScene() {
+  stopScene();
+  $("scene").hidden = prefs.scene === "none";
+  if (prefs.scene === "none") return;
+  try {
+    const scenes = await loadScenes();
+    stopScene();
+    stage3d = scenes.start($("scene-canvas"), { choice: prefs.scene, calm: useCalm() });
+  } catch {
+    stage3d = null;
+  }
+  $("scene").hidden = !stage3d;
+  $("scene-note").hidden = !(stage3d && useCalm());
+  if (stage3d && lastJob) stage3d.set(overallProgress(lastJob), "running");
+}
+
+function stopScene() {
+  if (stage3d) { stage3d.dispose(); stage3d = null; }
+}
+
+$("scene-full").addEventListener("click", () => {
+  setPrefs({ motion: "full" });
+  if (!$("job").hidden) startScene();
+});
+
 function watch(jobId) {
   if (events) events.close();
   lastJob = null;
+  startScene();
   paintProgress({ status: "queued", progress: 0, media: current && current.media });
   showStep("job");
   $("cancel").onclick = () => api(`/api/jobs/${jobId}`, { method: "DELETE" }).catch(() => {});
@@ -190,19 +245,34 @@ function paintProgress(job) {
   $("stage-text").textContent = waiting ? t("job.queued") : t(`stage.${job.stage || "working"}`);
   $("bar").style.setProperty("--p", waiting ? "0%" : `${pct}%`);
   $("job").classList.toggle("waiting", waiting);
+  if (stage3d && !waiting) stage3d.set(overallProgress(job), "running");
 }
 
 function renderJob(job) {
   if (job.status === "queued" || job.status === "running") {
     paintProgress(job);
-  } else if (job.status === "done") {
-    renderResult(job, true);
-    showStep("result");
-  } else {
-    // Failed or canceled: back to the size picker (or the link box if we came from a shortcut link).
-    if (job.status === "failed") showError($(current ? "make-error" : "lookup-error"), job.error || t("job.failed"));
-    showStep(current ? "media" : null);
+    return;
   }
+  // Let the scene play its ending (the landing, the jammed gun) before moving on.
+  const playEnding = stage3d && job.status !== "canceled" && !job.reused;
+  if (playEnding) {
+    stage3d.set(overallProgress(job), job.status);
+    $("percent").textContent = job.status === "done" ? "100%" : $("percent").textContent;
+    $("bar").style.setProperty("--p", job.status === "done" ? "100%" : $("bar").style.getPropertyValue("--p"));
+  }
+  const next = () => {
+    if (lastJob !== job) return;   // something newer started meanwhile
+    stopScene();
+    if (job.status === "done") {
+      renderResult(job, true);
+      showStep("result");
+    } else {
+      // Failed or canceled: back to the size picker (or the link box if we came from a shortcut link).
+      if (job.status === "failed") showError($(current ? "make-error" : "lookup-error"), job.error || t("job.failed"));
+      showStep(current ? "media" : null);
+    }
+  };
+  if (playEnding) setTimeout(next, FINALE); else next();
 }
 
 // ---------- the finished file ----------
@@ -314,9 +384,101 @@ async function loadRecent() {
   $("recent").hidden = jobs.length === 0;
 }
 
+// ---------- choosing a scene in the style panel, with a looping preview ----------
+
+let previewStage = null, previewTimer = null;
+
+function stopPreview() {
+  clearInterval(previewTimer);
+  if (previewStage) { previewStage.dispose(); previewStage = null; }
+  $("scene-preview").hidden = true;
+}
+
+async function showPreview() {
+  stopPreview();
+  if ($("style-panel").hidden || prefs.scene === "none") return;
+  let scenes;
+  try { scenes = await loadScenes(); } catch { return; }
+  const play = () => {
+    if (previewStage) previewStage.dispose();
+    $("scene-preview").hidden = false;
+    previewStage = scenes.start($("scene-preview"), { choice: prefs.scene, calm: useCalm() });
+    if (!previewStage) { stopPreview(); return; }
+    const began = performance.now();
+    clearInterval(previewTimer);
+    previewTimer = setInterval(() => {
+      const seconds = (performance.now() - began) / 1000;
+      if (seconds > 8.5) play();                                       // start over
+      else previewStage.set(Math.min(1, seconds / 6), seconds >= 6 ? "done" : "running");
+    }, 100);
+  };
+  play();
+}
+
+for (const button of document.querySelectorAll("[data-scene]")) {
+  button.addEventListener("click", () => { setPrefs({ scene: button.dataset.scene }); showPreview(); });
+}
+$("scene-motion").addEventListener("change", () => { setPrefs({ motion: $("scene-motion").checked ? "full" : "auto" }); showPreview(); });
+$("open-style").addEventListener("click", () => {
+  // prefs.js has just opened or closed the panel.
+  $("scene-motion-row").hidden = !deviceWantsCalm();
+  $("scene-motion").checked = prefs.motion === "full";
+  if ($("style-panel").hidden) stopPreview(); else showPreview();
+});
+$("close-style").addEventListener("click", stopPreview);
+
+// ---------- the hint that points at the pencil button ----------
+// Shown the first time on a device, and now and then afterwards, until the pencil has been used.
+
+const HINT_KEY = "joyshare_hint";
+let hintStage = null, hintTimer = null;
+
+const readHint = () => { try { return JSON.parse(localStorage.getItem(HINT_KEY) || "{}"); } catch { return {}; } };
+const writeHint = (data) => { try { localStorage.setItem(HINT_KEY, JSON.stringify(data)); } catch { /* private window */ } };
+
+function hideHint() {
+  clearTimeout(hintTimer);
+  $("pencil-hint").hidden = true;
+  if (hintStage) { hintStage.dispose(); hintStage = null; }
+}
+
+async function showHint() {
+  if (!$("style-panel").hidden) return;
+  const hint = $("pencil-hint"), pencil = $("open-style"), brand = pencil.parentElement;
+  hint.hidden = false;
+  // Sit just under the pencil, with the little arrow pointing at it, without running off the screen.
+  const pencilBox = pencil.getBoundingClientRect(), brandBox = brand.getBoundingClientRect();
+  const center = pencilBox.left + pencilBox.width / 2;
+  const left = Math.max(8, Math.min(center - 34, window.innerWidth - hint.offsetWidth - 8));
+  hint.style.left = `${left - brandBox.left}px`;
+  hint.style.setProperty("--arrow", `${center - left}px`);
+  hintTimer = setTimeout(hideHint, 12000);
+  if (deviceWantsCalm() && prefs.motion !== "full") return;   // calm: the words alone, nothing moving
+  try {
+    const scenes = await loadScenes();
+    if (!hint.hidden) hintStage = scenes.mascot($("hint-mascot"));
+  } catch { /* no 3D: the words alone are fine */ }
+}
+
+function maybeShowHint() {
+  const seen = readHint();
+  if (seen.used) return;
+  const days = (Date.now() - (seen.at || 0)) / 86400000;
+  const due = !seen.count || (days > 2 && Math.random() < 0.5);
+  if (!due) return;
+  writeHint({ ...seen, count: (seen.count || 0) + 1, at: Date.now() });
+  setTimeout(showHint, 1500);
+}
+
+$("hint-close").addEventListener("click", hideHint);
+// Moving to another screen puts the tip away, so it never covers that screen's buttons.
+for (const id of ["open-admin", "open-devices", "open-accounts", "menu-button"]) $(id).addEventListener("click", hideHint);
+$("open-style").addEventListener("click", () => { writeHint({ ...readHint(), used: true }); hideHint(); });
+
 // Runs each time someone signs in. A link like /#job=12 (opened by the iPhone Shortcut) jumps to that job.
 document.addEventListener("joyshare:signed-in", () => {
   loadRecent();
+  maybeShowHint();
   const match = location.hash.match(/^#job=(\d+)$/);
   if (match) {
     history.replaceState(null, "", location.pathname);

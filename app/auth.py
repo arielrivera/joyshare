@@ -7,6 +7,7 @@ How people get in:
   - Scripts such as the iOS Shortcut use an access token instead of a passkey.
 """
 import hashlib
+import ipaddress
 import json
 import logging
 import secrets
@@ -53,8 +54,22 @@ router = APIRouter(prefix="/api/auth")
 admin_router = APIRouter(prefix="/api/admin")
 
 
-def rp_id() -> str:
-    return urlsplit(config.PUBLIC_URL).hostname or "localhost"
+def site(request: Request | None = None) -> str:
+    """The address this request came in on, if it is one of ours. Otherwise the main address."""
+    if request is not None:
+        origin = (request.headers.get("origin") or "").rstrip("/")
+        if origin in config.ORIGINS:
+            return origin
+        host = request.headers.get("host", "")
+        for known in config.ORIGINS:
+            if urlsplit(known).netloc == host:
+                return known
+    return config.PUBLIC_URL
+
+
+def rp_id(request: Request | None = None) -> str:
+    """Passkeys are tied to this name: the host part of the address the person is using."""
+    return urlsplit(site(request)).hostname or "localhost"
 
 
 def sha(value: str) -> str:
@@ -67,7 +82,17 @@ _failures: dict[str, deque] = defaultdict(deque)
 
 
 def _ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """The visitor's address. Behind the Cloudflare Tunnel every request arrives from the tunnel
+    container, so the real address is in a header, which is only believed when it comes from a private network."""
+    peer = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("cf-connecting-ip")
+    if forwarded:
+        try:
+            if ipaddress.ip_address(peer).is_private:
+                return forwarded.strip()[:64]
+        except ValueError:
+            pass
+    return peer
 
 
 def check_rate(request: Request) -> None:
@@ -102,7 +127,7 @@ class Auth:
 def _same_origin(request: Request) -> bool:
     origin = request.headers.get("origin")
     if origin:
-        return origin.rstrip("/") == config.PUBLIC_URL
+        return origin.rstrip("/") in config.ORIGINS
     return request.headers.get("sec-fetch-site") == "same-origin"
 
 
@@ -132,7 +157,7 @@ def authenticate(request: Request, conn) -> Auth | None:
         return None
     # Cookies travel automatically, so changes must come from our own pages.
     if request.method not in ("GET", "HEAD", "OPTIONS") and not _same_origin(request):
-        raise HTTPException(403, "This request didn't come from joyshare.")
+        raise HTTPException(403, "This request didn't come from this app.")
     if db.now() - row["last_seen_at"] > 300:
         conn.execute(
             "UPDATE sessions SET last_seen_at=?, expires_at=? WHERE token_hash=?",
@@ -194,7 +219,7 @@ def _start_session(conn, request: Request, response: Response, user_id: int, cre
     token = create_session(conn, user_id, credential_pk, request.headers.get("user-agent"))
     response.set_cookie(
         SESSION_COOKIE, token, max_age=SESSION_SECONDS, httponly=True, samesite="lax",
-        secure=config.PUBLIC_URL.startswith("https://"), path="/",
+        secure=site(request).startswith("https://"), path="/",
     )
 
 
@@ -243,7 +268,7 @@ def ensure_setup_code(conn) -> str | None:
     conn.execute("DELETE FROM invites WHERE kind='setup'")
     code, _ = create_invite(conn, kind="setup", ttl=SETUP_CODE_SECONDS, user_id=first_admin(conn)["id"])
     banner = "=" * 62
-    log.warning("\n%s\n  joyshare setup code:  %s\n  Open %s and enter it to register your first device.\n"
+    log.warning("\n%s\n  Setup code:  %s\n  Open %s and enter it to register your first device.\n"
                 "  It works once and expires in 24 hours.\n%s", banner, code, config.PUBLIC_URL, banner)
     return code
 
@@ -294,15 +319,22 @@ FONTS = ("unbounded", "syne", "glitch", "warp", "mono", "fredoka", "bangers", "a
 THEMES = ("void", "acid", "sunset", "zine", "clay", "win95", "comic", "vapor")
 
 
+DEFAULT_THEME, DEFAULT_FONT = "zine", "mono"   # the look a new person starts with
+SCENES = ("random", "demolition", "compressor", "voyage", "none")
+MOTION = ("auto", "full")
+
+
 def get_prefs(conn, user_id: int) -> dict:
     """Name shown at the top, font, theme and language. Missing choices fall back to the defaults."""
     row = conn.execute("SELECT prefs FROM users WHERE id=?", (user_id,)).fetchone()
     saved = json.loads(row["prefs"]) if row and row["prefs"] else {}
     return {
         "name": saved.get("name") or config.APP_NAME,
-        "font": saved.get("font") if saved.get("font") in FONTS else FONTS[0],
-        "theme": saved.get("theme") if saved.get("theme") in THEMES else THEMES[0],
+        "font": saved.get("font") if saved.get("font") in FONTS else DEFAULT_FONT,
+        "theme": saved.get("theme") if saved.get("theme") in THEMES else DEFAULT_THEME,
         "lang": saved.get("lang") if saved.get("lang") in LANGS else None,
+        "scene": saved.get("scene") if saved.get("scene") in SCENES else SCENES[0],
+        "motion": saved.get("motion") if saved.get("motion") in MOTION else MOTION[0],
     }
 
 
@@ -313,6 +345,8 @@ class PrefsBody(BaseModel):
     font: str | None = None
     theme: str | None = None
     lang: str | None = None
+    scene: str | None = None
+    motion: str | None = None
 
 
 class RegisterOptionsBody(BaseModel):
@@ -328,6 +362,11 @@ class VerifyBody(BaseModel):
 class InviteBody(BaseModel):
     kind: str = "device"      # "device" (another device for me) or "user" (a new person, admin only)
     name: str = ""
+    role: str = "member"      # for a new person: "member" or "admin"
+
+
+class RoleBody(BaseModel):
+    role: str
 
 
 class TokenBody(BaseModel):
@@ -361,7 +400,7 @@ def save_prefs(body: PrefsBody, auth: Auth = Depends(session_auth), conn=Depends
         if len(name) > 24:
             raise HTTPException(422, "That name is too long.")
         saved["name"] = name  # empty means: back to the default name
-    for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS)):
+    for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS), ("scene", SCENES), ("motion", MOTION)):
         value = getattr(body, field)
         if value is not None:
             if value not in allowed:
@@ -391,7 +430,7 @@ def register_options(body: RegisterOptionsBody, request: Request, conn=Depends(d
             for row in conn.execute("SELECT credential_id FROM credentials WHERE user_id=?", (user["id"],))
         ]
     options = generate_registration_options(
-        rp_id=rp_id(), rp_name="joyshare", user_id=handle, user_name=name, user_display_name=name,
+        rp_id=rp_id(request), rp_name=config.APP_NAME, user_id=handle, user_name=name, user_display_name=name,
         exclude_credentials=exclude,
         authenticator_selection=AuthenticatorSelectionCriteria(
             resident_key=ResidentKeyRequirement.REQUIRED,
@@ -412,7 +451,7 @@ def register_verify(body: VerifyBody, request: Request, response: Response, conn
     try:
         verified = verify_registration_response(
             credential=body.credential, expected_challenge=bytes(challenge["challenge"]),
-            expected_rp_id=rp_id(), expected_origin=config.PUBLIC_URL, require_user_verification=True,
+            expected_rp_id=rp_id(request), expected_origin=site(request), require_user_verification=True,
         )
     except Exception as exc:
         note_failure(request, conn, "register_verify")
@@ -460,7 +499,7 @@ def register_verify(body: VerifyBody, request: Request, response: Response, conn
 def login_options(request: Request, conn=Depends(db.get_conn)):
     check_rate(request)
     options = generate_authentication_options(
-        rp_id=rp_id(), user_verification=UserVerificationRequirement.REQUIRED,
+        rp_id=rp_id(request), user_verification=UserVerificationRequirement.REQUIRED,
     )
     challenge_id = _save_challenge(conn, "login", options.challenge)
     return {"challenge_id": challenge_id, "publicKey": json.loads(options_to_json(options))}
@@ -485,7 +524,7 @@ def login_verify(body: VerifyBody, request: Request, response: Response, conn=De
     try:
         verified = verify_authentication_response(
             credential=body.credential, expected_challenge=bytes(challenge["challenge"]),
-            expected_rp_id=rp_id(), expected_origin=config.PUBLIC_URL,
+            expected_rp_id=rp_id(request), expected_origin=site(request),
             credential_public_key=bytes(row["public_key"]),
             credential_current_sign_count=row["sign_count"], require_user_verification=True,
         )
@@ -557,11 +596,14 @@ def invite(body: InviteBody, auth: Auth = Depends(fresh_auth), conn=Depends(db.g
         name = body.name.strip()[:40]
         if not name:
             raise HTTPException(422, "Give the person a name.")
-        code, expires_at = create_invite(conn, kind="user", ttl=INVITE_SECONDS, role="member",
+        if body.role not in ("member", "admin"):
+            raise HTTPException(422, "Unknown choice.")
+        code, expires_at = create_invite(conn, kind="user", ttl=INVITE_SECONDS, role=body.role,
                                          name=name, created_by=auth.user_id)
     else:
         raise HTTPException(422, "Unknown invite type.")
-    db.audit(conn, auth.user_id, "invite.create", json.dumps({"kind": body.kind}))
+    db.audit(conn, auth.user_id, "invite.create", json.dumps(
+        {"kind": body.kind, **({"role": body.role, "name": name} if body.kind == "user" else {})}))
     url = f"{config.PUBLIC_URL}/#join={code}"
     qr = segno.make(url, error="m").svg_data_uri(scale=5, border=2, dark="#000000", light="#ffffff")
     return {"code": code, "url": url, "qr": qr, "expires_at": expires_at}
@@ -602,6 +644,25 @@ def list_users(auth: Auth = Depends(admin_auth), conn=Depends(db.get_conn)):
         "FROM users u ORDER BY u.id"
     ).fetchall()
     return [{**dict(r), "disabled": bool(r["disabled"]), "me": r["id"] == auth.user_id} for r in rows]
+
+
+@admin_router.post("/users/{user_id}/role")
+def change_role(user_id: int, body: RoleBody, auth: Auth = Depends(fresh_auth), conn=Depends(db.get_conn)):
+    """Make a member an admin, or an admin a member. There is always at least one admin."""
+    if auth.role != "admin":
+        raise HTTPException(403, "Only an admin can do that.")
+    if body.role not in ("member", "admin"):
+        raise HTTPException(422, "Unknown choice.")
+    user = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    if not user:
+        raise HTTPException(404, "Person not found.")
+    if user["role"] == "admin" and body.role == "member":
+        admins = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND disabled=0").fetchone()[0]
+        if admins <= 1:
+            raise HTTPException(409, "There has to be at least one admin.")
+    conn.execute("UPDATE users SET role=? WHERE id=?", (body.role, user_id))
+    db.audit(conn, auth.user_id, "user.role", json.dumps({"user_id": user_id, "name": user["name"], "role": body.role}))
+    return {"ok": True}
 
 
 def _set_disabled(conn, auth: Auth, user_id: int, disabled: bool) -> dict:

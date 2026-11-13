@@ -11,9 +11,9 @@ Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reason
 | 1 | Core: download, convert, presets, share links, cleanup | **Done**, committed on `phase-1-core` |
 | 2 | Access: passkeys, devices, people, tokens, Shortcut endpoint | **Done**, committed on `phase-2-access` |
 | — | Redesign: one-step flow, looks, fonts, English/Spanish, custom name, compact top bar | **Done**, on `main` |
-| 3 | Admin panel, alerts, updates, R2 storage, backups, connected accounts | **In progress**, see below |
-| 4 | 3D progress scenes, app icon and home-screen install, share page polish | Not started |
-| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | Not started |
+| 3 | Admin panel, alerts, updates, R2 storage, backups, connected accounts | **Done**, on `main` (a small Platforms tab is left) |
+| 4 | 3D progress scenes, app icon and home-screen install, share page look | **First part done**: three scenes, two calm ones, install, share look |
+| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | **Started**: domain and tunnel are up on the laptop |
 
 Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesign`. `main` on GitHub holds everything up to connected accounts (pushed 12 Nov 2026). Later work is on its own branch until the owner asks for a push.
 
@@ -118,15 +118,32 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] "Test platforms now" is limited to 2 in any 3 hours (the daily automatic check doesn't count).
 - [x] The admin picks which platforms are checked and can set each one's test video. YouTube and X are on by default; TikTok has a test video but is off; Instagram and Facebook need a link first.
 
-## Phase 4: look and feel
-- [ ] Three.js progress scenes as plug-ins with the same inputs (progress, stage, done or failed): Demolition, Compressor, Voyage first; then Rocket, Black hole, Dominoes. Random per job, with a favorite setting.
-- [ ] "Reduce motion" on the device: never a plain bar. Show a random calm scene and a small note with a tap to switch to full scenes.
+## Phase 4: look and feel — first part done
+- [x] 3D progress scenes with Three.js (`web/scenes/`, library in `web/vendor/`, loaded only when a video is being made). Each scene is a plug-in with the same inputs: progress, and whether it is running, done or failed.
+- [x] Built: **Demolition** (soldier shoots a tower down; the gun jams on failure), **Compressor** (a press squeezes a block; it springs back on failure), **Voyage** (a ship flies planet to planet and lands; it drifts off on failure).
+- [x] Random per video. In the pencil panel a person can pin one, or choose None, with a looping preview. Saved to the account (`scene`, `motion` in the saved look).
+- [x] "Reduce motion" on the device: a random calm scene (**Ring**, **Bloom**), never a plain bar, with a small note and a button to show the full scenes.
+- [x] The ending plays for about 1.7 seconds before the finished file (or the error) shows. Scenes take the look's colors.
+- [x] App icon and home-screen install (`/manifest.webmanifest`, `web/icons/`, made by `tools/make_icons.py`).
+- [x] The share page wears the sender's look.
+- [x] Scripts and styles are served from an address that changes with every update (`/a/<fingerprint>/…`, see `ASSETS` in `app/main.py`), and pages are never stored. Reason: Cloudflare tells browsers to keep scripts and styles for 4 hours whatever the app says, which gave people a new page with old scripts.
+- [ ] More scenes: Rocket, Black hole, Dominoes, and whatever the owner thinks up. To add one: a file in `web/scenes/`, import it in `web/scenes/index.js`, a button in the pencil panel, its name in `web/i18n.js`, and the allowed list in `app/auth.py` (`SCENES`) and `web/prefs.js`.
+- [ ] Scenes use simple shapes drawn in code. Proper 3D models could replace them.
+- [ ] Not yet seen: the scenes on a real phone, and the calm set triggered by a device's real Reduce Motion setting (they were viewed by asking for them directly).
 - [ ] More looks from `docs/design/` if the owner picks them. Built: Void, Acid, Sunset, Zine, Clay, Windows 95, Comic, Vaporwave. Sketched only: A chrome, C arcade, E deco, F lava, I notebook, K receipt, L graffiti.
 - [ ] Adding a look: a variables block and an override block in `web/style.css`, a swatch button in `web/index.html`, the name in `web/i18n.js`, its lettering in `THEME_FONT` (`web/prefs.js`), and the allowed lists in `app/auth.py`.
-- [ ] App icon, home-screen install (PWA manifest), share page in the sender's look.
-- [ ] Decide: stay with plain HTML/CSS/JS or move to SvelteKit. Current advice: stay unless it starts to hurt.
+- [ ] Decide: stay with plain HTML/CSS/JS or move to SvelteKit. Current advice: stay.
 
-## Phase 5: go live
+## Phase 5: go live — started by the owner
+- [x] Domain and Cloudflare Tunnel are up (`https://vids.arielrivera.app`), with `JOYSHARE_PUBLIC_URL` set in `.env`.
+- [x] The app accepts more than one address (`config.ORIGINS`, `auth.site()`): the main one plus `http://localhost:PORT` on the server. Passkeys, the cross-site check and the cookie's https flag follow the address in use.
+- [x] The real visitor address is read from Cloudflare's header (only when the request comes from a private network), so the failed-attempt limit is per visitor, not shared by everyone behind the tunnel.
+- [x] `tunnel` service in `docker-compose.yml` (profile `tunnel`), reaching the app as `http://web:8080`. The owner still runs a separate `cloudflared` container and has to switch over.
+- [x] Admins can invite another admin and change a person's role (never removing the last admin).
+- [x] The app is called **vidshare** in the interface (`JOYSHARE_NAME`); the repository, script and settings keep the name joyshare. New people and devices start in the Zine look.
+- [x] Confirmed by the owner on 13 Nov 2026: a passkey registered on the domain from the iPhone, and sign-in on the Mac at the domain with that same passkey (it reached the Mac through iCloud Keychain).
+
+## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini with the backup and restore scripts; write `docs/MOVING.md` while doing it, including a "Leaving Cloudflare" chapter (then a web server such as Caddy, a fixed IP or dynamic DNS, and open ports are needed).
 - [ ] Cloudflare Tunnel container in `docker-compose.yml`; set `JOYSHARE_PUBLIC_URL` to the https address; read the visitor's address from Cloudflare's header for the failed-attempt limit.

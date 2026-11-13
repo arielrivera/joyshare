@@ -3,11 +3,13 @@
 Run with:  uvicorn app.main:app
 """
 import asyncio
+import hashlib
 import html
 import json
 import logging
 import mimetypes
 import os
+import re
 import secrets
 import signal
 from contextlib import asynccontextmanager, closing
@@ -51,7 +53,7 @@ async def lifespan(_app: FastAPI):
     watcher.cancel()
 
 
-app = FastAPI(title="joyshare", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="vidshare", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(auth.router)
 app.include_router(auth.admin_router)
 app.include_router(admin.router)
@@ -61,6 +63,18 @@ app.include_router(account.router)
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
+    # Pages, scripts and styles: always check for a newer copy, so an update shows up right away.
+    # Fonts and the 3D library never change under the same name, so they can be kept for a week.
+    # Scripts and styles live under an address that changes with every update (/a/<version>/...), so a browser
+    # or Cloudflare can keep them for as long as it likes and still never show an old copy.
+    # Pages themselves are never stored.
+    path = request.url.path
+    if path.startswith(ASSETS + "/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith(("/fonts/", "/vendor/", "/icons/")):
+        response.headers.setdefault("Cache-Control", "public, max-age=604800")
+    elif not path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -76,6 +90,23 @@ async def security_headers(request: Request, call_next):
         f"connect-src 'self'{extra}; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     )
     return response
+
+
+def _version_of_interface() -> str:
+    """A short fingerprint of every interface file. It changes whenever any of them changes."""
+    digest = hashlib.sha256()
+    for file in sorted(p for p in config.WEB_DIR.rglob("*") if p.is_file() and p.suffix in (".js", ".css", ".html")):
+        digest.update(str(file.relative_to(config.WEB_DIR)).encode())
+        digest.update(file.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+ASSETS = f"/a/{_version_of_interface()}"
+
+
+def versioned(page: str) -> str:
+    """Point a page's own scripts and styles at the versioned address."""
+    return re.sub(r'((?:src|href)=")/([\w\-./]+\.(?:js|css)")', rf"\1{ASSETS}/\2", page)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -211,6 +242,20 @@ def file_response(conn, row, download: bool):
 
 
 # ---------- API ----------
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest():
+    """What a phone needs to add joyshare to the home screen as an app."""
+    return JSONResponse({
+        "name": config.APP_NAME, "short_name": config.APP_NAME, "start_url": "/", "scope": "/",
+        "display": "standalone", "background_color": "#efe8d8", "theme_color": "#efe8d8",
+        "icons": [
+            {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }, media_type="application/manifest+json")
+
 
 @app.get("/api/health")
 def health(conn=Depends(db.get_conn)):
@@ -469,7 +514,7 @@ def revoke_share(token: str, conn=Depends(db.get_conn), user_id: int = Depends(a
 # ---------- public share pages ----------
 
 SHARE_PAGE = """<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8">
+<html lang="{lang}" data-theme="{theme}" data-font="{font}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>{title}</title>
@@ -477,18 +522,24 @@ SHARE_PAGE = """<!doctype html>
 <meta property="og:site_name" content="{brand}">
 <meta property="og:type" content="{og_type}">
 {og_media}
-<link rel="stylesheet" href="/share.css">
-</head><body><main>
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="stylesheet" href="{assets}/style.css">
+<link rel="stylesheet" href="{assets}/share.css">
+</head><body><div class="glow" aria-hidden="true"></div><main class="share">
+<section class="card">
 {body}
+</section>
 <p class="brand">{shared_with}</p>
 </main></body></html>"""
 
 
-def share_shell(title: str, body: str, lang: str, brand: str, og_type: str = "website", og_media: str = "",
+def share_shell(title: str, body: str, lang: str, look: dict, og_type: str = "website", og_media: str = "",
                 status: int = 200):
-    brand = html.escape(brand)
+    """The page a friend sees. It wears the sender's look: their name, colors and lettering."""
+    brand = html.escape(look["name"])
     page = SHARE_PAGE.format(
         title=html.escape(title), body=body, og_type=og_type, og_media=og_media, lang=lang, brand=brand,
+        theme=look["theme"], font=look["font"], assets=ASSETS,
         shared_with=i18n.render(T("shared with {name}", name=f"<strong>{brand}</strong>"), lang),
     )
     return HTMLResponse(page, status_code=status)
@@ -512,9 +563,9 @@ def share_page(token: str, conn=Depends(db.get_conn), lang: str = Depends(get_la
     if not link:
         gone = tr("This video has expired")
         why = tr("Shared videos are only kept for a short time. Ask the person who sent it to share it again.")
-        return share_shell(gone, f"<h1>{html.escape(gone)}</h1><p>{html.escape(why)}</p>",
-                           lang, config.APP_NAME, status=410)
-    brand = auth.get_prefs(conn, link["user_id"])["name"]  # friends see the name the sender chose
+        plain = {"name": config.APP_NAME, "theme": auth.DEFAULT_THEME, "font": auth.DEFAULT_FONT}
+        return share_shell(gone, f"<h2>{html.escape(gone)}</h2><p>{html.escape(why)}</p>", lang, plain, status=410)
+    look = auth.get_prefs(conn, link["user_id"])  # friends see the name and look the sender chose
     conn.execute("UPDATE share_links SET views=views+1 WHERE token=?", (token,))
     item = conn.execute("SELECT * FROM media WHERE id=?", (row["media_id"],)).fetchone()
     title = item["title"] or tr("Shared video")
@@ -540,9 +591,9 @@ def share_page(token: str, conn=Depends(db.get_conn), lang: str = Depends(get_la
                          f'\n<meta property="og:video:height" content="{row["height"]}">')
     if item["thumbnail"]:
         og_media += f'\n<meta property="og:image" content="{html.escape(item["thumbnail"])}">'
-    body = (f"{player}<h1>{html.escape(title)}</h1>{credit}"
+    body = (f"{player}<h2>{html.escape(title)}</h2>{credit}"
             f'<p><a class="button" href="{src}?download=1">{html.escape(tr("Download"))}</a></p>')
-    return share_shell(title, body, lang, brand, og_type, og_media)
+    return share_shell(title, body, lang, look, og_type, og_media)
 
 
 @app.get("/v/{token}/file")
@@ -553,5 +604,14 @@ def share_file_bytes(token: str, download: int = 0, conn=Depends(db.get_conn)):
     return file_response(conn, row, download=bool(download))
 
 
-# The interface. Mounted last so it never shadows the routes above.
+HOME_PAGE = versioned((config.WEB_DIR / "index.html").read_text())
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def home():
+    return HTMLResponse(HOME_PAGE)
+
+
+# The interface files, at their versioned address and (last, so it never shadows the routes above) at the plain one.
+app.mount(ASSETS, StaticFiles(directory=config.WEB_DIR), name="assets")
 app.mount("/", StaticFiles(directory=config.WEB_DIR, html=True), name="web")

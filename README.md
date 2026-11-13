@@ -13,7 +13,7 @@ joyshare is a small private web app you run on your own computer. Paste a link, 
 
 1. **Paste a link** from X (Twitter), YouTube, TikTok, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
 2. **Pick a size.** joyshare shows how big the file will be before you commit: original, 720p, 480p, "fit under 25 MB", or audio only.
-3. **Watch something fun** while it works. Progress is shown as a random 3D scene, not a boring bar.
+3. **Watch something fun** while it works. Progress is a small 3D scene: a tower being demolished, a block being crushed, a spaceship on its way.
 4. **Send it.** Share it to WhatsApp or iMessage, download it, or copy a link your friend can open in any browser. No account needed on their side.
 
 ## Quick facts

@@ -3,6 +3,11 @@ import tempfile
 
 # Point the app at a throwaway data folder before any app module is imported.
 os.environ["JOYSHARE_DATA"] = tempfile.mkdtemp(prefix="joyshare-test-")
+# The tests must not depend on the settings of whoever runs them (their .env is passed into the container).
+os.environ["JOYSHARE_PUBLIC_URL"] = "http://localhost:8080"
+os.environ["JOYSHARE_SECRET"] = "a fixed secret just for tests"
+for name in ("JOYSHARE_NAME", "JOYSHARE_EXTRA_ORIGINS", "JOYSHARE_PORT"):
+    os.environ.pop(name, None)
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

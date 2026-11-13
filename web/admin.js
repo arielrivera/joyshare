@@ -124,29 +124,44 @@ async function loadAdminLinks() {
 
 async function loadPeople() {
   const people = await api("/api/admin/users");
-  $("people-list").replaceChildren(...people.map((u) => row(
-    u.me ? `${u.name} ${t("ppl.you")}` : u.name,
-    [
-      t(`role.${u.role}`),
-      u.devices === 1 ? t("ppl.devices1") : t("ppl.devicesN", { n: u.devices }),
-      u.jobs === 1 ? t("ppl.videos1") : t("ppl.videosN", { n: u.jobs }),
-      u.disabled ? t("ppl.off") : "",
-    ].filter(Boolean).join(" · "),
-    u.me ? null : (u.disabled ? t("ppl.turnOn") : t("ppl.turnOff")),
-    () => adminAct(async () => {
-      await api(`/api/admin/users/${u.id}/${u.disabled ? "enable" : "disable"}`, { method: "POST" });
+  $("people-list").replaceChildren(...people.map((u) => {
+    const li = row(
+      u.me ? `${u.name} ${t("ppl.you")}` : u.name,
+      [
+        t(`role.${u.role}`),
+        u.devices === 1 ? t("ppl.devices1") : t("ppl.devicesN", { n: u.devices }),
+        u.jobs === 1 ? t("ppl.videos1") : t("ppl.videosN", { n: u.jobs }),
+        u.disabled ? t("ppl.off") : "",
+      ].filter(Boolean).join(" · "),
+      u.me ? null : (u.disabled ? t("ppl.turnOn") : t("ppl.turnOff")),
+      () => adminAct(async () => {
+        await api(`/api/admin/users/${u.id}/${u.disabled ? "enable" : "disable"}`, { method: "POST" });
+        await loadPeople();
+      }),
+    );
+    // Make a member an admin, or an admin a member. Not offered for yourself, so you can't lock yourself out by accident.
+    if (u.me) return li;
+    const role = document.createElement("button");
+    role.type = "button";
+    role.className = "quiet";
+    role.textContent = u.role === "admin" ? t("ppl.makeMember") : t("ppl.makeAdmin");
+    role.addEventListener("click", () => adminAct(async () => {
+      await api(`/api/admin/users/${u.id}/role`, { method: "POST", body: JSON.stringify({ role: u.role === "admin" ? "member" : "admin" }) });
       await loadPeople();
-    }),
-  )));
+    }, t("adm.saved")));
+    li.append(role);
+    return li;
+  }));
 }
 
 $("person-form").addEventListener("submit", (e) => {
   e.preventDefault();
   adminAct(async () => {
-    const name = $("person-name").value;
-    const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "user", name }) });
+    const name = $("person-name").value, role = $("person-role").value;
+    const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "user", name, role }) });
     $("person-name").value = "";
-    showInvite(invite, t("dev.scanPerson", { name }), "pinvite");
+    $("person-role").value = "member";
+    showInvite(invite, t(role === "admin" ? "dev.scanAdmin" : "dev.scanPerson", { name }), "pinvite");
   });
 });
 

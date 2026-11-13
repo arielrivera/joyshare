@@ -130,6 +130,23 @@ h1 { margin: 0; font-family: var(--display); font-weight: var(--display-weight);
   background: linear-gradient(100deg, var(--hot) 5%, var(--third) 50%, var(--zap) 95%);
   -webkit-background-clip: text; background-clip: text; color: transparent; padding: 6px 2px; }
 :root[data-theme="acid"] h1 { background: none; color: var(--ink); text-shadow: 3px 3px 0 var(--hot); }
+.brand { position: relative; }
+.hint { position: absolute; top: calc(100% + 14px); left: 0; z-index: 30; width: min(290px, calc(100vw - 16px));
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  padding: 8px 8px 8px 10px; background: var(--card); color: var(--ink); border: 2px solid var(--edge); border-radius: 14px;
+  box-shadow: 5px 5px 0 var(--shadow); font-size: 14px; font-weight: 600; animation: hint-bob 1.6s ease-in-out infinite; }
+.hint::before { content: ""; position: absolute; top: -11px; left: calc(var(--arrow, 34px) - 10px);
+  border: 10px solid transparent; border-top: 0; border-bottom-color: var(--edge); }
+.hint-mascot { width: 64px; height: 64px; }
+.hint-mascot canvas { display: block; width: 100%; height: 100%; }
+.hint-mascot:empty { display: none; }
+.hint:has(.hint-mascot:empty) { grid-template-columns: minmax(0, 1fr) auto; }
+button.hint-close { width: 28px; height: 28px; padding: 0; border-radius: 50%; font-size: 16px; line-height: 1;
+  background: transparent; color: var(--ink); box-shadow: none; border-color: color-mix(in srgb, var(--edge) 45%, transparent); }
+@keyframes hint-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+:root[data-theme="zine"] .hint, :root[data-theme="win95"] .hint { border-radius: 2px; }
+:root[data-theme="win95"] .hint { border: 0; box-shadow: var(--out); background: #ffffe1; }
+:root[data-theme="clay"] .hint { border: 0; box-shadow: 0 10px 20px rgba(214, 132, 100, .35); }
 .tools { display: flex; align-items: center; gap: 6px; flex: none; }
 button.chip { height: 34px; min-width: 34px; padding: 0 9px; border-radius: 999px; font-size: 13px; line-height: 1;
   background: var(--card); color: var(--ink); box-shadow: none; white-space: nowrap; }
@@ -205,6 +222,17 @@ form#make { display: grid; gap: 14px; }
 .preset .extra { grid-column: 2 / -1; font-size: 14px; color: var(--muted); }
 .preset select { padding: 5px 8px; border-radius: 9px; }
 
+/* ---------- 3D progress scene ---------- */
+.scene { width: 100%; display: grid; gap: 6px; }
+.scene-canvas { width: 100%; height: clamp(170px, 34vw, 250px); border-radius: 14px; overflow: hidden;
+  background: color-mix(in srgb, var(--field) 70%, transparent); border: 2px solid color-mix(in srgb, var(--edge) 35%, transparent); }
+.scene-canvas canvas { display: block; width: 100%; height: 100%; }
+.scene-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; }
+.scene-note button { padding: 4px 10px; font-size: 13px; }
+:root[data-theme="win95"] .scene-canvas { border: 0; border-radius: 0; box-shadow: var(--in); background: #fff; }
+:root[data-theme="clay"] .scene-canvas { border: 0; box-shadow: inset 0 3px 7px rgba(214, 132, 100, .25); }
+:root[data-theme="zine"] .scene-canvas { border-radius: 2px; }
+
 /* ---------- progress ---------- */
 #job { justify-items: start; }
 .percent { font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-space);
@@ -234,6 +262,14 @@ ul.rows li { display: flex; flex-wrap: wrap; justify-content: space-between; ali
 ul.rows li > span:first-child { min-width: 0; overflow-wrap: anywhere; flex: 1 1 220px; }
 #signin-box, form#join { display: grid; gap: 10px; }
 #signin-box:not([hidden]) ~ form#join { border-top: 2px dashed color-mix(in srgb, var(--edge) 40%, transparent); padding-top: 14px; }
+/* Opened from an invite: registering comes first and biggest, signing in is the small option underneath. */
+#auth.joining form#join { order: 1; border-top: 0; padding-top: 0; }
+#auth.joining #auth-error { order: 2; }
+#auth.joining #signin-box { order: 3; border-top: 2px dashed color-mix(in srgb, var(--edge) 40%, transparent); padding-top: 14px; }
+#auth.joining #signin-box h2 { font-size: 15px; }
+#join-cancel { justify-self: center; }
+#auth.joining #join-code { background: var(--zap); color: var(--pop-ink, var(--ink)); font-weight: 700; }
+:root[data-theme="zine"] #auth.joining #join-code, :root[data-theme="comic"] #auth.joining #join-code { color: var(--ink); }
 #join-code, .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; }
 #join-code { text-transform: uppercase; }
 .code { font-size: 18px; }
@@ -248,7 +284,7 @@ ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15
 #accounts-list .actions { flex: none; }
 
 /* ---------- admin panel ---------- */
-.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: thin; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px; }
 .tabs button.chip { flex: none; height: 36px; padding: 0 12px; font-size: 14px; }
 /* ":root" in front so the selected tab wins over each look's own chip colors */
 :root .tabs button.chip[aria-pressed="true"] { background: var(--pop); color: var(--pop-ink); }
@@ -259,6 +295,7 @@ ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15
 .tile .v { font-family: var(--display); font-weight: var(--display-weight); font-size: 22px; line-height: 1.15;
   font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .tile .d { font-size: 13px; color: var(--muted); }
+:root[data-font="mono"] .tile .v, :root[data-font="unbounded"] .tile .v { font-size: 16px; overflow-wrap: break-word; }
 .tile.warn { border-color: var(--bad); }
 .tile.warn .v { color: var(--bad); }
 #admin form { display: grid; gap: 14px; }
@@ -457,6 +494,6 @@ ul.rows li .bad { color: var(--bad); }
   .card { padding: 15px; box-shadow: 5px 5px 0 var(--shadow); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .glow, .ticker-track, .meter-fill { animation: none; }
+  .glow, .ticker-track, .meter-fill, .hint { animation: none; }
   button, .button, .meter-fill { transition: none; }
 }

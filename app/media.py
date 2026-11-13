@@ -82,7 +82,7 @@ def friendly_error(exc: Exception) -> str:
     if "private" in text:
         return "This video is private."
     if "unsupported url" in text or "no suitable extractor" in text:
-        return "That link doesn't point to a video joyshare can read."
+        return "That link doesn't point to a video that can be read."
     if any(w in text for w in ("no video", "not available", "unavailable", "removed", "does not exist", "not found")):
         return "No video was found at that link. It may have been removed, or the post has no video."
     if "timed out" in text or "connection" in text:

@@ -1,3 +1,4 @@
+import re
 import pytest
 
 from app import config, media, store
@@ -22,8 +23,18 @@ def fake_media(monkeypatch):
 def test_health_and_static(client):
     assert client.get("/api/health").json() == {"ok": True, "worker_alive": False}
     page = client.get("/")
-    assert page.status_code == 200 and "joyshare" in page.text
+    assert page.status_code == 200 and "vidshare" in page.text
     assert "default-src 'self'" in page.headers["content-security-policy"]
+    # Scripts and styles are referenced at an address that changes with every update, so no cache can serve old ones.
+    import re
+    assert page.headers["cache-control"] == "no-store"
+    script = re.search(r'src="(/a/[0-9a-f]{12}/auth\.js)"', page.text).group(1)
+    assert re.search(r'href="/a/[0-9a-f]{12}/style\.css"', page.text) and 'src="/auth.js"' not in page.text
+    asset = client.get(script)
+    assert asset.status_code == 200 and "immutable" in asset.headers["cache-control"]
+    assert client.get(script.rsplit("/", 1)[0] + "/scenes/demolition.js").status_code == 200
+    assert client.get("/a/000000000000/auth.js").status_code == 404        # an old version's address is simply gone
+    assert client.get("/manifest.webmanifest").status_code == 200
 
 
 def test_inspect_rejects_unknown_site(client):
@@ -75,6 +86,7 @@ def test_share_link_lifecycle(client, fake_media, conn):
     page = client.get(f"/v/{token}")
     assert page.status_code == 200
     assert "Test &lt;clip&gt;" in page.text and "<clip>" not in page.text  # title is escaped
+    assert 'data-theme="zine"' in page.text and re.search(r'href="/a/[0-9a-f]{12}/share\.css"', page.text)
     assert 'property="og:video"' in page.text
 
     assert client.get(f"/v/{token}/file").content == b"0123456789"

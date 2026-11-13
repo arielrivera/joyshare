@@ -37,7 +37,13 @@ joyshare has no passwords. Each device signs in with a **passkey**: Face ID, Tou
 2. Open http://localhost:8080, type the code, give the device a name and press **Register this device**.
 3. Confirm with Touch ID (or your screen lock). You are now signed in as the admin.
 
-The setup code works once and lasts 24 hours. If it expired before you used it, restart joyshare to get a new one (`docker compose restart web`).
+The setup code works once and lasts 24 hours. It is only printed while **no device has ever been registered**. If it expired before you used it, restart to get a new one (`docker compose restart web`).
+
+Once a device exists, a restart prints nothing. To register a device from the server (for example the first one on a new address, or after losing your devices), ask for a one-time code instead:
+
+```bash
+./joyshare setup-code
+```
 
 Then paste a link from X or YouTube, pick a size and press **Make it**.
 
@@ -47,8 +53,37 @@ Then paste a link from X or YouTube, pick a size and press **Make it**.
 ## Make it yours
 
 - **Language:** the flag buttons at the top switch between English and Spanish. Error messages and the page your friends see follow the language too. A friend's share page uses their own browser's language.
-- **Name and look:** press the round pencil button next to the name. You can change the name at the top (for example to "share"), the lettering and the look. There are eight looks: Void, Acid, Sunset, Zine, Clay, Windows 95, Comic and Vaporwave. Picking a look also switches to the lettering that suits it, and you can change the lettering afterwards. Your choices are saved to your account, so they follow you to every device. Friends see your name at the bottom of pages you share.
+- **Name and look:** press the round pencil button next to the name. The first time, and now and then until you've used it, a small animated tip points at it. New people and devices start in the Zine look. You can change the name at the top (for example to "share"), the lettering and the look. There are eight looks: Void, Acid, Sunset, Zine, Clay, Windows 95, Comic and Vaporwave. Picking a look also switches to the lettering that suits it, and you can change the lettering afterwards. Your choices are saved to your account, so they follow you to every device. Friends see your name at the bottom of pages you share.
 - **Default name for everyone:** set `JOYSHARE_NAME` in `.env`.
+- **Progress scene:** while a video is being made, a small 3D scene plays: a soldier demolishing a tower, a press squeezing a block, or a spaceship flying between planets. By default you get a surprise each time. In the pencil panel you can pin one or choose None, and see a preview. If your device has "Reduce motion" on, you get a calm scene instead, with a button to show the full ones.
+- **On your phone's home screen:** once joyshare has its `https://` address, open it on the phone and choose "Add to Home Screen" from the browser's share menu. It then opens full-screen like an app.
+
+## Going live on your own domain
+
+Phones can only use passkeys on an `https://` address, so this is the step that makes joyshare usable from your phone.
+
+**1. Tell the app its address.** In `.env`:
+
+```
+JOYSHARE_PUBLIC_URL=https://your-domain.example
+```
+
+Then `docker compose up -d`. Share links and invites now use that address, and passkeys made there are tied to it.
+
+**2. Run the Cloudflare Tunnel next to the app.** The tunnel is part of `docker-compose.yml`, in the same private network as the app, so it reaches the app by name and nothing depends on the host computer.
+
+1. In the Cloudflare dashboard (Zero Trust → Networks → Tunnels), open your tunnel. Under **Public hostname**, set the service to `http://web:8080`.
+2. Put the tunnel's token in `.env`: `CLOUDFLARE_TUNNEL_TOKEN=…`
+3. Start everything: `docker compose --profile tunnel up -d`
+4. If you were running `cloudflared` as a separate container before, remove that one, so only one copy is connected.
+
+**Shortcut if you already have a device signed in at `localhost`:** open **Devices → Add a device** there. The QR code, the typed code and the link it shows all lead to the main address, so scanning it with your phone registers the phone on the domain. To register the same computer on the domain, open the link shown under the code.
+
+**3. Register your devices on the new address.** A passkey made at `localhost` does not work on the domain, and the other way round. On the server run `./joyshare setup-code`, open the domain on your phone or computer, type the code and confirm with Face ID or Touch ID. After the first one, add more from **Devices → Add a device**.
+
+**The server itself can still open the app at `http://localhost:8080`** with a passkey made there. That is a way back in if the domain or tunnel is down. To allow other addresses, set `JOYSHARE_EXTRA_ORIGINS` in `.env`.
+
+Before sharing videos through the domain, turn on R2 storage (below): Cloudflare's rules don't allow video through the tunnel itself.
 
 ## Add another device
 
@@ -63,6 +98,8 @@ The code works once and lasts 10 minutes.
 > **Phones need https.** Browsers only allow passkeys on `localhost` or an `https://` address. So your iPhone can't register against your laptop's local address. That becomes possible once joyshare has its domain (the go-live phase), or earlier through a temporary tunnel to your laptop.
 
 ## Invite a person
+
+**More admins:** in the same place, choose "as an admin" before pressing Invite, or press **Make admin** next to a person who already has an account. **Make member** takes it away again. There is always at least one admin.
 
 Admins open **Admin panel → People** from the ☰ menu. Type a name and press **Invite**, then have that person scan the QR code on their own device. They get their own account as a *member*: they only see their own videos and can't invite others. You can turn a person off (and back on) from the same list.
 
@@ -203,7 +240,7 @@ These live in a file called `.env` in the joyshare folder on your computer, next
 To change one, for example the name:
 
 1. If there is no `.env` yet, make it from the example: `cp .env.example .env`
-2. Open `.env` in any text editor and set the line, for example `JOYSHARE_NAME=share`
+2. Open `.env` in any text editor and set the line, for example `JOYSHARE_NAME=vidshare`
 3. Restart so the containers pick it up: `docker compose up -d`
 
 `JOYSHARE_NAME` is the name people see until they pick their own with the pencil button. A name someone already chose for themselves stays as they set it.
@@ -212,7 +249,9 @@ To change one, for example the name:
 |---|---|---|
 | `JOYSHARE_PORT` | The port on your computer | `8080` |
 | `JOYSHARE_PUBLIC_URL` | The address people use to reach joyshare. Share links and passkeys are tied to it. | `http://localhost:8080` |
-| `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `joyshare` |
+| `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `vidshare` |
+| `JOYSHARE_EXTRA_ORIGINS` | Other addresses the app may be opened at, separated by commas | `http://localhost:8080` |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Your tunnel's token, used by `docker compose --profile tunnel up -d` | none |
 | `JOYSHARE_SECRET` | Long random text used to encrypt connected accounts | made automatically |
 | `JOYSHARE_BIND` | Who can reach joyshare directly. `127.0.0.1` means only this computer. | `127.0.0.1` |
 
@@ -252,6 +291,9 @@ Two containers run from the same image:
 **"That code isn't valid"**
 Codes work once and expire (setup code: 24 hours, device codes: 10 minutes). Create a new one. After 10 wrong tries joyshare makes you wait a few minutes.
 
+**"This device already has a passkey for your account"**
+Nothing is wrong. Passkeys travel between your own devices through your password manager: one made on your iPhone shows up on your Mac through iCloud Keychain. Skip registering and press **Sign in with a passkey**.
+
 **"The passkey prompt was closed"**
 The Touch ID or Face ID window was dismissed or timed out. Press the button again.
 
@@ -263,6 +305,9 @@ Adding devices, inviting people and creating tokens need a passkey check from th
 
 **"Cannot connect to the Docker daemon"**
 Docker isn't running. Open Docker Desktop and wait for it to finish starting, then try again.
+
+**The page looks half-updated after an update**
+This should no longer happen: scripts and styles get a new address with every update. If you ever see it, reload the page once.
 
 **The page doesn't load**
 Run `docker compose ps`. Both `web` and `worker` should say "Up". If not, `docker compose logs web` shows why. If port 8080 is taken by another app, set `JOYSHARE_PORT=8081` in `.env` and start again.

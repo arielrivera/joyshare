@@ -52,7 +52,7 @@ def test_render_and_stored_messages():
 
 def test_errors_and_presets_follow_the_language(client, monkeypatch):
     from app import media
-    assert client.post("/api/inspect", json={"url": "https://example.com/v"}).json()["detail"].startswith("joyshare works")
+    assert client.post("/api/inspect", json={"url": "https://example.com/v"}).json()["detail"].startswith("This works with")
     client.cookies.set(i18n.LANG_COOKIE, "es")
     assert client.post("/api/inspect", json={"url": "https://example.com/v"}).json()["detail"].startswith("Funciona con")
     assert client.get("/api/jobs/999").json()["detail"] == "Tarea no encontrada."
@@ -67,16 +67,19 @@ def test_errors_and_presets_follow_the_language(client, monkeypatch):
 
 def test_browser_language_is_used_when_nothing_is_chosen(anon):
     res = anon.get("/v/nope", headers={"accept-language": "es-MX,es;q=0.9,en;q=0.5"})
-    assert res.status_code == 410 and "Este video ha caducado" in res.text and '<html lang="es">' in res.text
+    assert res.status_code == 410 and "Este video ha caducado" in res.text and '<html lang="es"' in res.text
     assert "This video has expired" in anon.get("/v/nope", headers={"accept-language": "fr"}).text
 
 
 def test_saved_look_follows_the_account(client, conn):
     status = client.get("/api/auth/status").json()
-    assert status["prefs"] == {"name": "joyshare", "font": "unbounded", "theme": "void", "lang": None}
+    assert status["prefs"] == {"name": "vidshare", "font": "mono", "theme": "zine", "lang": None,
+                               "scene": "random", "motion": "auto"}
 
     saved = client.put("/api/auth/prefs", json={"name": "  share  ", "font": "glitch", "theme": "acid", "lang": "es"})
-    assert saved.json() == {"name": "share", "font": "glitch", "theme": "acid", "lang": "es"}
+    assert saved.json() == {"name": "share", "font": "glitch", "theme": "acid", "lang": "es", "scene": "random", "motion": "auto"}
+    assert client.put("/api/auth/prefs", json={"scene": "voyage", "motion": "full"}).json()["scene"] == "voyage"
+    assert client.put("/api/auth/prefs", json={"scene": "fireworks"}).status_code == 422
     assert client.get("/api/auth/status").json()["prefs"]["name"] == "share"
     assert auth.get_prefs(conn, 1)["name"] == "share"
 
@@ -84,12 +87,12 @@ def test_saved_look_follows_the_account(client, conn):
         assert client.put("/api/auth/prefs", json={"theme": theme, "font": font}).json()["theme"] == theme
     assert client.put("/api/auth/prefs", json={"font": "comic-sans"}).status_code == 422
     assert client.put("/api/auth/prefs", json={"name": "x" * 25}).status_code == 422
-    assert client.put("/api/auth/prefs", json={"name": ""}).json()["name"] == "joyshare"  # back to the default
+    assert client.put("/api/auth/prefs", json={"name": ""}).json()["name"] == "vidshare"  # back to the default
 
 
 def test_share_page_shows_the_senders_name(client, conn):
     from app import config, db, store
-    client.put("/api/auth/prefs", json={"name": "share <b>"})
+    client.put("/api/auth/prefs", json={"name": "share <b>", "theme": "comic", "font": "bangers"})
     media_id = conn.execute(
         "INSERT INTO media (user_id, url, platform, title, uploader, created_at) "
         "VALUES (1, 'https://x.com/a/status/1', 'x', 'Clip', 'someone', ?)", (db.now(),)).lastrowid
@@ -99,4 +102,5 @@ def test_share_page_shows_the_senders_name(client, conn):
     token = client.post(f"/api/files/{file_id}/share").json()["url"].rsplit("/", 1)[1]
     page = client.get(f"/v/{token}", headers={"accept-language": "es"}).text
     assert "compartido con <strong>share &lt;b&gt;</strong>" in page and "<b>" not in page
+    assert '<html lang="es" data-theme="comic" data-font="bangers">' in page      # the friend sees the sender's look
     assert "De someone en X (Twitter)" in page and ">Descargar<" in page

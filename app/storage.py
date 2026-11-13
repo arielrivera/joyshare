@@ -155,7 +155,7 @@ def test(conn) -> list[dict]:
     cfg = _ready(conn)
     client = _client(cfg)
     key = f"joyshare-test-{db.now()}.txt"
-    body = b"joyshare connection test"
+    body = b"vidshare connection test"
     steps = []
 
     def essential(name: str, action):
