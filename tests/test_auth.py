@@ -37,7 +37,8 @@ def owner(conn):
 # ---------- first run ----------
 
 def test_everything_is_locked_when_signed_out(anon):
-    assert anon.get("/api/auth/status").json() == {"signed_in": False, "user": None, "first_run": True}
+    assert anon.get("/api/auth/status").json() == {
+        "signed_in": False, "user": None, "first_run": True, "prefs": None, "app_name": "joyshare"}
     for method, path in [("get", "/api/jobs"), ("get", "/api/config"), ("get", "/api/files/1/download"),
                          ("get", "/api/auth/devices"), ("get", "/api/admin/users")]:
         assert getattr(anon, method)(path).status_code == 401, path

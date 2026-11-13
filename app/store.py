@@ -4,7 +4,7 @@ import sqlite3
 import unicodedata
 from pathlib import Path
 
-from . import config, db
+from . import config, db, i18n
 
 MIME = {".mp4": "video/mp4", ".m4a": "audio/mp4"}
 
@@ -55,7 +55,8 @@ def file_view(row) -> dict:
     }
 
 
-def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None) -> dict | None:
+def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None,
+             lang: str = "en") -> dict | None:
     job = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
     if not job or (user_id is not None and job["user_id"] != user_id):
         return None
@@ -71,7 +72,7 @@ def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None) 
         "status": job["status"],
         "stage": job["stage"],
         "progress": round(job["progress"] or 0, 3),
-        "error": job["error"],
+        "error": i18n.unpack(job["error"], lang),
         "reused": bool(job["reused"]),
         "created_at": job["created_at"],
         "finished_at": job["finished_at"],

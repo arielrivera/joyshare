@@ -12,6 +12,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 from . import config, platforms, presets
+from .i18n import T
 
 log = logging.getLogger("joyshare.media")
 
@@ -65,7 +66,7 @@ def friendly_error(exc: Exception) -> str:
     text = raw.lower()
     if any(w in text for w in ("sign in", "log in", "login", "cookies", "authentication", "age-restricted")):
         return ("The platform only shows this video to signed-in accounts. "
-                "Connecting your account is coming in a later version.")
+                "Connecting your account is coming in a later version.")  # one string: it is a lookup key
     if "private" in text:
         return "This video is private."
     if "unsupported url" in text or "no suitable extractor" in text:
@@ -74,8 +75,7 @@ def friendly_error(exc: Exception) -> str:
         return "No video was found at that link. It may have been removed, or the post has no video."
     if "timed out" in text or "connection" in text:
         return "The platform didn't answer in time. Try again in a moment."
-    short = raw.split("\n")[0][:200]
-    return f"The platform refused the request: {short}"
+    return T("The platform refused the request: {reason}", reason=raw.split("\n")[0][:200])
 
 
 # ---------- reading a link ----------
@@ -189,10 +189,8 @@ def download(url: str, key: str, dest_dir: Path, max_bytes: int, on_progress, sh
             ydl.download([url])
     except Exception as exc:
         if problem.get("too_big"):
-            raise MediaError(
-                f"This video is bigger than the {max_bytes // (1024 * 1024)} MB download limit. "
-                "Try a smaller preset."
-            ) from exc
+            raise MediaError(T("This video is bigger than the {mb} MB download limit. Try a smaller preset.",
+                               mb=max_bytes // (1024 * 1024))) from exc
         if problem.get("canceled") or isinstance(exc, Canceled):
             raise Canceled() from exc
         if isinstance(exc, DownloadError):

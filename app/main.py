@@ -6,18 +6,23 @@ import asyncio
 import html
 import json
 import logging
+import mimetypes
 import secrets
 from contextlib import asynccontextmanager, closing
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, config, db, media, platforms, presets, settings, store
+from . import admin, auth, config, db, i18n, media, platforms, presets, settings, store
+from .i18n import T
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("joyshare.web")
+
+mimetypes.add_type("font/woff2", ".woff2")
 
 MB = 1024 * 1024
 FINAL = {"done", "failed", "canceled"}
@@ -35,6 +40,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="joyshare", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(auth.router)
 app.include_router(auth.admin_router)
+app.include_router(admin.router)
 
 
 @app.middleware("http")
@@ -49,6 +55,17 @@ async def security_headers(request: Request, call_next):
         "style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     )
     return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def translated_errors(request: Request, exc: StarletteHTTPException):
+    """Every error message goes out in the reader's language."""
+    detail = i18n.render(exc.detail, i18n.pick_lang(request)) if isinstance(exc.detail, str) else exc.detail
+    return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=exc.headers)
+
+
+def get_lang(request: Request) -> str:
+    return i18n.pick_lang(request)
 
 
 # ---------- request bodies ----------
@@ -71,7 +88,7 @@ class QuickBody(BaseModel):
 
 # ---------- helpers ----------
 
-def preset_options(info: dict, cfg: dict) -> list[dict]:
+def preset_options(info: dict, cfg: dict, lang: str = "en") -> list[dict]:
     """Each preset with its estimated size and whether it's within the limits."""
     limit = cfg["max_file_mb"] * MB
     duration = info.get("duration")
@@ -84,7 +101,8 @@ def preset_options(info: dict, cfg: dict) -> list[dict]:
 
     options, seen_video = [], set()
     for preset in presets.PRESETS:
-        option = {"id": preset["id"], "label": preset["label"], "detail": preset["detail"],
+        option = {"id": preset["id"], "label": i18n.render(preset["label"], lang),
+                  "detail": i18n.render(preset["detail"], lang),
                   "kind": preset["kind"], "allowed": True, "reason": None}
         if preset["id"] == "fit":
             # Only offer sizes that are actually smaller than the normal 720p download.
@@ -103,15 +121,15 @@ def preset_options(info: dict, cfg: dict) -> list[dict]:
             option["targets"] = targets
             if not targets:
                 option["allowed"] = False
-                option["reason"] = ("This video is too long to shrink to these sizes."
-                                    if duration else "This video's length is unknown.")
+                option["reason"] = i18n.render("This video is too long to shrink to these sizes."
+                                               if duration else "This video's length is unknown.", lang)
             options.append(option)
             continue
 
         est = estimate(presets.source_key(preset["id"]))
         if est is None:
             option["allowed"] = False
-            option["reason"] = "Not available for this video."
+            option["reason"] = i18n.render("Not available for this video.", lang)
             options.append(option)
             continue
         if preset["kind"] == "video":
@@ -124,8 +142,8 @@ def preset_options(info: dict, cfg: dict) -> list[dict]:
         option.update(est_bytes=est["bytes"], height=est["height"], needs_convert=est["needs_convert"])
         if est["bytes"] and est["bytes"] > limit * 1.03:
             option["allowed"] = False
-            option["reason"] = (f"About {est['bytes'] / MB:.0f} MB, over the "
-                                f"{cfg['max_file_mb']} MB limit.")
+            option["reason"] = i18n.render(T("About {size} MB, over the {limit} MB limit.",
+                                             size=round(est["bytes"] / MB), limit=cfg["max_file_mb"]), lang)
         options.append(option)
 
     # Suggest the biggest allowed video at 720p or below: good quality, easy to send.
@@ -181,19 +199,18 @@ def get_config(conn=Depends(db.get_conn), _user: int = Depends(auth.current_user
     }
 
 
-def do_inspect(conn, user_id: int, raw_url: str) -> dict:
+def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
     cfg = settings.get_all(conn)
     try:
         platform, url = platforms.detect(raw_url, cfg["platforms"])
         info = media.inspect(url)
     except (platforms.LinkError, media.MediaError) as exc:
-        raise HTTPException(422, str(exc)) from exc
+        raise HTTPException(422, exc.args[0]) from exc
 
     duration = info.get("duration")
     if duration and duration > cfg["max_duration_min"] * 60:
-        raise HTTPException(
-            422, f"This video is {duration / 60:.0f} minutes long. The limit is {cfg['max_duration_min']} minutes."
-        )
+        raise HTTPException(422, T("This video is {minutes} minutes long. The limit is {limit} minutes.",
+                                   minutes=round(duration / 60), limit=cfg["max_duration_min"]))
 
     fields = (
         url, platform, info.get("title"), info.get("uploader"), info.get("uploader_id"),
@@ -231,12 +248,13 @@ def do_inspect(conn, user_id: int, raw_url: str) -> dict:
             "duration": duration,
             "thumbnail": info.get("thumbnail"),
         },
-        "presets": preset_options(info, cfg),
+        "presets": preset_options(info, cfg, lang),
         "max_file_mb": cfg["max_file_mb"],
     }
 
 
-def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int | None) -> dict:
+def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int | None,
+                  lang: str = "en") -> dict:
     cfg = settings.get_all(conn)
     if preset not in presets.BY_ID:
         raise HTTPException(422, "Unknown preset.")
@@ -247,11 +265,13 @@ def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int
         target_mb = None
     else:
         if not target_mb or target_mb < 1 or target_mb > cfg["max_file_mb"]:
-            raise HTTPException(422, f"Pick a size between 1 and {cfg['max_file_mb']} MB.")
+            raise HTTPException(422, T("Pick a size between 1 and {max} MB.", max=cfg["max_file_mb"]))
         try:
             presets.fit_plan(target_mb * MB, item["duration"] or 0)
         except presets.PresetError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            raise HTTPException(422, exc.args[0]) from exc
+    if cfg["paused"]:
+        raise HTTPException(503, "New videos are paused for now. Try again later.")
     disk, _ = db.get_state(conn, "disk")
     if disk and json.loads(disk).get("level") == "paused":
         raise HTTPException(503, "The server's disk is almost full, so new videos are paused for now.")
@@ -264,49 +284,54 @@ def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int
         "INSERT INTO jobs (user_id, media_id, preset, target_mb, created_at) VALUES (?,?,?,?,?)",
         (user_id, media_id, preset, target_mb, db.now()),
     ).lastrowid
-    return store.job_view(conn, job_id, user_id)
+    return store.job_view(conn, job_id, user_id, lang)
 
 
 @app.post("/api/inspect")
-def inspect(body: InspectBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
-    return do_inspect(conn, user_id, body.url)
+def inspect(body: InspectBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+            lang: str = Depends(get_lang)):
+    return do_inspect(conn, user_id, body.url, lang)
 
 
 @app.post("/api/jobs")
-def create_job(body: JobBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
-    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb)
+def create_job(body: JobBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+               lang: str = Depends(get_lang)):
+    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb, lang)
 
 
 @app.post("/api/quick")
-def quick(body: QuickBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+def quick(body: QuickBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+          lang: str = Depends(get_lang)):
     """One call for the iOS Shortcut: look up a link and start the suggested preset.
 
     Returns the job and a page to open, where progress and the Share button appear.
     """
-    found = do_inspect(conn, user_id, body.url)
+    found = do_inspect(conn, user_id, body.url, lang)
     preset = body.preset
     if not preset:
         pick = next((p for p in found["presets"] if p.get("recommended")), None)
         if not pick:
             raise HTTPException(422, "No size of this video fits within the limits.")
         preset = pick["id"]
-    job = do_create_job(conn, user_id, found["media"]["id"], preset, body.target_mb)
+    job = do_create_job(conn, user_id, found["media"]["id"], preset, body.target_mb, lang)
     return {"job": job, "media": found["media"], "page_url": f"{config.PUBLIC_URL}/#job={job['id']}"}
 
 
 
 
 @app.get("/api/jobs")
-def list_jobs(limit: int = 20, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+def list_jobs(limit: int = 20, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+              lang: str = Depends(get_lang)):
     rows = conn.execute(
         "SELECT id FROM jobs WHERE user_id=? ORDER BY id DESC LIMIT ?", (user_id, max(1, min(limit, 100)))
     ).fetchall()
-    return [store.job_view(conn, row["id"], user_id) for row in rows]
+    return [store.job_view(conn, row["id"], user_id, lang) for row in rows]
 
 
 @app.get("/api/jobs/{job_id}")
-def get_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
-    view = store.job_view(conn, job_id, user_id)
+def get_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+            lang: str = Depends(get_lang)):
+    view = store.job_view(conn, job_id, user_id, lang)
     if not view:
         raise HTTPException(404, "Job not found.")
     return view
@@ -325,11 +350,11 @@ def cancel_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(au
 
 
 @app.get("/api/jobs/{job_id}/events")
-async def job_events(job_id: int, user_id: int = Depends(auth.current_user)):
+async def job_events(job_id: int, user_id: int = Depends(auth.current_user), lang: str = Depends(get_lang)):
     """Live progress as Server-Sent Events."""
     def read():
         with closing(db.connect()) as conn:
-            return store.job_view(conn, job_id, user_id)
+            return store.job_view(conn, job_id, user_id, lang)
 
     if await asyncio.to_thread(read) is None:
         raise HTTPException(404, "Job not found.")
@@ -404,23 +429,28 @@ def revoke_share(token: str, conn=Depends(db.get_conn), user_id: int = Depends(a
 # ---------- public share pages ----------
 
 SHARE_PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>{title}</title>
 <meta property="og:title" content="{title}">
-<meta property="og:site_name" content="joyshare">
+<meta property="og:site_name" content="{brand}">
 <meta property="og:type" content="{og_type}">
 {og_media}
 <link rel="stylesheet" href="/share.css">
 </head><body><main>
 {body}
-<p class="brand">shared with joyshare</p>
+<p class="brand">{shared_with}</p>
 </main></body></html>"""
 
 
-def share_shell(title: str, body: str, og_type: str = "website", og_media: str = "", status: int = 200):
-    page = SHARE_PAGE.format(title=html.escape(title), body=body, og_type=og_type, og_media=og_media)
+def share_shell(title: str, body: str, lang: str, brand: str, og_type: str = "website", og_media: str = "",
+                status: int = 200):
+    brand = html.escape(brand)
+    page = SHARE_PAGE.format(
+        title=html.escape(title), body=body, og_type=og_type, og_media=og_media, lang=lang, brand=brand,
+        shared_with=i18n.render(T("shared with {name}", name=f"<strong>{brand}</strong>"), lang),
+    )
     return HTMLResponse(page, status_code=status)
 
 
@@ -436,25 +466,26 @@ def live_share(conn, token: str):
 
 
 @app.get("/v/{token}", response_class=HTMLResponse)
-def share_page(token: str, conn=Depends(db.get_conn)):
+def share_page(token: str, conn=Depends(db.get_conn), lang: str = Depends(get_lang)):
+    tr = lambda text: i18n.render(text, lang)  # noqa: E731
     link, row = live_share(conn, token)
     if not link:
-        return share_shell(
-            "This video has expired",
-            "<h1>This video has expired</h1><p>Shared videos are only kept for a short time. "
-            "Ask the person who sent it to share it again.</p>",
-            status=410,
-        )
+        gone = tr("This video has expired")
+        why = tr("Shared videos are only kept for a short time. Ask the person who sent it to share it again.")
+        return share_shell(gone, f"<h1>{html.escape(gone)}</h1><p>{html.escape(why)}</p>",
+                           lang, config.APP_NAME, status=410)
+    brand = auth.get_prefs(conn, link["user_id"])["name"]  # friends see the name the sender chose
     conn.execute("UPDATE share_links SET views=views+1 WHERE token=?", (token,))
     item = conn.execute("SELECT * FROM media WHERE id=?", (row["media_id"],)).fetchone()
-    title = item["title"] or "Shared video"
+    title = item["title"] or tr("Shared video")
     src = f"/v/{token}/file"
     absolute = f"{config.PUBLIC_URL}{src}"
     is_audio = (row["mime"] or "").startswith("audio")
     credit = ""
     if item["uploader"]:
-        credit = f"<p class=\"credit\">From {html.escape(item['uploader'])} on " \
-                 f"{html.escape(platforms.PLATFORMS[item['platform']]['label'])}</p>"
+        credit = "<p class=\"credit\">" + html.escape(tr(T(
+            "From {uploader} on {platform}", uploader=item["uploader"],
+            platform=platforms.PLATFORMS[item["platform"]]["label"]))) + "</p>"
     if is_audio:
         player = f'<audio controls preload="metadata" src="{src}"></audio>'
         og_type = "music.song"
@@ -470,8 +501,8 @@ def share_page(token: str, conn=Depends(db.get_conn)):
     if item["thumbnail"]:
         og_media += f'\n<meta property="og:image" content="{html.escape(item["thumbnail"])}">'
     body = (f"{player}<h1>{html.escape(title)}</h1>{credit}"
-            f'<p><a class="button" href="{src}?download=1">Download</a></p>')
-    return share_shell(title, body, og_type, og_media)
+            f'<p><a class="button" href="{src}?download=1">{html.escape(tr("Download"))}</a></p>')
+    return share_shell(title, body, lang, brand, og_type, og_media)
 
 
 @app.get("/v/{token}/file")

@@ -1,8 +1,10 @@
 // Sign-in with passkeys, the Devices screen, and the shared api() helper.
+// t() comes from i18n.js; prefs, setPrefs() and adoptAccountPrefs() come from prefs.js.
 const $ = (id) => document.getElementById(id);
-const fmtWhen = (epoch) => new Date(epoch * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+const fmtWhen = (epoch) => new Date(epoch * 1000).toLocaleString(LANG, { dateStyle: "medium", timeStyle: "short" });
 
-let me = null; // { id, name, role } once signed in
+let me = null;          // { id, name, role } once signed in
+let firstRun = false;   // true until the very first device is registered
 
 // ---------- talking to the server ----------
 
@@ -19,15 +21,26 @@ async function api(path, options = {}, retried = false) {
   }
   if (res.status === 401 && me) {
     me = null;
-    showSignedOut(false);
+    showSignedOut();
   }
-  if (!res.ok) throw new Error((data && data.detail) || "Something went wrong. Try again.");
+  if (!res.ok) throw new Error((data && typeof data.detail === "string" && data.detail) || t("err.generic"));
   return data;
 }
 
 function showError(el, message) {
   el.textContent = message || "";
   el.hidden = !message;
+}
+
+async function copyFrom(input, button) {
+  try {
+    await navigator.clipboard.writeText(input.value);
+    button.textContent = t("copied");
+  } catch {
+    input.select();
+    button.textContent = t("selectCopy");
+  }
+  setTimeout(() => { button.textContent = t("copy"); }, 2000);
 }
 
 // ---------- passkey plumbing (WebAuthn wants bytes, JSON wants text) ----------
@@ -65,10 +78,10 @@ function credentialToJSON(cred) {
 }
 
 function passkeyProblem(err) {
-  if (err && err.name === "NotAllowedError") return "The passkey prompt was closed. Try again when you're ready.";
-  if (err && err.name === "InvalidStateError") return "This device is already registered. Use Sign in instead.";
-  if (!window.PublicKeyCredential) return "This browser doesn't support passkeys.";
-  return (err && err.message) || "The passkey didn't work. Try again.";
+  if (err && err.name === "NotAllowedError") return t("pk.closed");
+  if (err && err.name === "InvalidStateError") return t("pk.exists");
+  if (!window.PublicKeyCredential) return t("pk.unsupported");
+  return (err && err.message) || t("pk.failed");
 }
 
 async function passkeySignIn() {
@@ -86,7 +99,6 @@ async function passkeySignIn() {
     body: JSON.stringify({ challenge_id: start.challenge_id, credential: credentialToJSON(cred) }),
   });
   me = done.user;
-  return me;
 }
 
 async function passkeyRegister(code, deviceName) {
@@ -108,7 +120,6 @@ async function passkeyRegister(code, deviceName) {
     body: JSON.stringify({ challenge_id: start.challenge_id, credential: credentialToJSON(cred) }),
   });
   me = done.user;
-  return me;
 }
 
 // ---------- which screen is showing ----------
@@ -117,22 +128,26 @@ function guessDeviceName() {
   const ua = navigator.userAgent;
   if (/iPhone/.test(ua)) return "iPhone";
   if (/iPad/.test(ua)) return "iPad";
-  if (/Android/.test(ua)) return "Android phone";
+  if (/Android/.test(ua)) return "Android";
   if (/Macintosh/.test(ua)) return "Mac";
   if (/Windows/.test(ua)) return "Windows PC";
   return "My device";
 }
 
-function showSignedOut(firstRun) {
+function paintAuthText() {
+  $("signin-box").hidden = firstRun;
+  $("join-title").textContent = firstRun ? t("join.titleSetup", { name: brandName() }) : t("join.titleNew");
+  $("join-help").textContent = firstRun ? t("join.helpSetup") : t("join.helpNew");
+  if (me) $("who").textContent = me.role === "admin" ? `${me.name} · ${t("nav.admin")}` : me.name;
+}
+
+function showSignedOut() {
+  prefsSignedIn = false;
   $("app").hidden = true;
   $("devices").hidden = true;
   $("nav").hidden = true;
   $("auth").hidden = false;
-  $("signin-box").hidden = firstRun;
-  $("join-title").textContent = firstRun ? "Set up joyshare" : "New device?";
-  $("join-help").textContent = firstRun
-    ? "Enter the setup code printed in the server log to register your first device."
-    : "On a device that's already signed in, open Devices and choose \"Add a device\". Enter the code it shows.";
+  paintAuthText();
   if (!$("join-name").value) $("join-name").value = guessDeviceName();
   const match = location.hash.match(/^#join=([A-Za-z0-9-]+)$/);
   if (match) {
@@ -141,12 +156,17 @@ function showSignedOut(firstRun) {
   }
 }
 
-function showSignedIn() {
+// After a passkey check succeeds: load the account's saved look, then open the app.
+async function enter() {
+  const status = await api("/api/auth/status");
+  me = status.user;
+  firstRun = false;
+  adoptAccountPrefs(status);
   $("auth").hidden = true;
   $("devices").hidden = true;
   $("app").hidden = false;
   $("nav").hidden = false;
-  $("who").textContent = me.role === "admin" ? `${me.name} (admin)` : me.name;
+  paintAuthText();
   document.dispatchEvent(new CustomEvent("joyshare:signed-in"));
 }
 
@@ -154,7 +174,7 @@ $("sign-in").addEventListener("click", async () => {
   showError($("auth-error"), "");
   try {
     await passkeySignIn();
-    showSignedIn();
+    await enter();
   } catch (err) {
     showError($("auth-error"), passkeyProblem(err));
   }
@@ -166,7 +186,7 @@ $("join").addEventListener("submit", async (e) => {
   try {
     await passkeyRegister($("join-code").value, $("join-name").value);
     $("join-code").value = "";
-    showSignedIn();
+    await enter();
   } catch (err) {
     showError($("auth-error"), passkeyProblem(err));
   }
@@ -175,8 +195,19 @@ $("join").addEventListener("submit", async (e) => {
 $("sign-out").addEventListener("click", async () => {
   try { await api("/api/auth/logout", { method: "POST" }); } catch { /* already signed out */ }
   me = null;
-  showSignedOut(false);
+  showSignedOut();
 });
+
+// ---------- the small menu at the top ----------
+
+function setMenu(open) {
+  $("menu-panel").hidden = !open;
+  $("menu-button").setAttribute("aria-expanded", String(open));
+}
+$("menu-button").addEventListener("click", (e) => { e.stopPropagation(); setMenu($("menu-panel").hidden); });
+$("menu-panel").addEventListener("click", (e) => { if (e.target.closest("button")) setMenu(false); });
+document.addEventListener("click", (e) => { if (!e.target.closest("#nav")) setMenu(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
 
 // ---------- Devices screen ----------
 
@@ -213,24 +244,29 @@ async function act(fn) {
 async function loadDevices() {
   const data = await api("/api/auth/devices");
   $("passkey-list").replaceChildren(...data.passkeys.map((p) => row(
-    p.current ? `${p.name} (this device)` : p.name,
-    `Added ${fmtWhen(p.created_at)}` + (p.last_used_at ? ` · last used ${fmtWhen(p.last_used_at)}` : ""),
-    p.current || data.passkeys.length < 2 ? null : "Remove",
+    p.current ? `${p.name} ${t("dev.this")}` : p.name,
+    t("dev.added", { when: fmtWhen(p.created_at) }) + (p.last_used_at ? ` · ${t("dev.lastUsed", { when: fmtWhen(p.last_used_at) })}` : ""),
+    p.current || data.passkeys.length < 2 ? null : t("dev.remove"),
     () => act(async () => { await api(`/api/auth/devices/${p.id}`, { method: "DELETE" }); await loadDevices(); }),
   )));
-  $("token-list").replaceChildren(...data.tokens.map((t) => row(
-    t.name,
-    `Created ${fmtWhen(t.created_at)}` + (t.last_used_at ? ` · last used ${fmtWhen(t.last_used_at)}` : " · never used"),
-    "Revoke",
-    () => act(async () => { await api(`/api/auth/tokens/${t.id}`, { method: "DELETE" }); await loadDevices(); }),
+  $("token-list").replaceChildren(...data.tokens.map((k) => row(
+    k.name,
+    t("tok.created", { when: fmtWhen(k.created_at) }) + " · " + (k.last_used_at ? t("dev.lastUsed", { when: fmtWhen(k.last_used_at) }) : t("tok.never")),
+    t("tok.revoke"),
+    () => act(async () => { await api(`/api/auth/tokens/${k.id}`, { method: "DELETE" }); await loadDevices(); }),
   )));
   $("people").hidden = me.role !== "admin";
   if (me.role === "admin") {
     const people = await api("/api/admin/users");
     $("people-list").replaceChildren(...people.map((u) => row(
-      u.me ? `${u.name} (you)` : u.name,
-      `${u.role} · ${u.devices} device${u.devices === 1 ? "" : "s"} · ${u.jobs} video${u.jobs === 1 ? "" : "s"}` + (u.disabled ? " · turned off" : ""),
-      u.me ? null : (u.disabled ? "Turn on" : "Turn off"),
+      u.me ? `${u.name} ${t("ppl.you")}` : u.name,
+      [
+        t(`role.${u.role}`),
+        u.devices === 1 ? t("ppl.devices1") : t("ppl.devicesN", { n: u.devices }),
+        u.jobs === 1 ? t("ppl.videos1") : t("ppl.videosN", { n: u.jobs }),
+        u.disabled ? t("ppl.off") : "",
+      ].filter(Boolean).join(" · "),
+      u.me ? null : (u.disabled ? t("ppl.turnOn") : t("ppl.turnOff")),
       () => act(async () => {
         await api(`/api/admin/users/${u.id}/${u.disabled ? "enable" : "disable"}`, { method: "POST" });
         await loadDevices();
@@ -243,9 +279,9 @@ function showInvite(invite, help) {
   $("invite-help").textContent = help;
   $("invite-qr").src = invite.qr;
   $("invite-code").textContent = invite.code;
-  $("invite-expiry").textContent = `Works once, until ${fmtWhen(invite.expires_at)}.`;
+  $("invite-expiry").textContent = t("dev.expires", { when: fmtWhen(invite.expires_at) });
   $("invite-box").hidden = false;
-  $("invite-box").scrollIntoView({ block: "nearest" });
+  $("invite-box").scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 $("open-devices").addEventListener("click", () => act(async () => {
@@ -263,7 +299,7 @@ $("close-devices").addEventListener("click", () => {
 
 $("add-device").addEventListener("click", () => act(async () => {
   const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "device" }) });
-  showInvite(invite, "On the new device, scan this with the camera. It opens joyshare ready to register.");
+  showInvite(invite, t("dev.scanDevice"));
 }));
 
 $("person-form").addEventListener("submit", (e) => {
@@ -272,7 +308,7 @@ $("person-form").addEventListener("submit", (e) => {
     const name = $("person-name").value;
     const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "user", name }) });
     $("person-name").value = "";
-    showInvite(invite, `Have ${name} scan this on their own device. It creates their account.`);
+    showInvite(invite, t("dev.scanPerson", { name }));
   });
 });
 
@@ -287,36 +323,34 @@ $("token-form").addEventListener("submit", (e) => {
   });
 });
 
-$("token-copy").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText($("token-value").value);
-    $("token-copy").textContent = "Copied";
-  } catch {
-    $("token-value").select();
-    $("token-copy").textContent = "Select and copy";
-  }
-  setTimeout(() => { $("token-copy").textContent = "Copy"; }, 2000);
-});
+$("token-copy").addEventListener("click", () => copyFrom($("token-value"), $("token-copy")));
 
 $("sign-out-all").addEventListener("click", () => act(async () => {
   await api("/api/auth/logout-all", { method: "POST" });
   me = null;
-  showSignedOut(false);
+  showSignedOut();
 }));
+
+// Language or name changed: repaint the parts that aren't plain data-i18n labels.
+document.addEventListener("joyshare:prefs", () => {
+  paintAuthText();
+  if (me && !$("devices").hidden) loadDevices().catch(() => {});
+});
 
 // ---------- start ----------
 
 (async function boot() {
   try {
     const status = await api("/api/auth/status");
+    firstRun = status.first_run;
     if (status.signed_in) {
-      me = status.user;
-      showSignedIn();
+      await enter();
     } else {
-      showSignedOut(status.first_run);
+      adoptAccountPrefs(status);
+      showSignedOut();
     }
   } catch (err) {
     $("auth").hidden = false;
-    showError($("auth-error"), "joyshare isn't answering. Check that the server is running.");
+    showError($("auth-error"), t("boot.down"));
   }
 })();

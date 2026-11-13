@@ -5,6 +5,8 @@ the server must never be usable to fetch arbitrary addresses.
 """
 from urllib.parse import urlsplit
 
+from .i18n import T
+
 PLATFORMS = {
     "x": {
         "label": "X (Twitter)",
@@ -63,7 +65,7 @@ def detect(url: str, enabled: list[str] | None = None) -> tuple[str, str]:
     for platform, spec in PLATFORMS.items():
         if host in spec["hosts"]:
             if enabled is not None and platform not in enabled:
-                raise LinkError(f"{spec['label']} is turned off on this server.")
+                raise LinkError(T("{platform} is turned off on this server.", platform=spec["label"]))
             clean = parts._replace(scheme="https", fragment="").geturl()
             return platform, clean
     raise LinkError("joyshare works with links from X, YouTube, Instagram and Facebook.")

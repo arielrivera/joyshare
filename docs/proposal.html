@@ -125,6 +125,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
       <li><a href="#risks">Risks and gaps</a></li>
       <li><a href="#status">Phase 1 results</a></li>
       <li><a href="#status2">Phase 2 results</a></li>
+      <li><a href="#look">Interface and languages</a></li>
       <li><a href="#roadmap">Build plan</a></li>
       <li><a href="#changelog">Changelog</a></li>
     </ol>
@@ -132,7 +133,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v5.1</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v5.5</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -163,7 +164,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
           <tr><td>Users and roles</td><td>Two roles: Admin (you) and Member. Every job and file belongs to a user.</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Admin panel</td><td>Stats, logs, limits, storage switch, devices, updates</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Database</td><td>SQLite in WAL mode</td><td><span class="pill rec">Recommended</span></td><td>Postgres</td></tr>
-          <tr><td>Frontend</td><td>SvelteKit (static build) + Three.js for the animated progress scenes</td><td><span class="pill rec">Recommended</span></td><td>React + Vite + react-three-fiber</td></tr>
+          <tr><td>Frontend</td><td>Plain HTML, CSS and JavaScript for now, with Three.js for the animated progress scenes. Whether to move to SvelteKit is still open.</td><td><span class="pill open">Open</span></td><td>React + Vite + react-three-fiber</td></tr>
           <tr><td>Live progress</td><td>Server-Sent Events (SSE)</td><td><span class="pill rec">Recommended</span></td><td>WebSockets, polling</td></tr>
           <tr><td>Login</td><td>Passkeys (Face ID / Touch ID), sign-up closed after your first device</td><td><span class="pill rec">Recommended</span></td><td>Cloudflare Access: skipped at launch (confirmed). If added later, only in front of the admin panel.</td></tr>
           <tr><td>Alerts</td><td>ntfy push notifications (iPhone app)</td><td><span class="pill decided">Decided</span></td><td>Pushover, Telegram bot, email</td></tr>
@@ -575,12 +576,29 @@ flowchart LR
       </ul>
     </section>
 
+    <section id="look">
+      <h2>Interface, look and languages</h2>
+      <p class="sub">Built on 12 Nov 2026 from your feedback after trying the app.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Request</th><th>What was built</th></tr></thead>
+        <tbody>
+          <tr><td>Finished file was hidden below</td><td>One step shows at a time in the same place: pick a size, then progress, then the finished file. The page scrolls to each step.</td></tr>
+          <tr><td>Quick way to do another link</td><td>A "New link" button on the finished file, the link box clears itself after a lookup, pasting a link looks it up immediately, and a Paste button reads the clipboard where the browser allows it. "Another size" goes back to the size picker for the same video.</td></tr>
+          <tr><td>English or Spanish</td><td>Flag buttons at the top. Covers the whole interface, server error messages and the page friends see.</td></tr>
+          <tr><td>Wilder design, no blue</td><td>Eight looks (Void, Acid, Sunset, Zine, Clay, Windows 95, Comic, Vaporwave), loud display lettering, hard-edged cards with offset shadows, a scrolling ticker and a giant percentage during progress.</td></tr>
+          <tr><td>Font choices</td><td>Six display fonts: Unbounded, Syne, Tilt Warp, Rubik Glitch, Rubik Mono and Fredoka. All open source and served by the app itself.</td></tr>
+          <tr><td>Change the name</td><td>A pencil button next to the name. The name, font, colors and language are saved to the person's account and follow them to every device. Friends see the sender's name on shared pages.</td></tr>
+        </tbody>
+      </table></div>
+      <p>The admin panel and the 3D progress scenes will be built in this look.</p>
+    </section>
+
     <section id="roadmap">
       <h2>Build plan</h2>
       <ol class="flow">
         <li><div><strong>Core, on your laptop.</strong> <span class="pill decided">Built</span> Docker Compose, FastAPI, worker with its scheduler, SQLite with users and settings tables, X and YouTube (tested), Instagram and Facebook (built, untested), all presets including audio only, size check, cleanup, a plain UI, storage in Mode A.</div></li>
         <li><div><strong>Access.</strong> <span class="pill decided">Built</span> Passkeys, admin and member roles, device QR flow, tokens, iOS Shortcut. Test from the iPhone through a temporary dev tunnel.</div></li>
-        <li><div><strong>Admin panel and ops.</strong> All admin pages, ntfy events, disk checks, worker heartbeat, nightly backups and platform check, yt-dlp auto-update, the R2 storage setting and setup guide.</div></li>
+        <li><div><strong>Admin panel and ops.</strong> <span class="pill rec">Started</span> All admin pages, ntfy events, disk checks, worker heartbeat, nightly backups and platform check, yt-dlp auto-update, the R2 storage setting and setup guide.</div></li>
         <li><div><strong>Look and feel.</strong> The interface design, the Three.js progress scenes (first three: Demolition, Compressor, Voyage), PWA icon and full-screen mode, share viewer page.</div></li>
         <li><div><strong>Go live.</strong> Move to the Mac mini with the move guide (the first real test of it), turn on R2, connect the Cloudflare Tunnel, set up Uptime Kuma on DigitalOcean.</div></li>
       </ol>
@@ -597,6 +615,10 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>12 Nov 2026</time><div>v5.5. Three more looks built: Windows 95, Comic and Vaporwave. Phase 3 started with its server side: alerts through ntfy (video ready, failed, disk 90% and 95%, new device, repeated failed sign-ins), an admin API for numbers, settings, jobs, share links and the audit log, and a "pause new jobs" setting. No admin screen yet. A hand-off roadmap of everything left is in <code>docs/ROADMAP.md</code>. 68 automated tests.</div></li>
+        <li><time>12 Nov 2026</time><div>v5.4. Two more looks are built and switchable: Zine (paper, ink, red marker, typewriter text) and Clay (puffy pastel shapes). Each look brings its own lettering. A second round of sketches, including Windows 95, is in <code>docs/design/look-options-2.html</code>.</div></li>
+        <li><time>12 Nov 2026</time><div>v5.3. The top bar is now one compact row: name, pencil, one language button that switches on tap, and one menu button holding Devices and Sign out. Spanish uses the Mexico flag. Six more look options (chrome, zine, arcade, clay, deco, lava glass) are sketched in <code>docs/design/look-options.html</code> for you to choose from; none is built yet.</div></li>
+        <li><time>12 Nov 2026</time><div>v5.2. New interface: one step shows at a time so the finished file is never hidden, pasting a link looks it up at once, "New link" and "Another size" buttons. New look with three color themes and four display fonts. English and Spanish everywhere, including server messages and the share page. Each person can rename the app and pick their look, saved to their account. Fixed a database thread error that could randomly fail a request. 58 automated tests.</div></li>
         <li><time>12 Nov 2026</time><div>v5.1. Phase 2 is built: passkey sign-in, setup code for the first device, extra devices by QR code, member accounts, access tokens, a one-call endpoint for the iPhone Shortcut, and a recovery command. 51 automated tests. Not yet tried with a real Touch ID or on an iPhone.</div></li>
         <li><time>12 Nov 2026</time><div>v5. Phase 1 is built and tested on the laptop: X and YouTube downloads through every preset, share links, cleanup, 37 automated tests. Data now lives in a Docker volume instead of a plain folder, because a database in a Mac shared folder is unreliable with two containers.</div></li>
         <li><time>12 Nov 2026</time><div>v4.3. Added the README as the repo's front page. All commits and GitHub activity are under the owner's name only.</div></li>

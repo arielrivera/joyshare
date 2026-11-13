@@ -11,7 +11,8 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cleanup, config, db, media, presets, settings, store
+from . import cleanup, config, db, i18n, media, notify, presets, settings, store
+from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
 
@@ -160,16 +161,18 @@ class Worker:
             size = out.stat().st_size
             if size > cfg["max_file_mb"] * MB:
                 out.unlink(missing_ok=True)
-                raise media.MediaError(
-                    f"The finished file is {size / MB:.0f} MB, over the {cfg['max_file_mb']} MB limit. "
-                    "Use Fit a size to shrink it."
-                )
+                raise media.MediaError(i18n.T(
+                    "The finished file is {size} MB, over the {limit} MB limit. Use Fit a size to shrink it.",
+                    size=round(size / MB), limit=cfg["max_file_mb"]))
             file_id = store.add_file(
                 conn, user_id=user_id, media_id=media_id, kind="output", key=out_key, path=out,
                 ttl_seconds=cfg["output_ttl_hours"] * 3600, meta=media.probe(out),
             )
             finish(file_id)
             log.info("Job %s done: %s, %.1f MB", job_id, preset_id, size / MB)
+            notify.send(conn, "job_done", "Video ready",
+                        T("{title} · {size} MB", title=item["title"] or "Video", size=round(size / MB, 1)),
+                        click=notify.job_link(job_id))
         except media.Canceled:
             if self.stop.is_set():
                 conn.execute("UPDATE jobs SET status='queued', stage=NULL, progress=0 WHERE id=?", (job_id,))
@@ -179,7 +182,7 @@ class Worker:
                     (db.now(), job_id),
                 )
         except (media.MediaError, presets.PresetError) as exc:
-            self.fail(conn, job_id, str(exc))
+            self.fail(conn, job_id, exc.args[0] if exc.args else str(exc))
         except Exception:
             log.exception("Job %s crashed", job_id)
             self.fail(conn, job_id, "Something went wrong on the server. The details are in the server log.")
@@ -189,12 +192,20 @@ class Worker:
             conn.close()
 
     @staticmethod
-    def fail(conn, job_id: int, message: str) -> None:
+    def fail(conn, job_id: int, message) -> None:
         log.warning("Job %s failed: %s", job_id, message)
         conn.execute(
             "UPDATE jobs SET status='failed', error=?, finished_at=? WHERE id=?",
-            (message, db.now(), job_id),
+            (i18n.pack(message), db.now(), job_id),  # stored so it can be shown in either language
         )
+        row = conn.execute(
+            "SELECT m.title, m.platform, u.name FROM jobs j JOIN media m ON m.id=j.media_id "
+            "JOIN users u ON u.id=j.user_id WHERE j.id=?", (job_id,)).fetchone()
+        if row:
+            notify.send(conn, "job_failed", T("Video failed ({person})", person=row["name"]),
+                        T("{title}: {reason}", title=row["title"] or row["platform"],
+                          reason=i18n.render(message, notify.admin_lang(conn))),
+                        click=notify.job_link(job_id))
 
 
 if __name__ == "__main__":

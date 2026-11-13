@@ -8,11 +8,13 @@ import shutil
 import sqlite3
 import time
 
-from . import config, db, settings, store
+from . import config, db, notify, settings, store
+from .i18n import T
 
 log = logging.getLogger("joyshare.cleanup")
 
 STALE_TMP_SECONDS = 6 * 3600
+ALERT_EVERY = 6 * 3600
 
 
 def delete_expired(conn: sqlite3.Connection, in_use: set[int] = frozenset()) -> int:
@@ -53,9 +55,19 @@ def check_disk(conn: sqlite3.Connection) -> dict:
         level = "warn"
     report = {"pct": pct, "used": usage.used, "total": usage.total, "level": level}
     previous, _ = db.get_state(conn, "disk")
-    if level != "ok" and (not previous or json.loads(previous).get("level") != level):
-        # Phase 3 sends this as an ntfy alert.
+    changed = not previous or json.loads(previous).get("level") != level
+    last_alert, _ = db.get_state(conn, "disk_alert_at")
+    # Alert when the level changes, and again every 6 hours while it stays high.
+    if level != "ok" and (changed or not last_alert or db.now() - int(last_alert) >= ALERT_EVERY):
         log.warning("Disk is %s%% full (%s)", pct, level)
+        gb = lambda n: round(n / 1024 ** 3, 1)  # noqa: E731
+        if level == "paused":
+            notify.send(conn, "disk_paused", "Disk almost full: new videos paused",
+                        T("{pct}% used ({used} of {total} GB). Free some space.", pct=pct, used=gb(usage.used), total=gb(usage.total)))
+        else:
+            notify.send(conn, "disk_warn", "Disk is filling up",
+                        T("{pct}% used ({used} of {total} GB).", pct=pct, used=gb(usage.used), total=gb(usage.total)))
+        db.set_state(conn, "disk_alert_at", str(db.now()))
     db.set_state(conn, "disk", json.dumps(report))
     return report
 

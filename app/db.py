@@ -153,6 +153,10 @@ MIGRATIONS = [
         revoked_at INTEGER
     );
     """,
+    # 3: each person's own look (name shown at the top, font, theme, language)
+    """
+    ALTER TABLE users ADD COLUMN prefs TEXT;
+    """,
 ]
 
 
@@ -161,7 +165,9 @@ def now() -> int:
 
 
 def connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(config.DB_PATH, timeout=10, isolation_level=None)
+    # check_same_thread=False: the web server may open a request's connection on one worker
+    # thread and close it on another. Each connection still serves one request at a time.
+    conn = sqlite3.connect(config.DB_PATH, timeout=10, isolation_level=None, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")

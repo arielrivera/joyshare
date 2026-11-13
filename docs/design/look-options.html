@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>joyshare look options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fredoka:wght@400;600;700&family=Limelight&family=Outfit:wght@400;600&family=Poiret+One&family=Press+Start+2P&family=Rubik+Mono+One&family=Special+Elite&family=Syncopate:wght@400;700&family=VT323&display=swap">
+<style>
+/* Sketches only: six directions to choose from. Nothing here is wired into the app. */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 28px 16px 48px; background: #1a1a1d; color: #f2f2f2; font: 15px/1.5 system-ui, sans-serif; }
+h1 { font-size: 22px; margin: 0 0 4px; text-align: center; }
+.sub { text-align: center; color: #a9a9b2; margin: 0 0 28px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 34px 26px; max-width: 980px; margin: 0 auto; }
+.opt-wrap { display: grid; gap: 10px; justify-items: center; }
+.opt-wrap h2 { margin: 6px 0 0; font-size: 17px; }
+.opt-wrap p { margin: 0; color: #b9b9c2; font-size: 14px; text-align: center; max-width: 30ch; }
+
+/* shared phone skeleton, driven by per-theme variables */
+.phone { width: 270px; border-radius: 34px; padding: 9px; background: #000; border: 2px solid #3a3a40; }
+.scr { position: relative; overflow: hidden; border-radius: 26px; padding: 14px 12px 16px; display: grid; gap: 11px;
+  background: var(--bg); color: var(--ink); font-family: var(--f-b); font-size: 13px; }
+.hd { display: flex; align-items: center; gap: 6px; }
+.logo { font-family: var(--f-d); font-size: var(--logo, 24px); line-height: 1; }
+.pen { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-style: normal;
+  background: var(--acc); color: var(--acc-ink); border: var(--bw) solid var(--line); }
+.sp { flex: 1; }
+.chip { font-size: 10px; padding: 4px 7px; border-radius: 99px; border: var(--bw) solid var(--line); background: var(--card); color: var(--card-ink, var(--ink)); white-space: nowrap; }
+.card { background: var(--card); color: var(--card-ink, var(--ink)); border: var(--bw) solid var(--line); border-radius: var(--r);
+  padding: 11px; display: grid; gap: 8px; box-shadow: var(--sh); }
+.lbl { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.in { border: var(--bw) solid var(--line); border-radius: calc(var(--r) * .6); padding: 8px 9px; background: var(--field); opacity: .95;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o { display: flex; justify-content: space-between; gap: 8px; padding: 8px 9px; border-radius: calc(var(--r) * .6);
+  border: var(--bw) solid color-mix(in srgb, var(--line) 45%, transparent); }
+.o.on { border-color: var(--line); background: var(--hi); color: var(--hi-ink, inherit); }
+.btn { text-align: center; padding: 10px; border-radius: calc(var(--r) * .6); background: var(--acc); color: var(--acc-ink);
+  border: var(--bw) solid var(--line); font-family: var(--f-d); font-size: var(--btn, 15px); }
+.pct { font-family: var(--f-d); font-size: var(--pct, 46px); line-height: 1; }
+.bar { height: 12px; border-radius: 99px; border: var(--bw) solid var(--line); overflow: hidden; background: var(--field); }
+.bar i { display: block; width: 64%; height: 100%; background: var(--acc); }
+
+/* A. Liquid chrome */
+.t-chrome { --bg: #0b0b0d; --ink: #f4f4f7; --card: linear-gradient(160deg, #f6f6f9, #a3a5b0 46%, #ececf1 56%, #80828d); --card-ink: #111114;
+  --line: #ffffff; --bw: 1px; --r: 22px; --field: rgba(255,255,255,.55); --hi: #111114; --hi-ink: #f4f4f7;
+  --acc: linear-gradient(90deg, #ff7ad9, #7af0ff, #d7ff7a); --acc-ink: #0b0b0d; --sh: 0 10px 26px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.9);
+  --f-d: "Syncopate", sans-serif; --f-b: "Outfit", sans-serif; --logo: 19px; --btn: 12px; --pct: 38px; }
+.t-chrome .logo { font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  background: linear-gradient(180deg, #fff, #8d8f9b 48%, #f2f2f6 52%, #6d6f7a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.t-chrome .btn, .t-chrome .pct { font-weight: 700; text-transform: uppercase; }
+
+/* B. Cut-and-paste zine */
+.t-zine { --bg: #efe8d8; --ink: #111; --card: #fffdf6; --line: #111; --bw: 2px; --r: 3px; --field: #fff; --hi: #ffe14d;
+  --acc: #e10600; --acc-ink: #fff; --sh: 5px 5px 0 #111; --f-d: "Rubik Mono One", sans-serif; --f-b: "Special Elite", monospace; --logo: 23px; --btn: 14px; --pct: 44px; }
+.t-zine .card:nth-of-type(2) { transform: rotate(-1.2deg); }
+.t-zine .card:nth-of-type(3) { transform: rotate(.9deg); }
+.t-zine .card:nth-of-type(4) { transform: rotate(-.6deg); background: #ffe14d; }
+.t-zine .logo { background: #111; color: #efe8d8; padding: 3px 7px; transform: rotate(-3deg); }
+.t-zine .card:nth-of-type(2)::before { content: ""; position: absolute; width: 54px; height: 16px; background: rgba(225, 6, 0, .55); transform: translate(150px, -19px) rotate(8deg); }
+.t-zine .card { position: relative; }
+
+/* C. Arcade CRT */
+.t-arcade { --bg: #030603; --ink: #39ff14; --card: #071007; --line: #39ff14; --bw: 2px; --r: 0px; --field: #030603; --hi: #39ff14; --hi-ink: #030603;
+  --acc: #ffb000; --acc-ink: #1a0f00; --sh: 0 0 14px rgba(57, 255, 20, .45); --f-d: "Press Start 2P", monospace; --f-b: "VT323", monospace;
+  --logo: 15px; --btn: 11px; --pct: 30px; }
+.t-arcade .scr { font-size: 17px; line-height: 1.15; }
+.t-arcade .scr::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px); }
+.t-arcade .logo, .t-arcade .pct { text-shadow: 0 0 10px rgba(57, 255, 20, .9); }
+.t-arcade .lbl { font-size: 14px; letter-spacing: .06em; }
+.t-arcade .chip { font-size: 13px; border-radius: 0; }
+.t-arcade .pen, .t-arcade .bar { border-radius: 0; }
+
+/* D. Soft clay */
+.t-clay { --bg: #ffe6d8; --ink: #5b3c36; --card: #fff8f2; --line: transparent; --bw: 0px; --r: 26px; --field: #ffeee4; --hi: #c5ecd7;
+  --acc: #ff8fab; --acc-ink: #fff; --sh: 0 12px 22px rgba(214, 132, 100, .32), inset 0 -5px 0 rgba(214, 132, 100, .14), inset 0 3px 0 #fff;
+  --f-d: "Fredoka", sans-serif; --f-b: "Fredoka", sans-serif; --logo: 27px; --btn: 16px; --pct: 48px; }
+.t-clay .logo, .t-clay .btn, .t-clay .pct { font-weight: 700; }
+.t-clay .logo { color: #ff7096; }
+.t-clay .btn { box-shadow: 0 7px 0 #e8668a, inset 0 3px 0 rgba(255,255,255,.5); margin-bottom: 6px; }
+.t-clay .in, .t-clay .o, .t-clay .bar { box-shadow: inset 0 3px 6px rgba(214, 132, 100, .25); }
+.t-clay .bar { height: 16px; }
+.t-clay .bar i { background: #9bdcbb; border-radius: 99px; }
+.t-clay .pct { color: #7fcfa7; }
+
+/* E. Midnight deco */
+.t-deco { --bg: #0c1411; --ink: #f3e6c4; --card: #121e19; --line: #c9a24b; --bw: 1px; --r: 0px; --field: #0c1411; --hi: #c9a24b; --hi-ink: #0c1411;
+  --acc: #c9a24b; --acc-ink: #0c1411; --sh: 0 0 0 4px #0c1411, 0 0 0 5px #c9a24b; --f-d: "Limelight", serif; --f-b: "Poiret One", sans-serif;
+  --logo: 26px; --btn: 16px; --pct: 46px; }
+.t-deco .scr { font-size: 15px; gap: 17px; padding: 16px 16px 20px; }
+.t-deco .logo, .t-deco .pct { color: #c9a24b; }
+.t-deco .lbl { text-align: center; letter-spacing: .3em; }
+.t-deco .card { text-align: center; }
+.t-deco .o { text-align: left; }
+.t-deco .chip, .t-deco .pen, .t-deco .bar { border-radius: 0; }
+.t-deco .btn { letter-spacing: .12em; text-transform: uppercase; }
+
+/* F. Lava glass */
+.t-lava { --bg: radial-gradient(70% 45% at 15% 12%, #ff7a18, transparent 70%), radial-gradient(70% 50% at 95% 45%, #ff2e63, transparent 70%),
+  radial-gradient(80% 50% at 30% 100%, #ffc93c, transparent 70%), #3a0714;
+  --ink: #fff; --card: rgba(255, 255, 255, .16); --line: rgba(255, 255, 255, .5); --bw: 1px; --r: 20px; --field: rgba(255, 255, 255, .14);
+  --hi: rgba(255, 255, 255, .92); --hi-ink: #b3123f; --acc: #fff; --acc-ink: #c2185b; --sh: 0 10px 30px rgba(80, 0, 20, .35);
+  --f-d: "Bagel Fat One", sans-serif; --f-b: "Outfit", sans-serif; --logo: 27px; --btn: 17px; --pct: 50px; }
+.t-lava .card, .t-lava .chip { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.t-lava .bar i { background: linear-gradient(90deg, #ffc93c, #fff); }
+</style>
+</head>
+<body>
+<h1>Six more looks to choose from</h1>
+<p class="sub">Sketches of the phone screen. Tell me a letter (or mix: "colors of B with the font of F").</p>
+
+<div class="grid">
+
+  <div class="opt-wrap">
+    <div class="phone t-chrome"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>A · Liquid chrome</h2>
+    <p>Year-2000 sci-fi. Polished metal panels on black with a rainbow sheen.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-zine"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>B · Cut-and-paste zine</h2>
+    <p>Punk flyer. Paper, black ink, red marker, tape, typewriter text, everything a little crooked.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-arcade"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>C · Arcade screen</h2>
+    <p>Old glowing monitor. Pixel letters, green on black, amber buttons, scan lines.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-clay"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>D · Soft clay</h2>
+    <p>Puffy and friendly. Pastel peach, pink and mint, round shapes that look squeezable.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-deco"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>E · Midnight deco</h2>
+    <p>1920s cinema marquee. Deep green-black, gold lines, elegant theater lettering.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-lava"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>F · Lava glass</h2>
+    <p>Frosted glass floating over molten orange, red and yellow. Fat rounded lettering.</p>
+  </div>
+
+</div>
+</body>
+</html>

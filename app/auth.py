@@ -33,7 +33,8 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 
-from . import config, db
+from . import config, db, notify
+from .i18n import LANGS, T
 
 log = logging.getLogger("joyshare.auth")
 
@@ -79,6 +80,9 @@ def check_rate(request: Request) -> None:
 
 def note_failure(request: Request, conn, what: str) -> None:
     _failures[_ip(request)].append(time.time())
+    if len(_failures[_ip(request)]) == MAX_FAILURES:  # just hit the limit: tell the admin once
+        notify.send(conn, "failed_signins", "Repeated failed sign-ins",
+                    T("{count} failed attempts from {ip}. That address now has to wait.", count=MAX_FAILURES, ip=_ip(request)))
     db.audit(conn, None, "auth.failure", json.dumps({"what": what, "ip": _ip(request)}))
 
 
@@ -284,7 +288,32 @@ def _take_challenge(conn, challenge_id: str, kind: str):
     return row
 
 
+# ---------- each person's own look ----------
+
+FONTS = ("unbounded", "syne", "glitch", "warp", "mono", "fredoka", "bangers", "audiowide", "win")
+THEMES = ("void", "acid", "sunset", "zine", "clay", "win95", "comic", "vapor")
+
+
+def get_prefs(conn, user_id: int) -> dict:
+    """Name shown at the top, font, theme and language. Missing choices fall back to the defaults."""
+    row = conn.execute("SELECT prefs FROM users WHERE id=?", (user_id,)).fetchone()
+    saved = json.loads(row["prefs"]) if row and row["prefs"] else {}
+    return {
+        "name": saved.get("name") or config.APP_NAME,
+        "font": saved.get("font") if saved.get("font") in FONTS else FONTS[0],
+        "theme": saved.get("theme") if saved.get("theme") in THEMES else THEMES[0],
+        "lang": saved.get("lang") if saved.get("lang") in LANGS else None,
+    }
+
+
 # ---------- request bodies ----------
+
+class PrefsBody(BaseModel):
+    name: str | None = None
+    font: str | None = None
+    theme: str | None = None
+    lang: str | None = None
+
 
 class RegisterOptionsBody(BaseModel):
     code: str
@@ -317,7 +346,29 @@ def status(request: Request, conn=Depends(db.get_conn)):
         "signed_in": bool(auth),
         "user": {"id": auth.user_id, "name": auth.name, "role": auth.role} if auth else None,
         "first_run": not has_any_passkey(conn),
+        "prefs": get_prefs(conn, auth.user_id) if auth else None,
+        "app_name": config.APP_NAME,
     }
+
+
+@router.put("/prefs")
+def save_prefs(body: PrefsBody, auth: Auth = Depends(session_auth), conn=Depends(db.get_conn)):
+    """Saved on the account, so the look follows the person to every device."""
+    row = conn.execute("SELECT prefs FROM users WHERE id=?", (auth.user_id,)).fetchone()
+    saved = json.loads(row["prefs"]) if row["prefs"] else {}
+    if body.name is not None:
+        name = " ".join("".join(ch for ch in body.name if ch.isprintable()).split())
+        if len(name) > 24:
+            raise HTTPException(422, "That name is too long.")
+        saved["name"] = name  # empty means: back to the default name
+    for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS)):
+        value = getattr(body, field)
+        if value is not None:
+            if value not in allowed:
+                raise HTTPException(422, "Unknown choice.")
+            saved[field] = value
+    conn.execute("UPDATE users SET prefs=? WHERE id=?", (json.dumps(saved), auth.user_id))
+    return get_prefs(conn, auth.user_id)
 
 
 @router.post("/register/options")
@@ -398,6 +449,8 @@ def register_verify(body: VerifyBody, request: Request, response: Response, conn
         conn.execute("ROLLBACK")
         raise
     user = conn.execute("SELECT id, name, role FROM users WHERE id=?", (user_id,)).fetchone()
+    notify.send(conn, "new_device", "New device added",
+                T("{device} was registered for {person}.", device=challenge["device_name"], person=user["name"]))
     return {"user": dict(user)}
 
 

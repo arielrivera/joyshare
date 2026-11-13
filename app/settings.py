@@ -19,6 +19,13 @@ DEFAULTS = {
     "disk_pause_pct": 95,
     "platforms": ["x", "youtube", "instagram", "facebook"],
     "fit_targets_mb": [8, 16, 25, 50, 100],
+    "paused": False,             # the admin's "pause new jobs" switch
+    # Alerts through ntfy. No topic means alerts are off.
+    "ntfy_url": "https://ntfy.sh",
+    "ntfy_topic": "",
+    "ntfy_token": "",
+    "alerts": {"job_done": True, "job_failed": True, "disk_warn": True, "disk_paused": True,
+               "new_device": True, "failed_signins": True},
 }
 
 
@@ -26,7 +33,9 @@ def get_all(conn: sqlite3.Connection) -> dict:
     values = dict(DEFAULTS)
     for row in conn.execute("SELECT key, value FROM settings"):
         if row["key"] in DEFAULTS:
-            values[row["key"]] = json.loads(row["value"])
+            saved = json.loads(row["value"])
+            # Dictionaries keep any defaults added after they were saved.
+            values[row["key"]] = {**DEFAULTS[row["key"]], **saved} if isinstance(saved, dict) else saved
     return values
 
 

@@ -1,0 +1,199 @@
+"""English and Spanish for everything the server says to a person.
+
+English text is written where it is used and doubles as the lookup key. Messages with a
+changing part use T("... {n} ...", n=5) so the same sentence can be rendered in either language.
+A test checks that every message in the code has a Spanish version here.
+"""
+import json
+
+LANGS = ("en", "es")
+LANG_COOKIE = "joyshare_lang"
+
+
+class T(str):
+    """A message with fill-in values. Behaves like the finished English sentence."""
+
+    def __new__(cls, template: str, **params):
+        text = super().__new__(cls, template.format(**params) if params else template)
+        text.template, text.params = template, params
+        return text
+
+
+def render(message, lang: str = "en") -> str:
+    """The message in the requested language."""
+    template = getattr(message, "template", message)
+    params = getattr(message, "params", {})
+    if not isinstance(template, str):
+        return message
+    if lang == "es":
+        template = ES.get(template, template)
+    return template.format(**params) if params else template
+
+
+def pack(message) -> str:
+    """Store a message so it can be shown later in whichever language the reader uses."""
+    return json.dumps({"t": getattr(message, "template", str(message)), "p": getattr(message, "params", {})})
+
+
+def unpack(stored: str | None, lang: str = "en") -> str | None:
+    if not stored:
+        return stored
+    try:
+        data = json.loads(stored)
+        return render(T(data["t"], **data["p"]), lang)
+    except (ValueError, KeyError, TypeError):
+        return render(stored, lang)  # older rows hold plain English
+
+
+def pick_lang(request) -> str:
+    """The reader's language: their saved choice, else what their browser prefers."""
+    chosen = request.cookies.get(LANG_COOKIE)
+    if chosen in LANGS:
+        return chosen
+    for part in request.headers.get("accept-language", "").split(","):
+        code = part.split(";")[0].strip().lower()[:2]
+        if code in LANGS:
+            return code
+    return "en"
+
+
+ES = {
+    # ---- links ----
+    "Paste a link first.": "Primero pega un enlace.",
+    "That doesn't look like a web link.": "Eso no parece un enlace web.",
+    "That doesn't look like a normal video link.": "Eso no parece un enlace de video normal.",
+    "{platform} is turned off on this server.": "{platform} está desactivado en este servidor.",
+    "joyshare works with links from X, YouTube, Instagram and Facebook.":
+        "Funciona con enlaces de X, YouTube, Instagram y Facebook.",
+
+    # ---- reading and downloading ----
+    "The platform only shows this video to signed-in accounts. Connecting your account is coming in a later version.":
+        "La plataforma solo muestra este video a cuentas con sesión iniciada. Conectar tu cuenta llegará en una próxima versión.",
+    "This video is private.": "Este video es privado.",
+    "That link doesn't point to a video joyshare can read.": "Ese enlace no lleva a un video que se pueda leer.",
+    "No video was found at that link. It may have been removed, or the post has no video.":
+        "No se encontró ningún video en ese enlace. Puede que lo hayan borrado o que la publicación no tenga video.",
+    "The platform didn't answer in time. Try again in a moment.":
+        "La plataforma no respondió a tiempo. Inténtalo de nuevo en un momento.",
+    "The platform refused the request: {reason}": "La plataforma rechazó la solicitud: {reason}",
+    "No video was found at that link.": "No se encontró ningún video en ese enlace.",
+    "Live streams can't be downloaded while they are live.":
+        "Las transmisiones en vivo no se pueden descargar mientras están en vivo.",
+    "This video is bigger than the {mb} MB download limit. Try a smaller preset.":
+        "Este video supera el límite de descarga de {mb} MB. Prueba un tamaño más pequeño.",
+    "The download finished but no file was produced.": "La descarga terminó pero no se generó ningún archivo.",
+    "Converting the video failed.": "Falló la conversión del video.",
+    "This video has no sound.": "Este video no tiene sonido.",
+    "No video was found in the download. Try Audio only.":
+        "La descarga no contenía video. Prueba Solo audio.",
+    "Couldn't get this video under that size. Pick a bigger size or use Audio only.":
+        "No se pudo reducir el video a ese tamaño. Elige un tamaño mayor o usa Solo audio.",
+    "This video's length is unknown, so it can't be fitted to a size.":
+        "No se conoce la duración de este video, así que no se puede ajustar a un tamaño.",
+    "This video is too long to fit in that size. Pick a bigger size or use Audio only.":
+        "Este video es demasiado largo para ese tamaño. Elige un tamaño mayor o usa Solo audio.",
+    "The finished file is {size} MB, over the {limit} MB limit. Use Fit a size to shrink it.":
+        "El archivo final pesa {size} MB y supera el límite de {limit} MB. Usa Ajustar tamaño para reducirlo.",
+    "Something went wrong on the server. The details are in the server log.":
+        "Algo salió mal en el servidor. Los detalles están en el registro del servidor.",
+
+    # ---- sizes ----
+    "Best quality": "Mejor calidad",
+    "Share": "Compartir",
+    "Small": "Pequeño",
+    "Fit a size": "Ajustar tamaño",
+    "Audio only": "Solo audio",
+    "Up to 1080p": "Hasta 1080p",
+    "Shrink to the size you pick": "Reduce al tamaño que elijas",
+    "M4A": "M4A",
+    "Not available for this video.": "No disponible para este video.",
+    "About {size} MB, over the {limit} MB limit.": "Unos {size} MB, supera el límite de {limit} MB.",
+    "This video is too long to shrink to these sizes.": "Este video es demasiado largo para reducirlo a estos tamaños.",
+    "This video's length is unknown.": "No se conoce la duración de este video.",
+
+    # ---- jobs and files ----
+    "This video is {minutes} minutes long. The limit is {limit} minutes.":
+        "Este video dura {minutes} minutos. El límite es de {limit} minutos.",
+    "File not found.": "Archivo no encontrado.",
+    "This file has expired.": "Este archivo ha caducado.",
+    "Unknown preset.": "Tamaño desconocido.",
+    "Look up the link again first.": "Vuelve a buscar el enlace primero.",
+    "Pick a size between 1 and {max} MB.": "Elige un tamaño entre 1 y {max} MB.",
+    "The server's disk is almost full, so new videos are paused for now.":
+        "El disco del servidor está casi lleno, así que los videos nuevos están en pausa por ahora.",
+    "Too many videos are already in progress. Wait for some to finish.":
+        "Ya hay demasiados videos en proceso. Espera a que terminen algunos.",
+    "No size of this video fits within the limits.": "Ningún tamaño de este video cabe dentro de los límites.",
+    "Job not found.": "Tarea no encontrada.",
+    "Link not found.": "Enlace no encontrado.",
+    "This video has expired.": "Este video ha caducado.",
+
+    # ---- sign-in ----
+    "Too many failed attempts. Wait a few minutes and try again.":
+        "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.",
+    "This request didn't come from joyshare.": "Esta solicitud no vino de esta aplicación.",
+    "Sign in to continue.": "Inicia sesión para continuar.",
+    "Access tokens can't manage devices or people.": "Los tokens de acceso no pueden gestionar dispositivos ni personas.",
+    "Confirm it's you to continue.": "Confirma que eres tú para continuar.",
+    "Only an admin can do that.": "Solo un administrador puede hacer eso.",
+    "That took too long. Try again.": "Eso tardó demasiado. Inténtalo de nuevo.",
+    "That code isn't valid. Codes work once and expire quickly.":
+        "Ese código no es válido. Los códigos funcionan una sola vez y caducan rápido.",
+    "That passkey couldn't be verified. Try again.": "No se pudo verificar esa llave de acceso. Inténtalo de nuevo.",
+    "That code was already used or has expired.": "Ese código ya se usó o ha caducado.",
+    "That passkey isn't registered here.": "Esa llave de acceso no está registrada aquí.",
+    "Device not found.": "Dispositivo no encontrado.",
+    "This is your only device. Add another one before removing it.":
+        "Este es tu único dispositivo. Añade otro antes de quitarlo.",
+    "Only an admin can invite people.": "Solo un administrador puede invitar personas.",
+    "Give the person a name.": "Ponle un nombre a la persona.",
+    "Unknown invite type.": "Tipo de invitación desconocido.",
+    "Give the token a name, such as iPhone Shortcut.": "Ponle un nombre al token, por ejemplo Atajo del iPhone.",
+    "Token not found.": "Token no encontrado.",
+    "Person not found.": "Persona no encontrada.",
+    "You can't turn off your own account.": "No puedes desactivar tu propia cuenta.",
+    "The last admin can't be turned off.": "No se puede desactivar al último administrador.",
+    "That name is too long.": "Ese nombre es demasiado largo.",
+    "Unknown choice.": "Opción desconocida.",
+
+    # ---- admin ----
+    "Unknown setting: {key}": "Ajuste desconocido: {key}",
+    "{key} must be a whole number from {low} to {high}.": "{key} debe ser un número entero entre {low} y {high}.",
+    "Pick at least one platform from the list.": "Elige al menos una plataforma de la lista.",
+    "Target sizes must be one to eight whole numbers of MB.": "Los tamaños objetivo deben ser de uno a ocho números enteros de MB.",
+    "Unknown alert.": "Alerta desconocida.",
+    "The ntfy address must start with https:// or http://.": "La dirección de ntfy debe empezar por https:// o http://.",
+    "A topic can use letters, numbers, - and _ (up to 64).": "Un tema puede usar letras, números, - y _ (hasta 64).",
+    "The pause level must be higher than the warning level.": "El nivel de pausa debe ser mayor que el nivel de aviso.",
+    "Share links can't outlive the files they point to.": "Los enlaces no pueden durar más que los archivos a los que apuntan.",
+    "Set an ntfy topic first.": "Primero configura un tema de ntfy.",
+    "The alert couldn't be sent. Check the ntfy address, topic and token.":
+        "No se pudo enviar la alerta. Revisa la dirección, el tema y el token de ntfy.",
+    "New videos are paused for now. Try again later.": "Los videos nuevos están en pausa por ahora. Inténtalo más tarde.",
+
+    # ---- alerts ----
+    "Test alert": "Alerta de prueba",
+    "Alerts are working.": "Las alertas funcionan.",
+    "Video ready": "Video listo",
+    "{title} · {size} MB": "{title} · {size} MB",
+    "Video failed ({person})": "Falló un video ({person})",
+    "{title}: {reason}": "{title}: {reason}",
+    "Disk almost full: new videos paused": "Disco casi lleno: videos nuevos en pausa",
+    "{pct}% used ({used} of {total} GB). Free some space.": "{pct}% usado ({used} de {total} GB). Libera espacio.",
+    "Disk is filling up": "El disco se está llenando",
+    "{pct}% used ({used} of {total} GB).": "{pct}% usado ({used} de {total} GB).",
+    "Repeated failed sign-ins": "Intentos de acceso fallidos repetidos",
+    "{count} failed attempts from {ip}. That address now has to wait.":
+        "{count} intentos fallidos desde {ip}. Esa dirección ahora tiene que esperar.",
+    "New device added": "Dispositivo nuevo añadido",
+    "{device} was registered for {person}.": "{device} se registró para {person}.",
+
+    # ---- the page friends see ----
+    "This video has expired": "Este video ha caducado",
+    "Shared videos are only kept for a short time. Ask the person who sent it to share it again.":
+        "Los videos compartidos solo se guardan por poco tiempo. Pídele a quien te lo envió que lo comparta otra vez.",
+    "Shared video": "Video compartido",
+    "From {uploader} on {platform}": "De {uploader} en {platform}",
+    "Download": "Descargar",
+    "shared with {name}": "compartido con {name}",
+}

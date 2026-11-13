@@ -12,6 +12,9 @@ CACHE_DIR = DATA_DIR / "cache"
 
 PUBLIC_URL = os.environ.get("JOYSHARE_PUBLIC_URL", "http://localhost:8080").rstrip("/")
 
+# The name shown at the top until a person picks their own.
+APP_NAME = os.environ.get("JOYSHARE_NAME", "joyshare").strip()[:24] or "joyshare"
+
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 # Phase 1 has a single built-in user. Sign-in and more users arrive in phase 2.

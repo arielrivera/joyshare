@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>joyshare look options, round 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&family=Bangers&family=Caveat:wght@500;700&family=Comic+Neue:wght@700&family=Gochi+Hand&family=Libre+Barcode+39&family=Monoton&family=Outfit:wght@400;600&family=Permanent+Marker&family=Rock+Salt&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Sketches only: round 2 of look options. Nothing here is wired into the app. */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 28px 16px 48px; background: #1a1a1d; color: #f2f2f2; font: 15px/1.5 system-ui, sans-serif; }
+h1 { font-size: 22px; margin: 0 0 4px; text-align: center; }
+.sub { text-align: center; color: #a9a9b2; margin: 0 0 28px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 34px 26px; max-width: 980px; margin: 0 auto; }
+.opt-wrap { display: grid; gap: 10px; justify-items: center; align-content: start; }
+.opt-wrap h2 { margin: 6px 0 0; font-size: 17px; }
+.opt-wrap p { margin: 0; color: #b9b9c2; font-size: 14px; text-align: center; max-width: 30ch; }
+
+.phone { width: 270px; border-radius: 34px; padding: 9px; background: #000; border: 2px solid #3a3a40; }
+.scr { position: relative; overflow: hidden; border-radius: 26px; padding: 14px 12px 16px; display: grid; gap: 11px;
+  background: var(--bg); color: var(--ink); font-family: var(--f-b); font-size: 13px; }
+.hd { display: flex; align-items: center; gap: 6px; }
+.logo { font-family: var(--f-d); font-size: var(--logo, 24px); line-height: 1; }
+.pen { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-style: normal;
+  background: var(--acc); color: var(--acc-ink); border: var(--bw) solid var(--line); }
+.sp { flex: 1; }
+.chip { font-size: 10px; padding: 4px 7px; border-radius: 99px; border: var(--bw) solid var(--line); background: var(--card); color: var(--card-ink, var(--ink)); white-space: nowrap; }
+.card { position: relative; background: var(--card); color: var(--card-ink, var(--ink)); border: var(--bw) solid var(--line); border-radius: var(--r);
+  padding: 11px; display: grid; gap: 8px; box-shadow: var(--sh); }
+.lbl { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.in { border: var(--bw) solid var(--line); border-radius: calc(var(--r) * .6); padding: 8px 9px; background: var(--field);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o { display: flex; justify-content: space-between; gap: 8px; padding: 8px 9px; border-radius: calc(var(--r) * .6);
+  border: var(--bw) solid color-mix(in srgb, var(--line) 45%, transparent); }
+.o.on { border-color: var(--line); background: var(--hi); color: var(--hi-ink, inherit); }
+.btn { text-align: center; padding: 10px; border-radius: calc(var(--r) * .6); background: var(--acc); color: var(--acc-ink);
+  border: var(--bw) solid var(--line); font-family: var(--f-d); font-size: var(--btn, 15px); }
+.pct { font-family: var(--f-d); font-size: var(--pct, 46px); line-height: 1; }
+.bar { height: 12px; border-radius: 99px; border: var(--bw) solid var(--line); overflow: hidden; background: var(--field); }
+.bar i { display: block; width: 64%; height: 100%; background: var(--acc); }
+
+/* G. Windows 95 (its own markup: a window on a desktop) */
+.t-win { --w-face: #c0c0c0; --w-hi: #ffffff; --w-lo: #808080; --w-dk: #000000; --w-title: #000080; }
+.t-win .scr { background: #008080; color: #000; font: 12px/1.3 "MS Sans Serif", Tahoma, Geneva, Verdana, sans-serif; padding: 10px 8px 0; gap: 0;
+  -webkit-font-smoothing: none; min-height: 452px; align-content: start; }
+.t-win .win { background: var(--w-face); padding: 3px; display: grid; gap: 6px;
+  box-shadow: inset -1px -1px 0 var(--w-dk), inset 1px 1px 0 var(--w-hi), inset -2px -2px 0 var(--w-lo), inset 2px 2px 0 #dfdfdf; }
+.t-win .title { background: var(--w-title); color: #fff; font-weight: 700; padding: 3px 3px 3px 5px; display: flex; align-items: center; gap: 4px; }
+.t-win .title span { flex: 1; }
+.t-win .tb { width: 16px; height: 14px; display: grid; place-items: center; background: var(--w-face); color: #000; font-size: 9px; font-weight: 700; line-height: 1;
+  box-shadow: inset -1px -1px 0 var(--w-dk), inset 1px 1px 0 var(--w-hi), inset -2px -2px 0 var(--w-lo); }
+.t-win .menu { display: flex; gap: 10px; padding: 0 5px; }
+.t-win .menu u { text-decoration: underline; }
+.t-win .body { padding: 4px 6px 8px; display: grid; gap: 9px; }
+.t-win fieldset { margin: 0; padding: 7px 7px 8px; border: 1px solid var(--w-lo); box-shadow: 1px 1px 0 var(--w-hi), inset 1px 1px 0 var(--w-hi); display: grid; gap: 6px; }
+.t-win legend { padding: 0 3px; }
+.t-win .sunk { background: #fff; padding: 4px 5px; white-space: nowrap; overflow: hidden;
+  box-shadow: inset 1px 1px 0 var(--w-lo), inset -1px -1px 0 var(--w-hi), inset 2px 2px 0 var(--w-dk), inset -2px -2px 0 #dfdfdf; }
+.t-win .radio { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.t-win .radio b { font-weight: 400; display: flex; align-items: center; gap: 5px; }
+.t-win .dot { width: 12px; height: 12px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+  box-shadow: inset 1px 1px 0 var(--w-lo), inset -1px -1px 0 var(--w-hi); }
+.t-win .dot.on::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: #000; }
+.t-win .push { justify-self: center; min-width: 96px; text-align: center; padding: 5px 12px; background: var(--w-face);
+  box-shadow: inset -1px -1px 0 var(--w-dk), inset 1px 1px 0 var(--w-hi), inset -2px -2px 0 var(--w-lo), inset 2px 2px 0 #dfdfdf, 0 0 0 1px #000; }
+.t-win .prog { height: 18px; padding: 3px; display: flex; gap: 2px; background: var(--w-face);
+  box-shadow: inset 1px 1px 0 var(--w-lo), inset -1px -1px 0 var(--w-hi); }
+.t-win .prog i { width: 9px; background: var(--w-title); }
+.t-win .task { margin: 10px -8px 0; padding: 3px; background: var(--w-face); display: flex; align-items: center; gap: 4px; box-shadow: inset 0 1px 0 var(--w-hi); }
+.t-win .start { font-weight: 700; padding: 3px 6px; display: flex; align-items: center; gap: 4px;
+  box-shadow: inset -1px -1px 0 var(--w-dk), inset 1px 1px 0 var(--w-hi), inset -2px -2px 0 var(--w-lo); }
+.t-win .flag { width: 12px; height: 11px; background: conic-gradient(#f00 0 25%, #0a0 0 50%, #ff0 0 75%, #00f 0); }
+.t-win .tray { margin-left: auto; padding: 3px 6px; box-shadow: inset 1px 1px 0 var(--w-lo), inset -1px -1px 0 var(--w-hi); }
+.t-win .pressed { flex: 1; padding: 3px 6px; font-weight: 700; background: repeating-conic-gradient(#fff 0 25%, #c0c0c0 0 50%) 0 0 / 2px 2px;
+  box-shadow: inset 1px 1px 0 var(--w-dk), inset -1px -1px 0 var(--w-hi); white-space: nowrap; overflow: hidden; }
+
+/* H. Comic pop */
+.t-comic { --bg: #ffd60a; --ink: #111; --card: #fff; --line: #111; --bw: 3px; --r: 12px; --field: #fff; --hi: #4cc9f0;
+  --acc: #ef233c; --acc-ink: #fff; --sh: 5px 5px 0 #111; --f-d: "Bangers", sans-serif; --f-b: "Comic Neue", sans-serif;
+  --logo: 30px; --btn: 21px; --pct: 58px; }
+.t-comic .scr { background: radial-gradient(#ff9f1c 22%, transparent 23%) 0 0 / 9px 9px, #ffd60a; font-weight: 700; }
+.t-comic .logo { color: #ef233c; letter-spacing: .04em; -webkit-text-stroke: 1.5px #111; text-shadow: 3px 3px 0 #111; transform: rotate(-4deg); }
+.t-comic .btn { letter-spacing: .06em; box-shadow: 3px 3px 0 #111; }
+.t-comic .pct { color: #ef233c; -webkit-text-stroke: 2px #111; text-shadow: 4px 4px 0 #111; letter-spacing: .03em; }
+.t-comic .card:nth-of-type(2)::after { content: ""; position: absolute; left: 26px; bottom: -14px; border: 8px solid transparent; border-top-color: #111; }
+.t-comic .card:nth-of-type(4) { background: #4cc9f0; }
+.t-comic .burst { position: absolute; right: 12px; top: 6px; font-family: "Bangers", sans-serif; font-size: 20px; color: #ffd60a;
+  -webkit-text-stroke: 1.2px #111; transform: rotate(12deg); }
+
+/* I. Notebook doodle */
+.t-note { --bg: #fbf8ee; --ink: #23325f; --card: transparent; --line: #23325f; --bw: 2px; --r: 14px; --field: transparent; --hi: #fff27a;
+  --acc: #ff5d73; --acc-ink: #fff; --sh: none; --f-d: "Gochi Hand", cursive; --f-b: "Caveat", cursive; --logo: 30px; --btn: 21px; --pct: 54px; }
+.t-note .scr { font-size: 18px; line-height: 1.15; padding-left: 30px;
+  background: linear-gradient(90deg, transparent 21px, #ff9aa8 21px 22.5px, transparent 22.5px),
+              repeating-linear-gradient(#fbf8ee 0 23px, #b9d0ee 23px 24px); }
+.t-note .card, .t-note .in, .t-note .o, .t-note .btn, .t-note .bar, .t-note .chip { border-radius: 255px 14px 225px 14px / 14px 225px 14px 255px; }
+.t-note .card:nth-of-type(3) { transform: rotate(-1deg); }
+.t-note .logo { transform: rotate(-3deg); background: linear-gradient(transparent 55%, #fff27a 55% 92%, transparent 92%); padding: 0 4px; }
+.t-note .lbl { font-size: 14px; letter-spacing: 0; text-transform: none; opacity: 1; }
+.t-note .chip { font-size: 13px; background: #fbf8ee; }
+.t-note .pct { color: #ff5d73; transform: rotate(-2deg); }
+.t-note .bar i { background: repeating-linear-gradient(-55deg, #ff5d73 0 3px, transparent 3px 6px); }
+
+/* J. Vaporwave */
+.t-vapor { --bg: linear-gradient(180deg, #2b1055 0%, #7b2ff7 38%, #ff5fa2 62%, #ffb86b 78%, #1a0b3b 78%);
+  --ink: #fff; --card: rgba(20, 8, 50, .72); --line: #5ef2ff; --bw: 1px; --r: 4px; --field: rgba(255, 255, 255, .08); --hi: #ff5fa2; --hi-ink: #fff;
+  --acc: #5ef2ff; --acc-ink: #1a0b3b; --sh: 0 0 14px rgba(94, 242, 255, .55), 4px 4px 0 #ff5fa2; --f-d: "Monoton", sans-serif; --f-b: "Audiowide", sans-serif;
+  --logo: 25px; --btn: 15px; --pct: 44px; }
+.t-vapor .scr { font-size: 11px; }
+.t-vapor .scr::before { content: ""; position: absolute; left: -40%; right: -40%; bottom: 0; height: 22%;
+  background: repeating-linear-gradient(90deg, #5ef2ff 0 1px, transparent 1px 24px), repeating-linear-gradient(0deg, #5ef2ff 0 1px, transparent 1px 14px);
+  transform: perspective(120px) rotateX(55deg); transform-origin: bottom; opacity: .7; }
+.t-vapor .logo { color: #5ef2ff; text-shadow: 2px 2px 0 #ff5fa2; }
+.t-vapor .btn { font-family: "Audiowide", sans-serif; text-transform: uppercase; letter-spacing: .1em; }
+.t-vapor .pct { color: #ffb86b; text-shadow: 0 0 12px #ff5fa2; }
+.t-vapor .bar i { background: linear-gradient(90deg, #ff5fa2, #5ef2ff); }
+
+/* K. Paper receipt */
+.t-rcpt { --bg: #3b3b40; --ink: #1b1b1b; --card: #fdfcf7; --line: #1b1b1b; --bw: 0px; --r: 0px; --field: transparent; --hi: #1b1b1b; --hi-ink: #fdfcf7;
+  --acc: #1b1b1b; --acc-ink: #fdfcf7; --sh: none; --f-d: "Space Mono", monospace; --f-b: "Space Mono", monospace; --logo: 22px; --btn: 14px; --pct: 44px; }
+.t-rcpt .scr { padding: 14px 16px 0; gap: 0; font-size: 11.5px; }
+.t-rcpt .paper { background: #fdfcf7; padding: 12px 12px 14px; display: grid; gap: 9px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
+          mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%; padding-bottom: 22px; }
+.t-rcpt .logo { font-weight: 700; text-transform: uppercase; letter-spacing: .2em; }
+.t-rcpt .hd { justify-content: center; flex-wrap: wrap; }
+.t-rcpt .chip { border: 1px solid #1b1b1b; border-radius: 0; background: transparent; }
+.t-rcpt .pen { border-radius: 0; }
+.t-rcpt .rule { border-top: 1.5px dashed #1b1b1b; }
+.t-rcpt .line { display: flex; justify-content: space-between; gap: 8px; }
+.t-rcpt .line.on { background: #1b1b1b; color: #fdfcf7; padding: 2px 4px; margin: 0 -4px; }
+.t-rcpt .btn { text-transform: uppercase; letter-spacing: .18em; font-weight: 700; }
+.t-rcpt .pct { font-weight: 700; text-align: center; }
+.t-rcpt .ascii { text-align: center; letter-spacing: .05em; }
+.t-rcpt .code { font-family: "Libre Barcode 39", cursive; font-size: 40px; line-height: .9; text-align: center; overflow: hidden; white-space: nowrap; }
+.t-rcpt .tiny { text-align: center; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; }
+
+/* L. Street graffiti */
+.t-graf { --bg: #2a2c31; --ink: #f4f4f0; --card: rgba(0, 0, 0, .35); --line: #f4f4f0; --bw: 2px; --r: 8px; --field: rgba(255, 255, 255, .06); --hi: #b8ff3c; --hi-ink: #111;
+  --acc: #ff3ea5; --acc-ink: #fff; --sh: none; --f-d: "Permanent Marker", cursive; --f-b: "Outfit", sans-serif; --logo: 28px; --btn: 19px; --pct: 52px; }
+.t-graf .scr { background:
+  radial-gradient(60% 30% at 80% 8%, rgba(255, 62, 165, .55), transparent 70%),
+  radial-gradient(55% 28% at 10% 60%, rgba(46, 220, 255, .4), transparent 70%),
+  radial-gradient(60% 26% at 85% 98%, rgba(184, 255, 60, .45), transparent 70%),
+  repeating-linear-gradient(0deg, #2a2c31 0 26px, #232529 26px 28px), #2a2c31; }
+.t-graf .logo { font-family: "Rock Salt", cursive; font-size: 19px; color: #b8ff3c; transform: rotate(-5deg); text-shadow: 2px 2px 0 #000; }
+.t-graf .card { border-style: dashed; }
+.t-graf .btn { transform: rotate(-1.5deg); border-color: #000; box-shadow: 0 0 22px rgba(255, 62, 165, .7); }
+.t-graf .pct { color: #2edcff; text-shadow: 3px 3px 0 #000; transform: rotate(-3deg); }
+.t-graf .bar i { background: linear-gradient(90deg, #ff3ea5, #b8ff3c); }
+.t-graf .drip { position: absolute; left: 34px; top: 100%; width: 5px; height: 16px; border-radius: 0 0 5px 5px; background: #ff3ea5; }
+</style>
+</head>
+<body>
+<h1>Round 2: six more looks</h1>
+<p class="sub">B (zine) and D (clay) are already built in. Pick from these for the next ones.</p>
+
+<div class="grid">
+
+  <div class="opt-wrap">
+    <div class="phone t-win"><div class="scr">
+      <div class="win">
+        <div class="title"><span>share.exe</span><i class="tb">_</i><i class="tb">□</i><i class="tb">×</i></div>
+        <div class="menu"><span><u>F</u>ile</span><span><u>D</u>evices</span><span><u>L</u>anguage</span><span><u>H</u>elp</span></div>
+        <div class="body">
+          <fieldset><legend>Video link</legend><div class="sunk">x.com/nasa/status/18…</div></fieldset>
+          <fieldset><legend>Pick a size</legend>
+            <div class="radio"><b><i class="dot on"></i>Share · 720p</b><span>12 MB</span></div>
+            <div class="radio"><b><i class="dot"></i>Small · 480p</b><span>5 MB</span></div>
+            <div class="radio"><b><i class="dot"></i>Audio only</b><span>1 MB</span></div>
+          </fieldset>
+          <div class="push">Make it</div>
+          <fieldset><legend>Downloading... 64%</legend>
+            <div class="prog"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </fieldset>
+        </div>
+      </div>
+      <div class="task"><span class="start"><i class="flag"></i>Start</span><span class="pressed">share.exe</span><span class="tray">🇲🇽 4:20 PM</span></div>
+    </div></div>
+    <h2>G · Windows 95</h2>
+    <p>Gray beveled window on a teal desktop, with a title bar, radio buttons, chunky progress blocks and a Start bar.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-comic"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it!</div></div>
+      <div class="card"><span class="burst">POW!</span><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>H · Comic pop</h2>
+    <p>Comic book panels. Halftone dots, thick outlines, speech-bubble cards, shouting letters.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-note"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">video link:</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>I · Notebook doodle</h2>
+    <p>Lined school paper. Handwriting, wobbly pen boxes, highlighter, scribbled progress.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-vapor"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it</div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>J · Vaporwave</h2>
+    <p>80s sunset over a neon grid. Purple to pink sky, cyan outlines, tube-light lettering.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-rcpt"><div class="scr"><div class="paper">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="tiny">video link</div>
+      <div class="ascii">x.com/nasa/status/18…</div>
+      <div class="rule"></div>
+      <div class="line on"><span>1 SHARE 720P</span><span>12 MB</span></div>
+      <div class="line"><span>1 SMALL 480P</span><span>5 MB</span></div>
+      <div class="line"><span>1 AUDIO ONLY</span><span>1 MB</span></div>
+      <div class="rule"></div>
+      <div class="btn">Make it</div>
+      <div class="pct">64%</div>
+      <div class="ascii">[#########·····]</div>
+      <div class="code">*SHARE64*</div>
+      <div class="tiny">thank you, come again</div>
+    </div></div></div>
+    <h2>K · Paper receipt</h2>
+    <p>A shop receipt. Typewriter text, dashed tear lines, sizes as line items, a barcode at the end.</p>
+  </div>
+
+  <div class="opt-wrap">
+    <div class="phone t-graf"><div class="scr">
+      <div class="hd"><span class="logo">share</span><i class="pen">✎</i><span class="sp"></span><span class="chip">🇲🇽 ES</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span><div class="in">x.com/nasa/status/18…</div></div>
+      <div class="card"><div class="o on"><span>Share · 720p</span><span>12 MB</span></div><div class="o"><span>Small · 480p</span><span>5 MB</span></div><div class="btn">Make it<i class="drip"></i></div></div>
+      <div class="card"><div class="pct">64%</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>L · Street graffiti</h2>
+    <p>Spray paint on a wall. Marker lettering, neon mist, drips, nothing lined up straight.</p>
+  </div>
+
+</div>
+</body>
+</html>

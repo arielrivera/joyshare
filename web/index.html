@@ -1,160 +1,213 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="void" data-font="unbounded">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title>joyshare</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/i18n.js"></script>
+  <script src="/prefs.js"></script>
 </head>
 <body>
+  <div class="glow" aria-hidden="true"></div>
   <main>
     <header class="top">
-      <div>
-        <h1>joy<span>share</span></h1>
-        <p class="tagline">Share the video, not the app.</p>
+      <div class="brand">
+        <h1 id="brand">joyshare</h1>
+        <button id="open-style" type="button" class="icon" data-i18n-aria="style.open" title="">✎</button>
       </div>
-      <nav id="nav" hidden>
-        <span id="who" class="muted"></span>
-        <button id="open-devices" type="button" class="quiet">Devices</button>
-        <button id="sign-out" type="button" class="quiet">Sign out</button>
-      </nav>
+      <div class="tools">
+        <!-- One small button: shows the current language, a tap switches to the other. -->
+        <button id="lang-toggle" type="button" class="chip" data-i18n-aria="lang.switch"></button>
+        <nav id="nav" class="menu" hidden>
+          <button id="menu-button" type="button" class="chip" aria-haspopup="true" aria-expanded="false"
+                  aria-controls="menu-panel" data-i18n-aria="nav.menu">☰</button>
+          <div id="menu-panel" class="menu-panel" hidden>
+            <p id="who" class="muted"></p>
+            <button id="open-devices" type="button" class="quiet" data-i18n="nav.devices"></button>
+            <button id="sign-out" type="button" class="quiet" data-i18n="nav.signout"></button>
+          </div>
+        </nav>
+      </div>
     </header>
 
+    <div class="ticker" aria-hidden="true"><div id="ticker" class="ticker-track"></div></div>
+
+    <!-- Name, lettering and colors -->
+    <section id="style-panel" class="card" hidden>
+      <h2 data-i18n="style.title"></h2>
+      <label for="style-name" data-i18n="style.name"></label>
+      <input id="style-name" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <p class="muted" data-i18n="style.nameHelp"></p>
+      <p class="label" data-i18n="style.font"></p>
+      <div id="style-fonts" class="choices">
+        <button type="button" data-font="unbounded" class="font-unbounded">Unbounded</button>
+        <button type="button" data-font="syne" class="font-syne">Syne</button>
+        <button type="button" data-font="warp" class="font-warp">Tilt Warp</button>
+        <button type="button" data-font="glitch" class="font-glitch">Glitch</button>
+        <button type="button" data-font="mono" class="font-mono">Rubik Mono</button>
+        <button type="button" data-font="fredoka" class="font-fredoka">Fredoka</button>
+        <button type="button" data-font="bangers" class="font-bangers">Bangers</button>
+        <button type="button" data-font="audiowide" class="font-audiowide">Audiowide</button>
+        <button type="button" data-font="win" class="font-win">System</button>
+      </div>
+      <p class="label" data-i18n="style.theme"></p>
+      <div id="style-themes" class="choices">
+        <button type="button" data-theme-pick="void" class="swatch swatch-void" data-i18n="theme.void"></button>
+        <button type="button" data-theme-pick="acid" class="swatch swatch-acid" data-i18n="theme.acid"></button>
+        <button type="button" data-theme-pick="sunset" class="swatch swatch-sunset" data-i18n="theme.sunset"></button>
+        <button type="button" data-theme-pick="zine" class="swatch swatch-zine" data-i18n="theme.zine"></button>
+        <button type="button" data-theme-pick="clay" class="swatch swatch-clay" data-i18n="theme.clay"></button>
+        <button type="button" data-theme-pick="win95" class="swatch swatch-win95" data-i18n="theme.win95"></button>
+        <button type="button" data-theme-pick="comic" class="swatch swatch-comic" data-i18n="theme.comic"></button>
+        <button type="button" data-theme-pick="vapor" class="swatch swatch-vapor" data-i18n="theme.vapor"></button>
+      </div>
+      <button id="close-style" type="button" data-i18n="style.done"></button>
+    </section>
+
     <!-- Signed out -->
-    <section id="auth" hidden>
+    <section id="auth" class="card" hidden>
       <div id="signin-box">
-        <h2>Welcome back</h2>
-        <p class="muted">Use the passkey saved on this device: Face ID, Touch ID or your screen lock.</p>
-        <button id="sign-in" type="button">Sign in with a passkey</button>
+        <h2 data-i18n="auth.welcome"></h2>
+        <p class="muted" data-i18n="auth.welcomeHelp"></p>
+        <button id="sign-in" type="button" data-i18n="auth.signin"></button>
       </div>
       <p id="auth-error" class="error" role="alert" hidden></p>
       <form id="join" autocomplete="off">
-        <h2 id="join-title">New device?</h2>
-        <p id="join-help" class="muted">On a device that's already signed in, open Devices and choose "Add a device". Enter the code it shows.</p>
-        <label for="join-code">Code</label>
+        <h2 id="join-title"></h2>
+        <p id="join-help" class="muted"></p>
+        <label for="join-code" data-i18n="join.code"></label>
         <input id="join-code" type="text" required placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
-        <label for="join-name">Name for this device</label>
+        <label for="join-name" data-i18n="join.deviceName"></label>
         <input id="join-name" type="text" required maxlength="60">
-        <button type="submit" class="secondary">Register this device</button>
+        <button type="submit" class="secondary" data-i18n="join.submit"></button>
       </form>
     </section>
 
     <!-- Signed in -->
     <div id="app" hidden>
-      <form id="lookup" autocomplete="off">
-        <label for="url">Video link</label>
+      <form id="lookup" class="card" autocomplete="off">
+        <label for="url" data-i18n="link.label"></label>
         <div class="row">
-          <input id="url" name="url" type="url" inputmode="url" required
-                 placeholder="Paste a link from X, YouTube, Instagram or Facebook">
-          <button id="lookup-button" type="submit">Look up</button>
+          <input id="url" name="url" type="url" inputmode="url" required data-i18n-ph="link.placeholder">
+          <button id="paste" type="button" class="secondary" data-i18n="link.paste" hidden></button>
+          <button id="lookup-button" type="submit" data-i18n="link.lookup"></button>
         </div>
         <p id="lookup-error" class="error" role="alert" hidden></p>
       </form>
 
-      <section id="media" hidden aria-live="polite">
-        <div class="media-head">
-          <img id="thumb" alt="" referrerpolicy="no-referrer">
-          <div>
-            <h2 id="title"></h2>
-            <p id="meta" class="muted"></p>
-            <p id="experimental" class="note" hidden>This platform is experimental and hasn't been tested yet.</p>
+      <!-- One step shows at a time here: pick a size, then progress, then the finished file. -->
+      <div id="stage">
+        <section id="media" class="card" hidden aria-live="polite">
+          <div class="media-head">
+            <img id="thumb" alt="" referrerpolicy="no-referrer">
+            <div>
+              <h2 id="title" tabindex="-1"></h2>
+              <p id="meta" class="muted"></p>
+              <p id="experimental" class="note" data-i18n="media.experimental" hidden></p>
+            </div>
           </div>
-        </div>
+          <form id="make">
+            <fieldset>
+              <legend data-i18n="media.pick"></legend>
+              <div id="presets"></div>
+            </fieldset>
+            <button id="make-button" type="submit" class="big" data-i18n="media.make"></button>
+            <p id="make-error" class="error" role="alert" hidden></p>
+          </form>
+        </section>
 
-        <form id="make">
-          <fieldset>
-            <legend>Pick a size</legend>
-            <div id="presets"></div>
-          </fieldset>
-          <button id="make-button" type="submit">Make it</button>
-          <p id="make-error" class="error" role="alert" hidden></p>
-        </form>
-      </section>
+        <section id="job" class="card" hidden aria-live="polite">
+          <p id="job-title" class="muted"></p>
+          <p id="percent" class="percent" tabindex="-1">0%</p>
+          <p id="stage-text"></p>
+          <div class="meter"><div id="bar" class="meter-fill"></div></div>
+          <button id="cancel" type="button" class="quiet" data-i18n="job.cancel"></button>
+        </section>
 
-      <section id="job" hidden aria-live="polite">
-        <p id="stage"></p>
-        <progress id="bar" max="100" value="0"></progress>
-        <button id="cancel" type="button" class="quiet">Cancel</button>
-      </section>
+        <section id="result" class="card" hidden aria-live="polite">
+          <h2 id="result-title" tabindex="-1"></h2>
+          <p id="result-name"></p>
+          <p id="result-meta" class="muted"></p>
+          <div id="player"></div>
+          <div class="actions">
+            <button id="share" type="button" data-i18n="res.share" hidden></button>
+            <a id="download" class="button" href="#" data-i18n="res.download"></a>
+            <button id="link" type="button" class="secondary" data-i18n="res.link"></button>
+          </div>
+          <p id="share-note" class="muted" hidden></p>
+          <div id="link-box" class="row" hidden>
+            <label for="link-url" class="sr" data-i18n="res.linkLabel"></label>
+            <input id="link-url" type="text" readonly>
+            <button id="copy" type="button" class="secondary" data-i18n="copy"></button>
+          </div>
+          <p id="link-note" class="muted" hidden></p>
+          <div class="actions next">
+            <button id="again" type="button" class="quiet" data-i18n="res.another"></button>
+            <button id="new-link" type="button" class="spark" data-i18n="res.new"></button>
+          </div>
+        </section>
+      </div>
 
-      <section id="result" hidden aria-live="polite">
-        <h2 id="result-title">Ready</h2>
-        <p id="result-meta" class="muted"></p>
-        <div id="player"></div>
-        <div class="actions">
-          <button id="share" type="button" hidden>Share</button>
-          <a id="download" class="button" href="#">Download</a>
-          <button id="link" type="button" class="secondary">Get a link for friends</button>
-        </div>
-        <p id="share-note" class="muted" hidden></p>
-        <div id="link-box" class="row" hidden>
-          <label for="link-url" class="sr">Share link</label>
-          <input id="link-url" type="text" readonly>
-          <button id="copy" type="button" class="secondary">Copy</button>
-        </div>
-        <p id="link-note" class="muted" hidden></p>
-        <p class="muted">Want it smaller or sharper? Pick another size above and press Make it again.</p>
-      </section>
-
-      <section id="recent" hidden>
-        <h2>Recent</h2>
-        <ul id="recent-list"></ul>
+      <section id="recent" class="card" hidden>
+        <h2 data-i18n="recent.title"></h2>
+        <ul id="recent-list" class="rows"></ul>
       </section>
     </div>
 
     <!-- Devices and people -->
     <div id="devices" hidden>
-      <button id="close-devices" type="button" class="quiet">← Back</button>
+      <button id="close-devices" type="button" class="quiet" data-i18n="dev.back"></button>
       <p id="devices-error" class="error" role="alert" hidden></p>
 
-      <section>
-        <h2>Your devices</h2>
-        <p class="muted">Each device signs in with its own passkey. Only these devices can open joyshare as you.</p>
+      <section class="card">
+        <h2 data-i18n="dev.yours"></h2>
+        <p class="muted" data-i18n="dev.yoursHelp"></p>
         <ul id="passkey-list" class="rows"></ul>
-        <button id="add-device" type="button">Add a device</button>
+        <button id="add-device" type="button" data-i18n="dev.add"></button>
         <div id="invite-box" hidden>
           <p id="invite-help"></p>
-          <img id="invite-qr" alt="QR code for the invite link" width="220" height="220">
-          <p>Or type this code: <strong id="invite-code" class="code"></strong></p>
+          <img id="invite-qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
+          <p><span data-i18n="dev.orType"></span> <strong id="invite-code" class="code"></strong></p>
           <p id="invite-expiry" class="muted"></p>
         </div>
       </section>
 
-      <section>
-        <h2>Access tokens</h2>
-        <p class="muted">For the iPhone Shortcut and other scripts. A token can add videos as you, but can't manage devices or people.</p>
+      <section class="card">
+        <h2 data-i18n="tok.title"></h2>
+        <p class="muted" data-i18n="tok.help"></p>
         <ul id="token-list" class="rows"></ul>
         <form id="token-form" class="row" autocomplete="off">
-          <label for="token-name" class="sr">Token name</label>
-          <input id="token-name" type="text" required maxlength="60" placeholder="Name, for example iPhone Shortcut">
-          <button type="submit" class="secondary">Create token</button>
+          <label for="token-name" class="sr" data-i18n="tok.nameLabel"></label>
+          <input id="token-name" type="text" required maxlength="60" data-i18n-ph="tok.placeholder">
+          <button type="submit" class="secondary" data-i18n="tok.create"></button>
         </form>
         <div id="token-box" hidden>
-          <p class="note">Copy this token now. It is shown only once.</p>
+          <p class="note" data-i18n="tok.copyNow"></p>
           <div class="row">
-            <label for="token-value" class="sr">New token</label>
+            <label for="token-value" class="sr" data-i18n="tok.valueLabel"></label>
             <input id="token-value" type="text" readonly>
-            <button id="token-copy" type="button" class="secondary">Copy</button>
+            <button id="token-copy" type="button" class="secondary" data-i18n="copy"></button>
           </div>
         </div>
       </section>
 
-      <section id="people" hidden>
-        <h2>People</h2>
-        <p class="muted">People you invite get their own account and only see their own videos.</p>
+      <section id="people" class="card" hidden>
+        <h2 data-i18n="ppl.title"></h2>
+        <p class="muted" data-i18n="ppl.help"></p>
         <ul id="people-list" class="rows"></ul>
         <form id="person-form" class="row" autocomplete="off">
-          <label for="person-name" class="sr">Person's name</label>
-          <input id="person-name" type="text" required maxlength="40" placeholder="Name of the person to invite">
-          <button type="submit" class="secondary">Invite</button>
+          <label for="person-name" class="sr" data-i18n="ppl.nameLabel"></label>
+          <input id="person-name" type="text" required maxlength="40" data-i18n-ph="ppl.placeholder">
+          <button type="submit" class="secondary" data-i18n="ppl.invite"></button>
         </form>
       </section>
 
-      <section>
-        <h2>Sign out everywhere</h2>
-        <p class="muted">Signs you out on every device. Your passkeys keep working, so you can sign back in.</p>
-        <button id="sign-out-all" type="button" class="quiet">Sign out everywhere</button>
+      <section class="card">
+        <h2 data-i18n="out.title"></h2>
+        <p class="muted" data-i18n="out.help"></p>
+        <button id="sign-out-all" type="button" class="quiet" data-i18n="out.title"></button>
       </section>
     </div>
   </main>

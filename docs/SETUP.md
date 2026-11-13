@@ -44,6 +44,12 @@ Then paste a link from X or YouTube, pick a size and press **Make it**.
 > **Passkeys are tied to the address.** A passkey made at `localhost` only works at `localhost`.
 > When joyshare moves to your real domain, each device registers once more there. Pick the final domain before registering all your devices.
 
+## Make it yours
+
+- **Language:** the flag buttons at the top switch between English and Spanish. Error messages and the page your friends see follow the language too. A friend's share page uses their own browser's language.
+- **Name and look:** press the round pencil button next to the name. You can change the name at the top (for example to "share"), the lettering and the look. There are eight looks: Void, Acid, Sunset, Zine, Clay, Windows 95, Comic and Vaporwave. Picking a look also switches to the lettering that suits it, and you can change the lettering afterwards. Your choices are saved to your account, so they follow you to every device. Friends see your name at the bottom of pages you share.
+- **Default name for everyone:** set `JOYSHARE_NAME` in `.env`.
+
 ## Add another device
 
 On a device that's already signed in:
@@ -110,6 +116,7 @@ Copy `.env.example` to `.env` to change these. All are optional.
 |---|---|---|
 | `JOYSHARE_PORT` | The port on your computer | `8080` |
 | `JOYSHARE_PUBLIC_URL` | The address people use to reach joyshare. Share links and passkeys are tied to it. | `http://localhost:8080` |
+| `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `joyshare` |
 | `JOYSHARE_BIND` | Who can reach joyshare directly. `127.0.0.1` means only this computer. | `127.0.0.1` |
 
 Limits such as the 200 MB maximum, how long files are kept (originals 1 hour, finished files and share links 48 hours) and the disk alert levels live in the database. The admin panel (phase 3) will let you change them.
