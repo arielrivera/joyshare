@@ -139,12 +139,17 @@ function paintAuthText() {
   $("join-title").textContent = firstRun ? t("join.titleSetup", { name: brandName() }) : t("join.titleNew");
   $("join-help").textContent = firstRun ? t("join.helpSetup") : t("join.helpNew");
   if (me) $("who").textContent = me.role === "admin" ? `${me.name} · ${t("nav.admin")}` : me.name;
+  $("open-admin").hidden = !me || me.role !== "admin";
+}
+
+// The signed-in screens: the main app, Devices, and the admin panel. Only one shows.
+function showScreen(name) {
+  for (const id of ["app", "devices", "admin"]) $(id).hidden = id !== name;
 }
 
 function showSignedOut() {
   prefsSignedIn = false;
-  $("app").hidden = true;
-  $("devices").hidden = true;
+  showScreen(null);
   $("nav").hidden = true;
   $("auth").hidden = false;
   paintAuthText();
@@ -163,8 +168,7 @@ async function enter() {
   firstRun = false;
   adoptAccountPrefs(status);
   $("auth").hidden = true;
-  $("devices").hidden = true;
-  $("app").hidden = false;
+  showScreen("app");
   $("nav").hidden = false;
   paintAuthText();
   document.dispatchEvent(new CustomEvent("joyshare:signed-in"));
@@ -255,62 +259,31 @@ async function loadDevices() {
     t("tok.revoke"),
     () => act(async () => { await api(`/api/auth/tokens/${k.id}`, { method: "DELETE" }); await loadDevices(); }),
   )));
-  $("people").hidden = me.role !== "admin";
-  if (me.role === "admin") {
-    const people = await api("/api/admin/users");
-    $("people-list").replaceChildren(...people.map((u) => row(
-      u.me ? `${u.name} ${t("ppl.you")}` : u.name,
-      [
-        t(`role.${u.role}`),
-        u.devices === 1 ? t("ppl.devices1") : t("ppl.devicesN", { n: u.devices }),
-        u.jobs === 1 ? t("ppl.videos1") : t("ppl.videosN", { n: u.jobs }),
-        u.disabled ? t("ppl.off") : "",
-      ].filter(Boolean).join(" · "),
-      u.me ? null : (u.disabled ? t("ppl.turnOn") : t("ppl.turnOff")),
-      () => act(async () => {
-        await api(`/api/admin/users/${u.id}/${u.disabled ? "enable" : "disable"}`, { method: "POST" });
-        await loadDevices();
-      }),
-    )));
-  }
 }
 
-function showInvite(invite, help) {
-  $("invite-help").textContent = help;
-  $("invite-qr").src = invite.qr;
-  $("invite-code").textContent = invite.code;
-  $("invite-expiry").textContent = t("dev.expires", { when: fmtWhen(invite.expires_at) });
-  $("invite-box").hidden = false;
-  $("invite-box").scrollIntoView({ block: "nearest", behavior: "smooth" });
+// Shows a QR code and typed code. "prefix" picks which box on the page to fill (Devices or the admin's People tab).
+function showInvite(invite, help, prefix = "invite") {
+  $(`${prefix}-help`).textContent = help;
+  $(`${prefix}-qr`).src = invite.qr;
+  $(`${prefix}-code`).textContent = invite.code;
+  $(`${prefix}-expiry`).textContent = t("dev.expires", { when: fmtWhen(invite.expires_at) });
+  $(`${prefix}-box`).hidden = false;
+  $(`${prefix}-box`).scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 $("open-devices").addEventListener("click", () => act(async () => {
-  $("app").hidden = true;
-  $("devices").hidden = false;
+  showScreen("devices");
   $("invite-box").hidden = true;
   $("token-box").hidden = true;
   await loadDevices();
 }));
 
-$("close-devices").addEventListener("click", () => {
-  $("devices").hidden = true;
-  $("app").hidden = false;
-});
+$("close-devices").addEventListener("click", () => showScreen("app"));
 
 $("add-device").addEventListener("click", () => act(async () => {
   const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "device" }) });
   showInvite(invite, t("dev.scanDevice"));
 }));
-
-$("person-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  act(async () => {
-    const name = $("person-name").value;
-    const invite = await api("/api/auth/invites", { method: "POST", body: JSON.stringify({ kind: "user", name }) });
-    $("person-name").value = "";
-    showInvite(invite, t("dev.scanPerson", { name }));
-  });
-});
 
 $("token-form").addEventListener("submit", (e) => {
   e.preventDefault();

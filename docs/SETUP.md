@@ -1,7 +1,7 @@
 # Setting up joyshare
 
-> **Where this guide stands:** phase 2. It covers running joyshare on your own computer and signing in with passkeys.
-> Alerts, the admin panel and going live on a domain are added to this guide as each phase is built.
+> **Where this guide stands:** phase 3 in progress. It covers running joyshare on your own computer, signing in with passkeys, the admin panel and alerts.
+> Automatic updates, cloud storage, backups and going live on a domain are added as each is built.
 
 See the whole picture first: [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya)
 
@@ -64,7 +64,30 @@ The code works once and lasts 10 minutes.
 
 ## Invite a person
 
-Admins see a **People** section on the Devices screen. Type a name and press **Invite**, then have that person scan the QR code on their own device. They get their own account as a *member*: they only see their own videos and can't invite others. You can turn a person off (and back on) from the same list.
+Admins open **Admin panel → People** from the ☰ menu. Type a name and press **Invite**, then have that person scan the QR code on their own device. They get their own account as a *member*: they only see their own videos and can't invite others. You can turn a person off (and back on) from the same list.
+
+## Admin panel
+
+Admins see **Admin panel** in the ☰ menu. Changing anything there asks for your passkey again if the last check was more than 10 minutes ago.
+
+| Tab | What it's for |
+|---|---|
+| Overview | Videos in the last day and week, what's in progress, files kept, active links, disk use, whether the worker is running, the yt-dlp version. The **Pause new videos** button is here. |
+| Videos | Everyone's videos, newest first, with a filter. Failed ones show the reason. |
+| Share links | Every link that still works, with its views. **Revoke** makes one stop working right away. |
+| People | Invite a person, or turn a person off and on. |
+| Limits | Biggest file, longest video, how long things are kept, disk alert levels, which platforms are allowed. Changes apply right away. |
+| Alerts | Where alerts go and which ones you want. |
+| Activity log | Sign-in problems and every change to devices, people, links and settings. |
+
+### Turn on alerts
+
+1. Install the free **ntfy** app on your phone.
+2. In the app, subscribe to a topic. Make the name long and hard to guess, because anyone who knows it can read your alerts.
+3. In joyshare, open **Admin panel → Alerts**, type the same topic and press **Save and send a test alert**. Your phone should buzz.
+4. Tick the alerts you want: a video is ready, a video fails, the disk is filling up, a device is added, repeated failed sign-ins.
+
+Leave the topic empty to turn alerts off. If you run your own ntfy server, put its address and access token in the same tab.
 
 ## Access tokens and the iPhone Shortcut
 
@@ -119,7 +142,7 @@ Copy `.env.example` to `.env` to change these. All are optional.
 | `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `joyshare` |
 | `JOYSHARE_BIND` | Who can reach joyshare directly. `127.0.0.1` means only this computer. | `127.0.0.1` |
 
-Limits such as the 200 MB maximum, how long files are kept (originals 1 hour, finished files and share links 48 hours) and the disk alert levels live in the database. The admin panel (phase 3) will let you change them.
+Limits such as the 200 MB maximum, how long files are kept (originals 1 hour, finished files and share links 48 hours) and the disk alert levels are changed in **Admin panel → Limits**.
 
 ## Where your data lives
 

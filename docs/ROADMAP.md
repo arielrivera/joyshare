@@ -58,11 +58,15 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] Alerts currently all go to the one admin topic. Later: a topic per person, so members get their own "video ready".
 - [ ] Not yet tried against the real ntfy service (tests replace the network call). Needs a topic set through the API or the coming Alerts page.
 
-### 3b. Admin panel (interface)
-- [ ] Reached from the ☰ menu, admins only. Pages: Overview, Jobs, Share links, People (move from Devices), Limits, Storage, Platforms, Alerts, System.
-- [ ] Limits page edits: max file size, max length, jobs at once, how long originals / files / links are kept, disk alert levels, platforms on or off.
-- [ ] "Pause new jobs" switch (the setting exists; it needs its button).
-- The server side for Overview, Jobs, Share links, Limits and Alerts is ready (3a). Storage, Platforms and System pages wait for 3c–3f.
+### 3b. Admin panel (interface) — first seven tabs done
+- [x] Reached from the ☰ menu, admins only (`web/admin.js`, the `#admin` block in `web/index.html`). Tabs: Overview, Videos, Share links, People (moved from Devices), Limits, Alerts, Activity log.
+- [x] Limits tab edits: max file size, max length, videos at once, how long originals / files / links are kept, disk alert levels, biggest download, platforms on or off.
+- [x] "Pause new videos" button on Overview.
+- [x] Alerts tab: ntfy topic, server address, token (never shown again once saved), a switch per event, "Save and send a test alert".
+- [ ] Storage, Platforms and System tabs: built together with 3c–3f.
+- [ ] Activity log shows details as raw text; make them readable sentences.
+- [ ] "Fit a size" target list (`fit_targets_mb`) has no field yet.
+- [ ] Checked in the browser at phone width in the Comic look only. Look at it in the other looks, especially Windows 95 and Clay.
 
 ### 3c. Keeping yt-dlp current
 - [ ] Daily check in the worker's scheduler; install the new version into the data volume (no image rebuild); worker finishes its job, restarts, runs a test lookup; roll back and alert if it fails.

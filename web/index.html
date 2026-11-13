@@ -26,6 +26,7 @@
           <div id="menu-panel" class="menu-panel" hidden>
             <p id="who" class="muted"></p>
             <button id="open-devices" type="button" class="quiet" data-i18n="nav.devices"></button>
+            <button id="open-admin" type="button" class="quiet" data-i18n="nav.adminPanel" hidden></button>
             <button id="sign-out" type="button" class="quiet" data-i18n="nav.signout"></button>
           </div>
         </nav>
@@ -193,7 +194,59 @@
         </div>
       </section>
 
-      <section id="people" class="card" hidden>
+      <section class="card">
+        <h2 data-i18n="out.title"></h2>
+        <p class="muted" data-i18n="out.help"></p>
+        <button id="sign-out-all" type="button" class="quiet" data-i18n="out.title"></button>
+      </section>
+    </div>
+    <!-- Admin panel (admins only) -->
+    <div id="admin" hidden>
+      <button id="close-admin" type="button" class="quiet" data-i18n="dev.back"></button>
+      <div id="admin-tabs" class="tabs">
+        <button type="button" class="chip" data-tab="overview" data-i18n="adm.tab.overview"></button>
+        <button type="button" class="chip" data-tab="videos" data-i18n="adm.tab.videos"></button>
+        <button type="button" class="chip" data-tab="links" data-i18n="adm.tab.links"></button>
+        <button type="button" class="chip" data-tab="people" data-i18n="ppl.title"></button>
+        <button type="button" class="chip" data-tab="limits" data-i18n="adm.tab.limits"></button>
+        <button type="button" class="chip" data-tab="alerts" data-i18n="adm.tab.alerts"></button>
+        <button type="button" class="chip" data-tab="log" data-i18n="adm.tab.log"></button>
+      </div>
+      <p id="admin-error" class="error" role="alert" hidden></p>
+      <p id="admin-ok" class="note" role="status" hidden></p>
+
+      <section class="card" data-pane="overview">
+        <h2 data-i18n="adm.tab.overview"></h2>
+        <div id="adm-tiles" class="tiles"></div>
+        <div class="actions">
+          <button id="adm-pause" type="button" class="secondary"></button>
+          <button id="adm-refresh" type="button" class="quiet" data-i18n="adm.refresh"></button>
+        </div>
+        <p class="muted" data-i18n="adm.pauseHelp"></p>
+      </section>
+
+      <section class="card" data-pane="videos" hidden>
+        <h2 data-i18n="adm.tab.videos"></h2>
+        <label for="adm-job-filter" data-i18n="adm.show"></label>
+        <select id="adm-job-filter">
+          <option value="" data-i18n="adm.filter.all"></option>
+          <option value="failed" data-i18n="adm.status.failed"></option>
+          <option value="done" data-i18n="adm.status.done"></option>
+          <option value="running" data-i18n="adm.status.running"></option>
+          <option value="queued" data-i18n="adm.status.queued"></option>
+        </select>
+        <ul id="adm-jobs" class="rows"></ul>
+        <p id="adm-jobs-empty" class="muted" data-i18n="adm.none" hidden></p>
+      </section>
+
+      <section class="card" data-pane="links" hidden>
+        <h2 data-i18n="adm.tab.links"></h2>
+        <p class="muted" data-i18n="adm.linksHelp"></p>
+        <ul id="adm-links" class="rows"></ul>
+        <p id="adm-links-empty" class="muted" data-i18n="adm.none" hidden></p>
+      </section>
+
+      <section class="card" data-pane="people" hidden>
         <h2 data-i18n="ppl.title"></h2>
         <p class="muted" data-i18n="ppl.help"></p>
         <ul id="people-list" class="rows"></ul>
@@ -202,16 +255,60 @@
           <input id="person-name" type="text" required maxlength="40" data-i18n-ph="ppl.placeholder">
           <button type="submit" class="secondary" data-i18n="ppl.invite"></button>
         </form>
+        <div id="pinvite-box" class="invite" hidden>
+          <p id="pinvite-help"></p>
+          <img id="pinvite-qr" class="qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
+          <p><span data-i18n="dev.orType"></span> <strong id="pinvite-code" class="code"></strong></p>
+          <p id="pinvite-expiry" class="muted"></p>
+        </div>
       </section>
 
-      <section class="card">
-        <h2 data-i18n="out.title"></h2>
-        <p class="muted" data-i18n="out.help"></p>
-        <button id="sign-out-all" type="button" class="quiet" data-i18n="out.title"></button>
+      <section class="card" data-pane="limits" hidden>
+        <h2 data-i18n="adm.tab.limits"></h2>
+        <p class="muted" data-i18n="adm.limitsHelp"></p>
+        <form id="adm-limits" autocomplete="off">
+          <div id="adm-limit-fields" class="fields"></div>
+          <fieldset>
+            <legend data-i18n="adm.platforms"></legend>
+            <div id="adm-platforms" class="checks"></div>
+          </fieldset>
+          <button type="submit" data-i18n="adm.save"></button>
+        </form>
+      </section>
+
+      <section class="card" data-pane="alerts" hidden>
+        <h2 data-i18n="adm.tab.alerts"></h2>
+        <p class="muted" data-i18n="adm.alertsHelp"></p>
+        <form id="adm-alerts" autocomplete="off">
+          <div class="fields">
+            <label for="adm-ntfy-topic" data-i18n="adm.ntfyTopic"></label>
+            <input id="adm-ntfy-topic" type="text" maxlength="64" spellcheck="false" autocapitalize="off">
+            <label for="adm-ntfy-url" data-i18n="adm.ntfyUrl"></label>
+            <input id="adm-ntfy-url" type="text" spellcheck="false" autocapitalize="off">
+            <label for="adm-ntfy-token" data-i18n="adm.ntfyToken"></label>
+            <input id="adm-ntfy-token" type="password" autocomplete="off">
+          </div>
+          <fieldset>
+            <legend data-i18n="adm.alertWhen"></legend>
+            <div id="adm-events" class="checks"></div>
+          </fieldset>
+          <div class="actions">
+            <button type="submit" data-i18n="adm.save"></button>
+            <button id="adm-test-alert" type="button" class="secondary" data-i18n="adm.testAlert"></button>
+            <button id="adm-clear-token" type="button" class="quiet" data-i18n="adm.clearToken" hidden></button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" data-pane="log" hidden>
+        <h2 data-i18n="adm.tab.log"></h2>
+        <p class="muted" data-i18n="adm.logHelp"></p>
+        <ul id="adm-log" class="rows"></ul>
       </section>
     </div>
   </main>
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
+  <script src="/admin.js"></script>
 </body>
 </html>

@@ -119,7 +119,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); overflow-x: hidden;
 main { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; display: grid; gap: 18px;
   padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
            max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-#app, #devices, #stage { display: grid; gap: 22px; }
+#app, #devices, #admin, #stage { display: grid; gap: 22px; }
 #stage:not(:has(> section:not([hidden]))) { display: none; }
 
 /* ---------- top ---------- */
@@ -237,8 +237,46 @@ ul.rows li > span:first-child { min-width: 0; overflow-wrap: anywhere; flex: 1 1
 #join-code, .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; }
 #join-code { text-transform: uppercase; }
 .code { font-size: 18px; }
-#invite-box, #token-box { display: grid; gap: 8px; justify-items: start; }
-#invite-qr { background: #fff; border-radius: 12px; border: 2px solid var(--edge); }
+#invite-box, #token-box, .invite { display: grid; gap: 8px; justify-items: start; }
+#invite-qr, .qr { background: #fff; border-radius: 12px; border: 2px solid var(--edge); }
+
+/* ---------- admin panel ---------- */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: thin; }
+.tabs button.chip { flex: none; height: 36px; padding: 0 12px; font-size: 14px; }
+/* ":root" in front so the selected tab wins over each look's own chip colors */
+:root .tabs button.chip[aria-pressed="true"] { background: var(--pop); color: var(--pop-ink); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px; }
+.tile { min-width: 0; padding: 10px 12px; border-radius: 12px; background: var(--field);
+  border: 2px solid color-mix(in srgb, var(--edge) 35%, transparent); display: grid; gap: 2px; align-content: start; }
+.tile .k { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tile .v { font-family: var(--display); font-weight: var(--display-weight); font-size: 22px; line-height: 1.15;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile .d { font-size: 13px; color: var(--muted); }
+.tile.warn { border-color: var(--bad); }
+.tile.warn .v { color: var(--bad); }
+#admin form { display: grid; gap: 14px; }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 150px); gap: 8px 12px; align-items: center; }
+.fields label { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; }
+.fields input { width: 100%; }
+#adm-alerts .fields { grid-template-columns: minmax(0, 1fr); }
+input[type="number"], input[type="password"] { font: inherit; color: var(--ink); background: var(--field);
+  border: 2px solid var(--edge); border-radius: 12px; padding: 9px 11px; min-width: 0; }
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 14px; }
+.checks label { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 500; }
+.checks input { width: 18px; height: 18px; accent-color: var(--hot); flex: none; }
+ul.rows li .bad { color: var(--bad); }
+:root[data-theme="win95"] input[type="number"], :root[data-theme="win95"] input[type="password"] { border: 0; border-radius: 0; box-shadow: var(--in); }
+:root[data-theme="win95"] .tile { border: 0; border-radius: 0; box-shadow: var(--in); background: #fff; }
+:root[data-theme="win95"] .tabs button.chip[aria-pressed="true"] { box-shadow: var(--in); font-weight: 700; background: #c0c0c0; color: #000; }
+:root[data-theme="clay"] input[type="number"], :root[data-theme="clay"] input[type="password"] { border: 0; border-radius: 16px; box-shadow: inset 0 3px 7px rgba(214, 132, 100, .3); }
+:root[data-theme="clay"] .tile { border: 0; border-radius: 18px; box-shadow: inset 0 3px 7px rgba(214, 132, 100, .22); }
+:root[data-theme="clay"] .tabs button.chip[aria-pressed="true"] { background: var(--pop); color: var(--pop-ink); box-shadow: 0 5px 0 var(--shadow); }
+:root[data-theme="zine"] .tile, :root[data-theme="zine"] input[type="number"], :root[data-theme="zine"] input[type="password"] { border-radius: 2px; }
+:root[data-theme="zine"] #admin > .card:nth-of-type(odd) { transform: rotate(-.4deg); }
+:root[data-theme="zine"] #admin > .card:nth-of-type(even) { transform: rotate(.4deg); }
+:root[data-theme="vapor"] input[type="number"], :root[data-theme="vapor"] input[type="password"], :root[data-theme="vapor"] .tile { border-width: 1px; border-radius: 4px; }
+:root[data-theme="comic"] input[type="number"], :root[data-theme="comic"] input[type="password"] { border-width: 3px; }
+@media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr) 104px; } }
 .choices { display: flex; flex-wrap: wrap; gap: 10px; }
 .choices button { background: var(--field); color: var(--ink); box-shadow: none; font-size: 17px; }
 .choices button[aria-pressed="true"] { background: var(--pop); color: var(--pop-ink); box-shadow: 4px 4px 0 var(--shadow); }
