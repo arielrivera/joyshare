@@ -13,12 +13,12 @@ import signal
 from contextlib import asynccontextmanager, closing
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import account, admin, auth, config, cookies, db, engine, i18n, media, platforms, presets, settings, store
+from . import account, admin, auth, config, cookies, db, engine, i18n, media, platforms, presets, settings, storage, store
 from .i18n import T
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -64,10 +64,16 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("X-Frame-Options", "DENY")
+    # When files live in cloud storage, the page may play and fetch video from that one address.
+    bucket = storage.media_origin_if_fresh()
+    if bucket is None:
+        with closing(db.connect()) as conn:
+            bucket = storage.media_origin(conn)
+    extra = f" {bucket}" if bucket else ""
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' https: data:; media-src 'self' blob:; "
-        "style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'",
+        f"default-src 'self'; img-src 'self' https: data:; media-src 'self' blob:{extra}; "
+        f"connect-src 'self'{extra}; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     )
     return response
 
@@ -174,13 +180,27 @@ def owned_file(conn, file_id: int, user_id: int):
     row = conn.execute("SELECT * FROM files WHERE id=? AND kind='output'", (file_id,)).fetchone()
     if not row or row["user_id"] != user_id:
         raise HTTPException(404, "File not found.")
-    if row["deleted_at"] is not None or row["expires_at"] <= db.now() or not store.abs_path(row).is_file():
+    if row["deleted_at"] is not None or row["expires_at"] <= db.now() or not file_exists(row):
         raise HTTPException(410, "This file has expired.")
     return row
 
 
-def file_response(conn, row, download: bool) -> FileResponse:
+def file_exists(row) -> bool:
+    return row["storage"] != "local" or store.abs_path(row).is_file()
+
+
+def file_response(conn, row, download: bool):
     item = conn.execute("SELECT title, uploader FROM media WHERE id=?", (row["media_id"],)).fetchone()
+    if row["storage"] != "local":
+        # The file is in cloud storage: send the viewer there with a link that works for about an hour.
+        suffix = "." + row["path"].rsplit(".", 1)[-1]
+        name = store.download_name(item["title"], item["uploader"], suffix) if download else None
+        try:
+            url = storage.signed_url(conn, row["path"], mime=row["mime"], download_name=name)
+        except Exception as exc:
+            log.error("Couldn't make a cloud storage link: %s", exc)
+            raise HTTPException(503, "Cloud storage isn't reachable right now. Try again in a moment.") from exc
+        return RedirectResponse(url, status_code=302, headers={"Cache-Control": "no-store"})
     path = store.abs_path(row)
     return FileResponse(
         path,
@@ -480,7 +500,7 @@ def live_share(conn, token: str):
     if not link or link["revoked_at"] is not None or link["expires_at"] <= db.now():
         return None, None
     row = conn.execute("SELECT * FROM files WHERE id=?", (link["file_id"],)).fetchone()
-    if not row or row["deleted_at"] is not None or not store.abs_path(row).is_file():
+    if not row or row["deleted_at"] is not None or not file_exists(row):
         return None, None
     return link, row
 

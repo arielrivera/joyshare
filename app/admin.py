@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from . import auth, db, engine, i18n, notify, platforms, settings, store
+from . import auth, config, db, engine, i18n, notify, platforms, settings, storage, store
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -26,7 +26,9 @@ NUMBER_LIMITS = {
     "disk_warn_pct": (50, 99),
     "disk_pause_pct": (60, 100),
 }
-SECRET_KEYS = {"ntfy_token"}
+SECRET_KEYS = {"ntfy_token", "r2_secret_access_key"}
+R2_TEXT = {"r2_account_id": r"[A-Za-z0-9]{0,64}", "r2_bucket": r"[a-z0-9][a-z0-9.\-]{1,62}|", "r2_access_key_id": r"[A-Za-z0-9]{0,128}",
+           "r2_region": r"[a-z0-9\-]{1,32}", "r2_endpoint": r"(https?://[A-Za-z0-9.\-]+(:\d+)?)?"}
 
 
 def changing_admin(auth_info: auth.Auth = Depends(auth.fresh_auth)) -> auth.Auth:
@@ -78,6 +80,18 @@ def check_setting(key: str, value, merged: dict):
         if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_\-]{0,64}", value.strip()):
             raise HTTPException(422, "A topic can use letters, numbers, - and _ (up to 64).")
         return value.strip()
+    if key in R2_TEXT:
+        if not isinstance(value, str) or not re.fullmatch(R2_TEXT[key], value.strip()):
+            raise HTTPException(422, T("That doesn't look right for {key}.", key=key))
+        return value.strip()
+    if key == "r2_secret_access_key":
+        if not isinstance(value, str) or len(value) > 300:
+            raise HTTPException(422, T("Unknown setting: {key}", key=key))
+        return storage.seal(value.strip())
+    if key == "storage":
+        if value not in ("local", "r2"):
+            raise HTTPException(422, T("Unknown setting: {key}", key=key))
+        return value
     if key == "ntfy_token":
         if not isinstance(value, str) or len(value) > 200:
             raise HTTPException(422, T("Unknown setting: {key}", key=key))
@@ -208,6 +222,34 @@ def system_action(body: SystemAction, admin: auth.Auth = Depends(changing_admin)
     return {"ok": True}
 
 
+@router.get("/storage")
+def storage_status(_admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.get_conn)):
+    cfg = storage.read_config(conn)
+    steps, _ = db.get_state(conn, "r2_test_steps")
+    in_cloud = conn.execute(
+        "SELECT COUNT(*) AS n, COALESCE(SUM(size), 0) AS bytes FROM files WHERE storage!='local' AND deleted_at IS NULL").fetchone()
+    return {
+        "mode": storage.mode(conn),
+        "complete": cfg["complete"],
+        "tested": storage.is_tested(conn, cfg),
+        "settings": {k: v for k, v in public_settings(conn).items() if k.startswith(("r2_", "has_r2_", "storage"))},
+        "last_test": json.loads(steps) if steps else [],
+        "files_in_cloud": in_cloud["n"], "bytes_in_cloud": in_cloud["bytes"],
+        "site_address": config.PUBLIC_URL,
+    }
+
+
+@router.post("/storage/test")
+def storage_test(admin: auth.Auth = Depends(changing_admin), conn=Depends(db.get_conn)):
+    try:
+        steps = storage.test(conn)
+    except storage.StorageError as exc:
+        raise HTTPException(422, exc.args[0]) from exc
+    passed = storage.is_tested(conn)
+    db.audit(conn, admin.user_id, "storage.test", json.dumps({"passed": passed}))
+    return {"passed": passed, "steps": steps}
+
+
 # ---------- changing ----------
 
 @router.put("/settings")
@@ -221,6 +263,12 @@ def change_settings(body: SettingsBody, admin: auth.Auth = Depends(changing_admi
         raise HTTPException(422, "Share links can't outlive the files they point to.")
     for key, value in cleaned.items():
         settings.put(conn, key, value)
+    storage.forget_cache()
+    if merged["storage"] == "r2" and not storage.is_tested(conn):
+        # Never switch to a bucket that hasn't just proved it works with these exact details.
+        settings.put(conn, "storage", "local")
+        if cleaned.get("storage") == "r2":
+            raise HTTPException(422, "Test the connection first. Cloud storage turns on only after the test passes.")
     shown = {k: ("(changed)" if k in SECRET_KEYS else v) for k, v in cleaned.items()}
     db.audit(conn, admin.user_id, "settings.change", json.dumps(shown))
     return {"settings": public_settings(conn)}

@@ -213,6 +213,16 @@ ES = {
     "The nightly test video failed: {reason}": "Falló el video de prueba nocturno: {reason}",
     "Unknown action.": "Acción desconocida.",
 
+    # ---- cloud storage ----
+    "Cloud storage isn't fully set up.": "El almacenamiento en la nube no está configurado del todo.",
+    "Cloud storage isn't reachable right now. Try again in a moment.":
+        "El almacenamiento en la nube no responde ahora. Inténtalo de nuevo en un momento.",
+    "Test the connection first. Cloud storage turns on only after the test passes.":
+        "Primero prueba la conexión. El almacenamiento en la nube solo se activa cuando la prueba pasa.",
+    "That doesn't look right for {key}.": "Eso no parece correcto para {key}.",
+    "Cloud storage upload failed": "Falló la subida al almacenamiento en la nube",
+    "A finished video stayed on the server instead: {reason}": "Un video terminado se quedó en el servidor: {reason}",
+
     # ---- the page friends see ----
     "This video has expired": "Este video ha caducado",
     "Shared videos are only kept for a short time. Ask the person who sent it to share it again.":

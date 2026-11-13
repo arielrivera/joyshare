@@ -253,6 +253,66 @@ async function loadLog() {
   }));
 }
 
+// ---------- Storage: this server or Cloudflare R2 ----------
+
+async function loadStorage(steps) {
+  const data = await api("/api/admin/storage");
+  const s = data.settings;
+  $("sto-tiles").replaceChildren(
+    tile(t("sto.servedFrom"), data.mode === "r2" ? "Cloudflare R2" : t("sto.thisServer")),
+    tile(t("sto.connection"), data.tested ? t("sto.tested") : (data.complete ? t("sto.notTested") : t("sto.notSetUp")), "", data.complete && !data.tested),
+    tile(t("sto.inCloud"), String(data.files_in_cloud), data.files_in_cloud ? fmtSize(data.bytes_in_cloud) : ""),
+  );
+  $("sto-use-r2").hidden = data.mode === "r2";
+  $("sto-use-r2").disabled = !data.tested;
+  $("sto-use-local").hidden = data.mode !== "r2";
+  $("sto-switch-note").textContent = data.mode === "r2" ? t("sto.onNote") : (data.tested ? t("sto.readyNote") : t("sto.testFirst"));
+  $("sto-account").value = s.r2_account_id;
+  $("sto-bucket").value = s.r2_bucket;
+  $("sto-key").value = s.r2_access_key_id;
+  $("sto-secret").value = "";
+  $("sto-secret").placeholder = s.has_r2_secret_access_key ? t("sto.secretSaved") : "";
+  $("sto-endpoint").value = s.r2_endpoint;
+  $("sto-region").value = s.r2_region;
+  const shown = steps || data.last_test;
+  $("sto-steps").replaceChildren(...shown.map((step) => {
+    const li = row(t(`sto.test.${step.step}`), step.ok ? t("sto.passed") : (step.optional ? t("sto.skipped") : t("sto.failed")));
+    li.firstChild.lastChild.className = step.ok ? "good" : (step.optional ? "muted" : "bad");
+    if (!step.ok && step.detail) {
+      const why = document.createElement("span");
+      why.className = "muted";
+      why.textContent = step.detail;
+      li.firstChild.append(document.createElement("br"), why);
+    }
+    return li;
+  }));
+}
+
+$("sto-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  adminAct(async () => {
+    const changes = {
+      r2_account_id: $("sto-account").value.trim(), r2_bucket: $("sto-bucket").value.trim(),
+      r2_access_key_id: $("sto-key").value.trim(), r2_endpoint: $("sto-endpoint").value.trim(),
+      r2_region: $("sto-region").value.trim() || "auto",
+    };
+    if ($("sto-secret").value) changes.r2_secret_access_key = $("sto-secret").value; // empty box = keep the saved one
+    await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes }) });
+    const result = await api("/api/admin/storage/test", { method: "POST" });
+    await loadStorage(result.steps);
+    if (!result.passed) throw new Error(t("sto.testFailed"));
+  }, t("sto.testPassed"));
+});
+
+function switchStorage(mode, message) {
+  adminAct(async () => {
+    await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { storage: mode } }) });
+    await loadStorage();
+  }, message);
+}
+$("sto-use-r2").addEventListener("click", () => switchStorage("r2", t("sto.switchedR2")));
+$("sto-use-local").addEventListener("click", () => switchStorage("local", t("sto.switchedLocal")));
+
 // ---------- System: keeping yt-dlp current, nightly platform checks ----------
 
 let systemTimer = null;
@@ -310,7 +370,7 @@ $("sys-auto").addEventListener("change", () => adminAct(async () => {
 
 const ADMIN_LOADERS = {
   overview: loadOverview, videos: loadAdminJobs, links: loadAdminLinks, people: loadPeople,
-  limits: loadLimits, alerts: loadAlerts, system: loadSystem, log: loadLog,
+  limits: loadLimits, alerts: loadAlerts, storage: () => loadStorage(), system: loadSystem, log: loadLog,
 };
 
 // ---------- opening and closing ----------

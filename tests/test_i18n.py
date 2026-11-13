@@ -4,7 +4,7 @@ import pathlib
 from app import auth, i18n
 
 APP = pathlib.Path(i18n.__file__).parent
-MESSAGE_CALLS = {"HTTPException", "MediaError", "LinkError", "PresetError", "T", "tr", "render", "send", "CookieError"}
+MESSAGE_CALLS = {"HTTPException", "MediaError", "LinkError", "PresetError", "T", "tr", "render", "send", "CookieError", "StorageError"}
 
 
 def messages_in_code():

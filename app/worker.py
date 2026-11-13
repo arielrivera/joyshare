@@ -11,7 +11,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, store
+from . import cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -195,6 +195,18 @@ class Worker:
                 conn, user_id=user_id, media_id=media_id, kind="output", key=out_key, path=out,
                 ttl_seconds=cfg["output_ttl_hours"] * 3600, meta=media.probe(out),
             )
+            if storage.mode(conn) == "r2":
+                # Hand the finished file to cloud storage; viewers then fetch it from there, not from this server.
+                set_stage("uploading")
+                object_key = f"outputs/{out.name}"
+                try:
+                    storage.upload(conn, out, object_key, store.MIME.get(out.suffix))
+                    conn.execute("UPDATE files SET storage='r2', path=? WHERE id=?", (object_key, file_id))
+                    out.unlink(missing_ok=True)
+                except Exception as exc:
+                    log.exception("Upload to cloud storage failed; keeping job %s on this server", job_id)
+                    notify.send(conn, "storage_failed", "Cloud storage upload failed",
+                                T("A finished video stayed on the server instead: {reason}", reason=str(exc)[:200]))
             finish(file_id)
             log.info("Job %s done: %s, %.1f MB", job_id, preset_id, size / MB)
             notify.send(conn, "job_done", "Video ready",

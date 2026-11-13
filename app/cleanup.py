@@ -8,7 +8,7 @@ import shutil
 import sqlite3
 import time
 
-from . import config, db, notify, settings, store
+from . import config, db, notify, settings, storage, store
 from .i18n import T
 
 log = logging.getLogger("joyshare.cleanup")
@@ -25,7 +25,16 @@ def delete_expired(conn: sqlite3.Connection, in_use: set[int] = frozenset()) -> 
     for row in rows:
         if row["id"] in in_use:
             continue
-        store.abs_path(row).unlink(missing_ok=True)
+        if row["storage"] == "local":
+            store.abs_path(row).unlink(missing_ok=True)
+        else:
+            try:
+                storage.delete(conn, row["path"])
+            except Exception as exc:
+                # Try again next round. After three days give up: the bucket's own clean-up rule removes leftovers.
+                if db.now() - row["expires_at"] < 3 * 86400:
+                    log.warning("Couldn't delete %s from cloud storage yet: %s", row["path"], exc)
+                    continue
         conn.execute("UPDATE files SET deleted_at=? WHERE id=?", (db.now(), row["id"]))
         removed += 1
     return removed

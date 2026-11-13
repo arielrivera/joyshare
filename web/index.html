@@ -245,6 +245,7 @@
         <button type="button" class="chip" data-tab="people" data-i18n="ppl.title"></button>
         <button type="button" class="chip" data-tab="limits" data-i18n="adm.tab.limits"></button>
         <button type="button" class="chip" data-tab="alerts" data-i18n="adm.tab.alerts"></button>
+        <button type="button" class="chip" data-tab="storage" data-i18n="adm.tab.storage"></button>
         <button type="button" class="chip" data-tab="system" data-i18n="adm.tab.system"></button>
         <button type="button" class="chip" data-tab="log" data-i18n="adm.tab.log"></button>
       </div>
@@ -334,6 +335,51 @@
             <button id="adm-clear-token" type="button" class="quiet" data-i18n="adm.clearToken" hidden></button>
           </div>
         </form>
+      </section>
+
+      <section class="card" data-pane="storage" hidden>
+        <h2 data-i18n="adm.tab.storage"></h2>
+        <p class="muted" data-i18n="sto.help"></p>
+        <div id="sto-tiles" class="tiles"></div>
+        <div class="actions">
+          <button id="sto-use-r2" type="button" data-i18n="sto.useR2"></button>
+          <button id="sto-use-local" type="button" class="secondary" data-i18n="sto.useLocal"></button>
+        </div>
+        <p id="sto-switch-note" class="muted"></p>
+
+        <p class="label" data-i18n="sto.setupTitle"></p>
+        <ol class="steps">
+          <li data-i18n="sto.step1"></li>
+          <li data-i18n="sto.step2"></li>
+          <li data-i18n="sto.step3"></li>
+          <li data-i18n="sto.step4"></li>
+          <li data-i18n="sto.step5"></li>
+        </ol>
+        <form id="sto-form" autocomplete="off">
+          <div class="fields one">
+            <label for="sto-account" data-i18n="sto.account"></label>
+            <input id="sto-account" type="text" spellcheck="false" autocapitalize="off">
+            <label for="sto-bucket" data-i18n="sto.bucket"></label>
+            <input id="sto-bucket" type="text" spellcheck="false" autocapitalize="off">
+            <label for="sto-key" data-i18n="sto.keyId"></label>
+            <input id="sto-key" type="text" spellcheck="false" autocapitalize="off">
+            <label for="sto-secret" data-i18n="sto.secret"></label>
+            <input id="sto-secret" type="password" autocomplete="off">
+          </div>
+          <details>
+            <summary data-i18n="sto.advanced"></summary>
+            <div class="fields one">
+              <label for="sto-endpoint" data-i18n="sto.endpoint"></label>
+              <input id="sto-endpoint" type="text" spellcheck="false" autocapitalize="off" placeholder="https://">
+              <label for="sto-region" data-i18n="sto.region"></label>
+              <input id="sto-region" type="text" spellcheck="false" autocapitalize="off">
+            </div>
+          </details>
+          <div class="actions">
+            <button type="submit" class="secondary" data-i18n="sto.saveTest"></button>
+          </div>
+        </form>
+        <ul id="sto-steps" class="rows"></ul>
       </section>
 
       <section class="card" data-pane="system" hidden>

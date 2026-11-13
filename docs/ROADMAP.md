@@ -10,12 +10,12 @@ Full plan with reasons: [project plan](https://claude.ai/artifact/Y8hfga81tr1HFh
 |---|---|---|
 | 1 | Core: download, convert, presets, share links, cleanup | **Done**, committed on `phase-1-core` |
 | 2 | Access: passkeys, devices, people, tokens, Shortcut endpoint | **Done**, committed on `phase-2-access` |
-| — | Redesign: one-step flow, looks, fonts, English/Spanish, custom name, compact top bar | **Done**, on `ui-redesign` (check `git status` for uncommitted work) |
+| — | Redesign: one-step flow, looks, fonts, English/Spanish, custom name, compact top bar | **Done**, on `main` |
 | 3 | Admin panel, alerts, updates, R2 storage, backups, connected accounts | **In progress**, see below |
 | 4 | 3D progress scenes, app icon and home-screen install, share page polish | Not started |
 | 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | Not started |
 
-Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesign`. Nothing has been pushed or merged to `main` unless the owner did it.
+Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesign`. `main` on GitHub holds everything up to connected accounts (pushed 12 Nov 2026). Later work is on its own branch until the owner asks for a push.
 
 ## How to work on it
 
@@ -65,7 +65,8 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] "Pause new videos" button on Overview.
 - [x] Alerts tab: ntfy topic, server address, token (never shown again once saved), a switch per event, "Save and send a test alert".
 - [x] System tab (yt-dlp updates and platform checks).
-- [ ] Storage and Platforms tabs: built together with 3d–3f.
+- [x] Storage tab (3e).
+- [ ] Platforms tab (proxy per platform, test-video addresses): not started.
 - [ ] Activity log shows details as raw text; make them readable sentences.
 - [ ] "Fit a size" target list (`fit_targets_mb`) has no field yet.
 - [ ] Checked in the browser at phone width in the Comic look only. Look at it in the other looks, especially Windows 95 and Clay.
@@ -94,10 +95,17 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] Not yet tried with a real signed-in cookie file against a real sign-in wall (tests fake the wall; a real lookup and download with a harmless cookie file worked).
 - [ ] Optional proxy setting per platform (was planned for a Platforms tab).
 
-### 3e. Storage switch (Cloudflare R2)
-- [ ] `STORAGE` setting: `local` (today) or `r2`. Worker uploads finished files to R2; pages hand out signed R2 links that last about an hour; the share page itself still expires after 48 hours.
-- [ ] Storage page: shows whether R2 is set up, a step-by-step guide, a connection test; the switch only turns on after the test passes. R2 keys stored encrypted.
-- [ ] R2 must be on before the app is reachable through the Cloudflare Tunnel (Cloudflare's terms on video).
+### 3e. Storage switch (Cloudflare R2) — done, not yet tried on real R2
+- [x] `app/storage.py`: with R2 on, the worker uploads each finished file (stage "uploading"), marks the row `storage='r2'` and deletes the local copy. Originals stay local.
+- [x] File and share-link addresses answer with a redirect to a signed link that lasts an hour; downloads carry the nice file name. The share page itself still expires after 48 hours.
+- [x] Clean-up deletes expired files from the bucket and retries if the bucket can't be reached.
+- [x] Storage tab: where files are served from, setup steps, the four values, "Save and test" (write, read through a signed link, delete; also sets the bucket's CORS rule and a delete-leftovers rule), and the switch, which unlocks only after the test passes with those exact details. Changing a detail switches back to this server until retested.
+- [x] The secret key is stored encrypted and never sent back. The page's security policy allows the bucket's address only when it is set up.
+- [x] If an upload fails, the file stays on the server and an alert goes out.
+- [x] Proven for real against an S3 emulator (moto): test, switch, a real job, fetch through the signed link, range request, download name, share link, clean-up.
+- [ ] **Not yet tried on real Cloudflare R2.** Needs the owner's bucket and keys. Check there: the signed download name, the CORS rule and the lifecycle rule are accepted, and the iPhone Share button works with files in R2.
+- [ ] R2 must be on before the app is reachable through the Cloudflare Tunnel (Cloudflare's terms on video). Phase 5 should refuse to go live otherwise, or warn loudly.
+- [ ] boto3 adds about 100 MB to the image. A slimmer client is possible later.
 
 ### 3f. Backups
 - [ ] Nightly copy of the database to R2; "Back up now" on the System page; alert on failure.

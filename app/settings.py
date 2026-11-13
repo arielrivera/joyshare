@@ -20,13 +20,22 @@ DEFAULTS = {
     "platforms": ["x", "youtube", "tiktok", "instagram", "facebook"],
     "fit_targets_mb": [8, 16, 25, 50, 100],
     "paused": False,             # the admin's "pause new jobs" switch
+    # Where finished files are served from: "local" (this server) or "r2" (Cloudflare R2). See app/storage.py.
+    "storage": "local",
+    "r2_account_id": "",
+    "r2_bucket": "",
+    "r2_access_key_id": "",
+    "r2_secret_access_key": "",  # kept encrypted
+    "r2_endpoint": "",           # only for other S3-compatible storage; R2's address is built from the account ID
+    "r2_region": "auto",
     # Alerts through ntfy. No topic means alerts are off.
     "ntfy_url": "https://ntfy.sh",
     "ntfy_topic": "",
     "ntfy_token": "",
     "alerts": {"job_done": True, "job_failed": True, "disk_warn": True, "disk_paused": True,
                "new_device": True, "failed_signins": True, "ytdlp_updated": True, "ytdlp_failed": True,
-               "platform_check_failed": True, "cookies_rejected": True},
+               "platform_check_failed": True, "cookies_rejected": True,
+               "storage_failed": True},
     # yt-dlp is checked for updates once a day. See app/engine.py.
     "ytdlp_auto_update": True,
     # One known, long-lived public video per platform, looked up once a day to notice breakage early.

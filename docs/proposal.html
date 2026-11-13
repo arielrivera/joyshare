@@ -133,7 +133,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v5.8</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v5.9</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -616,6 +616,7 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>12 Nov 2026</time><div>v5.9. Everything up to connected accounts is pushed to main on GitHub. The R2 storage switch is built: uploads after each job, signed one-hour links, clean-up in the bucket, and a Storage tab with setup steps and a test that must pass before the switch unlocks. Proven against an S3 emulator; not yet tried on real Cloudflare R2. 100 automated tests.</div></li>
         <li><time>12 Nov 2026</time><div>v5.8. Connected accounts are built: each person can upload a cookie file per platform from the menu. Only that platform's cookies are kept, stored encrypted, never shown to anyone, and used only when a platform asks for a sign-in. A refused account is flagged and alerted once. 90 automated tests.</div></li>
         <li><time>12 Nov 2026</time><div>v5.7. TikTok added and tested with a real video. yt-dlp now keeps itself current: a daily check, a test of the new version before it is used, automatic restart, and a "go back" button, all on a new System tab. A daily lookup of one known video per platform alerts when one breaks. 80 automated tests. A second engine in case yt-dlp itself fails (cobalt or gallery-dl) is noted in the roadmap as an open decision.</div></li>
         <li><time>12 Nov 2026</time><div>v5.6. The admin panel has its first seven tabs: Overview (with the pause button), Videos, Share links, People, Limits, Alerts and Activity log, in English and Spanish. Storage, Platforms and System tabs come with automatic updates, cloud storage and backups.</div></li>

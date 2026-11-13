@@ -5,6 +5,8 @@ yt-dlp[default]
 # Passkeys (WebAuthn) and QR codes for device invites
 webauthn>=2.2,<3
 segno>=1.6,<2
+# Cloud storage (Cloudflare R2 and other S3-compatible buckets)
+boto3>=1.35,<2
 # Tests
 pytest>=8,<10
 httpx>=0.27,<1

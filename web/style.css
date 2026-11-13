@@ -265,7 +265,9 @@ ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15
 .fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 150px); gap: 8px 12px; align-items: center; }
 .fields label { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; }
 .fields input { width: 100%; }
-#adm-alerts .fields { grid-template-columns: minmax(0, 1fr); }
+#adm-alerts .fields, .fields.one { grid-template-columns: minmax(0, 1fr); }
+details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+ul.rows li .good { color: var(--ink); font-weight: 700; }
 input[type="number"], input[type="password"] { font: inherit; color: var(--ink); background: var(--field);
   border: 2px solid var(--edge); border-radius: 12px; padding: 9px 11px; min-width: 0; }
 .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 14px; }

@@ -21,7 +21,7 @@ def find_file(conn: sqlite3.Connection, user_id: int, media_id: int, kind: str, 
         (user_id, media_id, kind, key, db.now()),
     ).fetchall()
     for row in rows:
-        if abs_path(row).is_file():
+        if row["storage"] != "local" or abs_path(row).is_file():  # files in cloud storage are trusted to be there
             return row
     return None
 

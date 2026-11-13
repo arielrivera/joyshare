@@ -98,8 +98,28 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 | People | Invite a person, or turn a person off and on. |
 | Limits | Biggest file, longest video, how long things are kept, disk alert levels, which platforms are allowed. Changes apply right away. |
 | Alerts | Where alerts go and which ones you want. |
+| Storage | Serve finished videos from this server or from Cloudflare R2, with the setup steps and a connection test. |
 | System | The yt-dlp version in use, checking for updates, going back a version, and the daily platform checks. |
 | Activity log | Sign-in problems and every change to devices, people, links and settings. |
+
+### Serve videos from Cloudflare R2
+
+By default, finished videos are served from the computer joyshare runs on. With R2 on, each finished video is uploaded to your R2 bucket and viewers get it straight from Cloudflare's storage.
+
+**Turn this on before joyshare is reachable from the internet through a Cloudflare Tunnel.** Cloudflare's rules don't allow video through the tunnel itself, and with R2 the video never goes through it. R2 is free for the first 10 GB stored.
+
+1. In the Cloudflare dashboard, open **R2** and create a bucket (for example `joyshare`).
+2. In R2, choose **Manage API tokens** and create a token with **Object Read & Write** for that bucket only.
+3. Copy the **Access Key ID** and **Secret Access Key** (shown once) and your **Account ID**.
+4. In joyshare, open **Admin panel → Storage**, type the four values and press **Save and test**. The test writes a small file, reads it back through a signed link and deletes it.
+5. When the test passes, press **Serve new files from R2**.
+
+Good to know:
+
+- The switch only unlocks after the test passes. If you later change any of the four values, joyshare goes back to this server until you test again.
+- Files already in R2 keep working if you switch back.
+- The secret key is stored encrypted and is never shown again.
+- If an upload to R2 ever fails, that video stays on the server and you get an alert.
 
 ### Turn on alerts
 
