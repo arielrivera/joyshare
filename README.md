@@ -57,6 +57,7 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 ## Dig deeper
 
 - **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut, troubleshooting
+- **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
 - **Moving guide** (coming): moving between a cloud server, a Mac mini and a Raspberry Pi, and what changes if you don't use Cloudflare
 - **How it's built**: the project plan (`docs/proposal.html`) and a one-page visual of the process and stack (`docs/infographic.html`)

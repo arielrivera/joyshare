@@ -335,21 +335,51 @@ async function loadSystem() {
   $("sys-rollback").hidden = !y.can_roll_back || busy;
   $("sys-rollback").textContent = t("sys.rollback", { version: y.previous_version || "" });
 
-  $("sys-checks").replaceChildren(...data.platform_checks.map((check) => {
-    const li = row(check.label, `${check.ok ? t("sys.works") : t("sys.broken")} · ${fmtWhen(check.at)}`);
-    if (!check.ok && check.error) {
-      const why = document.createElement("span");
-      why.className = "bad";
-      why.textContent = check.error;
-      li.firstChild.append(document.createElement("br"), why);
-    }
+  // One row per platform: include it or not, the test video's link, and the last result.
+  $("sys-checks").replaceChildren(...data.platform_checks.filter((c) => c.enabled).map((check) => {
+    const li = document.createElement("li");
+    const box = checkbox(`sys-check-${check.platform}`, check.platform, check.label, check.included);
+    box.firstChild.dataset.role = "include";
+    const state = document.createElement("span");
+    state.className = check.ok === false ? "bad" : "muted";
+    state.textContent = check.at
+      ? `${check.ok ? t("sys.works") : t("sys.broken")} · ${fmtWhen(check.at)}${check.error ? ` · ${check.error}` : ""}`
+      : t("sys.notChecked");
+    const link = document.createElement("input");
+    link.type = "text";
+    link.id = `sys-url-${check.platform}`;
+    link.dataset.platform = check.platform;
+    link.value = check.url;
+    link.placeholder = t("sys.urlPlaceholder", { platform: check.label });
+    link.setAttribute("aria-label", t("sys.urlLabel", { platform: check.label }));
+    link.spellcheck = false;
+    const stack = document.createElement("span");
+    stack.className = "stack";
+    stack.append(box, state, link);
+    li.append(stack);
     return li;
   }));
-  $("sys-checks-empty").hidden = data.platform_checks.length > 0;
-  $("sys-test-platforms").disabled = data.checking_platforms;
+  $("sys-test-platforms").disabled = data.checking_platforms || data.manual_tests_left <= 0;
+  $("sys-tests-left").textContent = data.manual_tests_left > 0
+    ? t("sys.testsLeft", { n: data.manual_tests_left })
+    : t("sys.testsNone", { when: fmtWhen(data.next_manual_test_at) });
+
+  // Backups
+  const bak = data.backup;
+  const where = bak.cloud ? t("bak.whereBoth") : t("bak.whereServer");
+  $("bak-tiles").replaceChildren(
+    tile(t("bak.last"), bak.at ? fmtWhen(bak.at) : t("sys.never"), bak.at ? (bak.ok ? where : t("bak.failed")) : "", bak.at && !bak.ok),
+    tile(t("bak.size"), bak.size ? (bak.size < 100 * 1024 ? `${Math.round(bak.size / 1024)} KB` : fmtSize(bak.size)) : "—"),
+    tile(t("bak.copies"), String(bak.local_count || 0), bak.cloud_ready ? t("bak.cloudOn") : t("bak.cloudOff")),
+  );
+  const failed = bak.at && !bak.ok;
+  $("bak-message").textContent = failed ? `${bak.local_ok ? t("bak.cloudFailed") : t("bak.noneMade")} ${bak.error || ""}` : "";
+  $("bak-message").hidden = !failed;
+  $("bak-auto").checked = bak.auto;
+  $("bak-now").disabled = bak.running;
 
   // While the worker is busy, keep looking until it's done.
-  if (busy || data.checking_platforms) {
+  if (busy || data.checking_platforms || bak.running) {
     systemTimer = setTimeout(() => {
       if (adminTab === "system" && !$("admin").hidden) loadSystem().catch(() => { systemTimer = setTimeout(loadSystem, 5000); });
     }, 4000);
@@ -364,6 +394,20 @@ async function systemAction(action) {
 $("sys-update").addEventListener("click", () => adminAct(() => systemAction("update")));
 $("sys-rollback").addEventListener("click", () => adminAct(() => systemAction("rollback")));
 $("sys-test-platforms").addEventListener("click", () => adminAct(() => systemAction("platforms")));
+$("bak-now").addEventListener("click", () => adminAct(() => systemAction("backup")));
+$("bak-auto").addEventListener("change", () => adminAct(async () => {
+  await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { backup_auto: $("bak-auto").checked } }) });
+}, t("adm.saved")));
+$("sys-checks-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  adminAct(async () => {
+    const included = [...document.querySelectorAll('#sys-checks input[data-role="include"]:checked')].map((b) => b.value);
+    const urls = {};
+    for (const input of document.querySelectorAll("#sys-checks input[data-platform]")) urls[input.dataset.platform] = input.value.trim();
+    await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { canary_platforms: included, canary_urls: urls } }) });
+    await loadSystem();
+  }, t("adm.saved"));
+});
 $("sys-auto").addEventListener("change", () => adminAct(async () => {
   await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { ytdlp_auto_update: $("sys-auto").checked } }) });
 }, t("adm.saved")));

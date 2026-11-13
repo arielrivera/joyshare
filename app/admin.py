@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from . import auth, config, db, engine, i18n, notify, platforms, settings, storage, store
+from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -27,6 +27,7 @@ NUMBER_LIMITS = {
     "disk_pause_pct": (60, 100),
 }
 SECRET_KEYS = {"ntfy_token", "r2_secret_access_key"}
+MANUAL_TESTS, MANUAL_WINDOW = 2, 3 * 3600   # "Test platforms now": at most 2 in any 3 hours
 R2_TEXT = {"r2_account_id": r"[A-Za-z0-9]{0,64}", "r2_bucket": r"[a-z0-9][a-z0-9.\-]{1,62}|", "r2_access_key_id": r"[A-Za-z0-9]{0,128}",
            "r2_region": r"[a-z0-9\-]{1,32}", "r2_endpoint": r"(https?://[A-Za-z0-9.\-]+(:\d+)?)?"}
 
@@ -54,7 +55,26 @@ def check_setting(key: str, value, merged: dict):
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
             raise HTTPException(422, T("{key} must be a whole number from {low} to {high}.", key=key, low=low, high=high))
         return value
-    if key in ("paused", "ytdlp_auto_update"):
+    if key == "canary_platforms":
+        if not isinstance(value, list) or any(p not in platforms.PLATFORMS for p in value):
+            raise HTTPException(422, "Pick platforms from the list.")
+        return [p for p in platforms.PLATFORMS if p in value]
+    if key == "canary_urls":
+        if not isinstance(value, dict) or any(p not in platforms.PLATFORMS or not isinstance(u, str) for p, u in value.items()):
+            raise HTTPException(422, "Pick platforms from the list.")
+        cleaned = dict(merged["canary_urls"])
+        for name, url in value.items():
+            url = url.strip()
+            if url:
+                try:
+                    found, url = platforms.detect(url)
+                except platforms.LinkError as exc:
+                    raise HTTPException(422, exc.args[0]) from exc
+                if found != name:
+                    raise HTTPException(422, T("That link isn't a {platform} link.", platform=platforms.PLATFORMS[name]["label"]))
+            cleaned[name] = url
+        return cleaned
+    if key in ("paused", "ytdlp_auto_update", "backup_auto"):
         if not isinstance(value, bool):
             raise HTTPException(422, T("Unknown setting: {key}", key=key))
         return value
@@ -186,6 +206,9 @@ def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=
     asked, _ = db.get_state(conn, "engine_request")
     raw, _ = db.get_state(conn, "canary")
     checks = json.loads(raw) if raw else {}
+    cfg = settings.get_all(conn)
+    recent = recent_manual_tests(conn)
+    state_b = backup.read_state(conn)
     return {
         "ytdlp": {
             "version": engine.loaded_version(),
@@ -200,23 +223,45 @@ def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=
             "auto_update": settings.get(conn, "ytdlp_auto_update"),
         },
         "platform_checks": [
-            {"platform": name, "label": platforms.PLATFORMS[name]["label"] if name in platforms.PLATFORMS else name,
-             "ok": result["ok"], "at": result["at"], "error": i18n.unpack(result.get("error"), lang)}
-            for name, result in checks.items()
+            {"platform": name, "label": spec["label"],
+             "included": name in cfg["canary_platforms"], "url": cfg["canary_urls"].get(name, ""),
+             "enabled": name in cfg["platforms"],
+             "ok": checks.get(name, {}).get("ok"), "at": checks.get(name, {}).get("at"),
+             "error": i18n.unpack(checks.get(name, {}).get("error"), lang)}
+            for name, spec in platforms.PLATFORMS.items()
         ],
         "checking_platforms": asked == "platforms",
+        "manual_tests_left": MANUAL_TESTS - len(recent),
+        "next_manual_test_at": (min(recent) + MANUAL_WINDOW) if len(recent) >= MANUAL_TESTS else None,
+        "backup": {
+            **{k: state_b.get(k) for k in ("at", "ok", "size", "cloud", "error", "local_ok", "local_count")},
+            "auto": cfg["backup_auto"], "cloud_ready": storage.is_tested(conn), "running": asked == "backup",
+        },
     }
 
 
+def recent_manual_tests(conn) -> list[int]:
+    raw, _ = db.get_state(conn, "canary_manual")
+    return [t for t in (json.loads(raw) if raw else []) if db.now() - t < MANUAL_WINDOW]
+
+
 class SystemAction(BaseModel):
-    action: str   # "update", "rollback" or "platforms"
+    action: str   # "update", "rollback", "platforms" or "backup"
 
 
 @router.post("/system")
 def system_action(body: SystemAction, admin: auth.Auth = Depends(changing_admin), conn=Depends(db.get_conn)):
     """Leaves a note for the worker, which does the work within half a minute."""
-    if body.action not in ("update", "rollback", "platforms"):
+    if body.action not in ("update", "rollback", "platforms", "backup"):
         raise HTTPException(422, "Unknown action.")
+    if body.action == "platforms":
+        # Each test really contacts the platforms, so it is rationed: 2 in any 3 hours.
+        recent = recent_manual_tests(conn)
+        if len(recent) >= MANUAL_TESTS:
+            minutes = max(1, (min(recent) + MANUAL_WINDOW - db.now() + 59) // 60)
+            raise HTTPException(429, T("Platform tests are limited to {count} every 3 hours. Try again in {minutes} minutes.",
+                                       count=MANUAL_TESTS, minutes=minutes))
+        db.set_state(conn, "canary_manual", json.dumps(recent + [db.now()]))
     db.set_state(conn, "engine_request", body.action)
     db.audit(conn, admin.user_id, f"system.{body.action}", None)
     return {"ok": True}

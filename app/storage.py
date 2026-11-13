@@ -99,6 +99,17 @@ def upload(conn, path, key: str, mime: str | None) -> None:
     _client(cfg).upload_file(str(path), cfg["bucket"], key, ExtraArgs={"ContentType": mime or "application/octet-stream"})
 
 
+def put_file(conn, path, key: str, mime: str) -> None:
+    """Upload any file (used for backups)."""
+    upload(conn, path, key, mime)
+
+
+def list_keys(conn, prefix: str) -> list[str]:
+    cfg = _ready(conn)
+    found = _client(cfg).list_objects_v2(Bucket=cfg["bucket"], Prefix=prefix)
+    return [item["Key"] for item in found.get("Contents", [])]
+
+
 def delete(conn, key: str) -> None:
     cfg = _ready(conn)
     _client(cfg).delete_object(Bucket=cfg["bucket"], Key=key)
@@ -181,7 +192,7 @@ def test(conn) -> list[dict]:
         "AllowedOrigins": [config.PUBLIC_URL], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"],
         "ExposeHeaders": ["Content-Length", "Content-Range"], "MaxAgeSeconds": 3600}]}))
     optional("lifecycle", lambda: client.put_bucket_lifecycle_configuration(Bucket=cfg["bucket"], LifecycleConfiguration={
-        "Rules": [{"ID": "joyshare-leftovers", "Status": "Enabled", "Filter": {"Prefix": ""},
+        "Rules": [{"ID": "joyshare-leftovers", "Status": "Enabled", "Filter": {"Prefix": "outputs/"},
                    "Expiration": {"Days": max(3, settings.get(conn, "output_ttl_hours") // 24 + 2)}}]}))
     db.set_state(conn, "r2_tested", fingerprint(cfg))
     db.set_state(conn, "r2_test_steps", __import__("json").dumps(steps))

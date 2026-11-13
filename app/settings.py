@@ -35,14 +35,21 @@ DEFAULTS = {
     "alerts": {"job_done": True, "job_failed": True, "disk_warn": True, "disk_paused": True,
                "new_device": True, "failed_signins": True, "ytdlp_updated": True, "ytdlp_failed": True,
                "platform_check_failed": True, "cookies_rejected": True,
-               "storage_failed": True},
+               "storage_failed": True, "backup_failed": True},
     # yt-dlp is checked for updates once a day. See app/engine.py.
     "ytdlp_auto_update": True,
     # One known, long-lived public video per platform, looked up once a day to notice breakage early.
     "canary_urls": {
         "youtube": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
         "x": "https://x.com/BrooklynNets/status/1349794411333394432",
+        "tiktok": "https://www.tiktok.com/@pokemonlife22/video/7059698374567611694",
+        "instagram": "",
+        "facebook": "",
     },
+    # Which platforms the daily check (and "Test platforms now") includes. A platform also needs a test video above.
+    "canary_platforms": ["youtube", "x"],
+    # A database backup once a day. See app/backup.py.
+    "backup_auto": True,
 }
 
 

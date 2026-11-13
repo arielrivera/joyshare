@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# joyshare helper for the person who runs the server.
+#
+#   ./joyshare backup [--with-videos]   Pack everything joyshare knows into one file in ./backups
+#   ./joyshare restore FILE [--yes]     Replace all joyshare data with a file made by "backup"
+#   ./joyshare restore-db FILE [--yes]  Put back just the database from a nightly snapshot (.db.gz)
+#   ./joyshare setup-code               Print a one-time code to register a device (first run or lockout)
+#
+# "backup" then "restore" is also how you move joyshare to another computer:
+# copy the backup file and your .env to the new machine, then run restore there.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+say() { printf '%s\n' "$*"; }
+die() { say "Error: $*" >&2; exit 1; }
+
+confirm() {
+  [[ "${ASSUME_YES:-0}" == "1" ]] && return 0
+  read -r -p "$1 Type yes to continue: " answer
+  [[ "$answer" == "yes" ]] || die "Stopped. Nothing was changed."
+}
+
+# Runs a command in a throwaway container that sees the data volume at /data and one host folder.
+in_data() { # in_data HOST_FOLDER MOUNT_POINT COMMAND...
+  local host="$1" mount="$2"; shift 2
+  docker compose run --rm --no-deps -T --user root -v "$host:$mount" web "$@"
+}
+
+command="${1:-}"
+[[ "${*: -1}" == "--yes" ]] && ASSUME_YES=1
+
+case "$command" in
+  backup)
+    mkdir -p backups
+    name="joyshare-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+    # Videos are temporary and the yt-dlp copy can be downloaded again, so they are left out unless asked for.
+    skip=(--exclude=./cache --exclude=./ytdlp --exclude=./backups)
+    [[ "${2:-}" == "--with-videos" ]] || skip+=(--exclude=./media)
+    say "Stopping joyshare for a moment so the copy is consistent…"
+    docker compose stop web worker >/dev/null
+    in_data "$PWD/backups" /out tar czf "/out/$name" "${skip[@]}" -C /data . || { docker compose start web worker >/dev/null; die "The backup failed."; }
+    docker compose start web worker >/dev/null
+    say "Saved backups/$name ($(du -h "backups/$name" | cut -f1))"
+    say "Keep your .env file with it: it is not inside the backup."
+    ;;
+
+  restore)
+    file="${2:-}"
+    [[ -f "$file" ]] || die "Give the backup file, for example: ./joyshare restore backups/joyshare-backup-20261113-101500.tar.gz"
+    folder="$(cd "$(dirname "$file")" && pwd)"; name="$(basename "$file")"
+    confirm "This replaces ALL current joyshare data with $name."
+    docker compose stop web worker >/dev/null 2>&1 || true
+    in_data "$folder" /in sh -c "find /data -mindepth 1 -delete && tar xzf '/in/$name' -C /data && mkdir -p /data/media && chown -R app:app /data" \
+      || die "The restore failed."
+    docker compose up -d >/dev/null
+    say "Restored from $name. joyshare is starting."
+    ;;
+
+  restore-db)
+    file="${2:-}"
+    [[ -f "$file" && "$file" == *.db.gz ]] || die "Give a nightly snapshot, for example: ./joyshare restore-db joyshare-20261113-030000.db.gz"
+    folder="$(cd "$(dirname "$file")" && pwd)"; name="$(basename "$file")"
+    confirm "This replaces the joyshare database (people, settings, history) with $name. Videos are not touched."
+    docker compose stop web worker >/dev/null 2>&1 || true
+    in_data "$folder" /in sh -c "gunzip -c '/in/$name' > /data/joyshare.db.new && rm -f /data/joyshare.db-wal /data/joyshare.db-shm && mv /data/joyshare.db.new /data/joyshare.db && chown app:app /data/joyshare.db" \
+      || die "The restore failed."
+    docker compose up -d >/dev/null
+    say "Database restored from $name. joyshare is starting."
+    ;;
+
+  setup-code)
+    docker compose exec web python -m app.cli setup-code
+    ;;
+
+  *)
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    exit 2
+    ;;
+esac

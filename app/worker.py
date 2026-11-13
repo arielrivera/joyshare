@@ -11,7 +11,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store
+from . import backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -101,6 +101,8 @@ class Worker:
             engine.check_and_update(conn)
         if asked == "platforms" or (not engine.needs_restart() and engine.platforms_due(conn)):
             engine.check_platforms(conn)
+        if asked == "backup" or backup.due(conn):
+            backup.run(conn)
 
     # ---------- one job ----------
 

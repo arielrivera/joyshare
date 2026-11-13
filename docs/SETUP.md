@@ -77,6 +77,8 @@ Open **☰ → Connected accounts**. For each platform you can upload a cookie f
 3. On the platform's site, export its cookies to a file with the extension.
 4. In joyshare, press **Upload cookie file** next to that platform.
 
+**On a phone:** phones can't easily export cookies. iPhone browsers have no way to do it, and on Android it only works in Firefox with an add-on. You don't need to: a connected account belongs to you, not to a device. Do it once on any computer and it works when you use joyshare from your phone. The cookie file can also be uploaded from the phone if you send it there first.
+
 What happens to the file:
 
 - Only that platform's cookies are kept. Everything else in the file is thrown away.
@@ -99,7 +101,7 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 | Limits | Biggest file, longest video, how long things are kept, disk alert levels, which platforms are allowed. Changes apply right away. |
 | Alerts | Where alerts go and which ones you want. |
 | Storage | Serve finished videos from this server or from Cloudflare R2, with the setup steps and a connection test. |
-| System | The yt-dlp version in use, checking for updates, going back a version, and the daily platform checks. |
+| System | The yt-dlp version in use, checking for updates, going back a version, the daily platform checks (you choose which platforms and their test videos), and backups. |
 | Activity log | Sign-in problems and every change to devices, people, links and settings. |
 
 ### Serve videos from Cloudflare R2
@@ -120,6 +122,28 @@ Good to know:
 - Files already in R2 keep working if you switch back.
 - The secret key is stored encrypted and is never shown again.
 - If an upload to R2 ever fails, that video stays on the server and you get an alert.
+
+### Backups and restoring
+
+Once a day joyshare saves a copy of its database: who can sign in, settings, history and connected accounts. Videos are not included, because they are temporary. **Admin panel → System** shows the last backup and has **Back up now**.
+
+- Copies are kept inside the data volume (the newest 7).
+- If R2 is set up and tested, each copy also goes to your bucket (the newest 14). That is the copy that survives losing the computer.
+
+For moving to another computer, or keeping your own copy, use the `joyshare` script in the project folder:
+
+| I want to… | Command |
+|---|---|
+| Pack everything into one file in `./backups` | `./joyshare backup` |
+| Include the current videos too | `./joyshare backup --with-videos` |
+| Replace all data with a backup file | `./joyshare restore backups/joyshare-backup-….tar.gz` |
+| Put back only the database from a daily copy | `./joyshare restore-db joyshare-….db.gz` |
+
+`backup` stops joyshare for a few seconds so the copy is consistent. Both restore commands ask you to type `yes` first, because they replace what is there.
+
+**Moving to another computer:** run `./joyshare backup`, copy the backup file and your `.env` to the joyshare folder on the new computer, and run `./joyshare restore` there.
+
+Keep your `.env` with your backups. If you set `JOYSHARE_SECRET`, connected accounts in a backup can only be read with that same secret.
 
 ### Turn on alerts
 
@@ -174,7 +198,15 @@ It registers a new device for the admin, works once and lasts 30 minutes. Only s
 
 ## Settings
 
-Copy `.env.example` to `.env` to change these. All are optional.
+These live in a file called `.env` in the joyshare folder on your computer, next to `docker-compose.yml`. It is not inside the container: Docker reads it when the containers start. All settings are optional.
+
+To change one, for example the name:
+
+1. If there is no `.env` yet, make it from the example: `cp .env.example .env`
+2. Open `.env` in any text editor and set the line, for example `JOYSHARE_NAME=share`
+3. Restart so the containers pick it up: `docker compose up -d`
+
+`JOYSHARE_NAME` is the name people see until they pick their own with the pencil button. A name someone already chose for themselves stays as they set it.
 
 | Setting | What it does | Default |
 |---|---|---|

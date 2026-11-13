@@ -266,6 +266,8 @@ ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15
 .fields label { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; }
 .fields input { width: 100%; }
 #adm-alerts .fields, .fields.one { grid-template-columns: minmax(0, 1fr); }
+ul.rows li .stack { display: grid; gap: 6px; flex: 1 1 100%; min-width: 0; }
+ul.rows li .stack input[type="text"] { width: 100%; font-size: 14px; padding: 8px 10px; }
 details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
 ul.rows li .good { color: var(--ink); font-weight: 700; }
 input[type="number"], input[type="password"] { font: inherit; color: var(--ink); background: var(--field);

@@ -2,7 +2,7 @@
 
 What is built, what is left, and how to continue. Written so that anyone (a person or an AI assistant) can pick the project up cold.
 
-Full plan with reasons: [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) (source: `docs/proposal.html`) · [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) (source: `docs/infographic.html`) · [setup guide](SETUP.md)
+Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reasons: [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) (source: `docs/proposal.html`) · [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) (source: `docs/infographic.html`) · [setup guide](SETUP.md)
 
 ## Where things stand
 
@@ -52,7 +52,7 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] `app/notify.py`: alerts through ntfy (`ntfy_url`, `ntfy_topic`, `ntfy_token` settings), in the admin's language. A failed alert never breaks a job.
 - [x] Events, each switchable: video ready, job failed, disk 90%, disk 95% (jobs paused), new device, repeated failed sign-ins, test.
 - [x] Added with 3c: yt-dlp updated, yt-dlp update failed, platform stopped working in the daily check.
-- [ ] Events still to add with their features: backup failed.
+- [x] Added with 3f: backup failed.
 - [x] Disk alert repeats at most every 6 hours.
 - [x] Admin API in `app/admin.py` under `/api/admin`: `overview`, `settings` (read and change, validated), `alerts/test`, `jobs`, `share-links` (list and revoke), `audit`. Admin only; changes need a recent passkey check and go in the audit log. The ntfy token is never sent back.
 - [x] "Pause new jobs" setting (`paused`).
@@ -76,7 +76,6 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] Both containers notice the change and restart themselves (`app/__init__.py` puts the chosen folder first on the import path). Proven for real: install, switch, restart, switch back.
 - [x] System tab: version in use, newest known, last checked, "Check for updates now", automatic on or off, "Go back to version X" after an update.
 - [x] Daily lookup of one known video per platform (`canary_urls` setting, YouTube and X for now); alert only when a platform newly breaks; "Test platforms now" button.
-- [ ] The test-video addresses can't be edited in the panel yet, and TikTok, Instagram and Facebook have none.
 - [ ] Not yet seen: a real newer release arriving (the installed version was already the newest).
 
 ### 3c-bis. A second engine, in case yt-dlp itself stops working (not started, owner to decide)
@@ -107,9 +106,17 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] R2 must be on before the app is reachable through the Cloudflare Tunnel (Cloudflare's terms on video). Phase 5 should refuse to go live otherwise, or warn loudly.
 - [ ] boto3 adds about 100 MB to the image. A slimmer client is possible later.
 
-### 3f. Backups
-- [ ] Nightly copy of the database to R2; "Back up now" on the System page; alert on failure.
-- [ ] `./joyshare backup` and `./joyshare restore` scripts that pack and unpack the data volume (also used for moving servers).
+### 3f. Backups — done
+- [x] `app/backup.py`: a daily snapshot of the database (SQLite's own backup, taken while the app runs), compressed into `/data/backups`, newest 7 kept. Videos are not backed up.
+- [x] If cloud storage is set up and tested, the snapshot also goes to the bucket under `backups/`, newest 14 kept. The bucket's clean-up rule now only covers `outputs/`, so it never deletes backups.
+- [x] System tab: last backup, size, copies, "Back up now", automatic on or off. A failed backup alerts and says whether the local copy was made.
+- [x] `./joyshare backup` (packs the data volume into `./backups`, videos left out unless `--with-videos`), `./joyshare restore FILE` and `./joyshare restore-db FILE.db.gz`. All three were run for real; both restores were verified in a scratch copy.
+- [ ] The cloud copy has not run for real (needs R2).
+- [ ] No "download this backup" button in the panel. Getting a snapshot off the machine without R2 means copying it out of the data volume by hand.
+
+### Platform checks — tightened
+- [x] "Test platforms now" is limited to 2 in any 3 hours (the daily automatic check doesn't count).
+- [x] The admin picks which platforms are checked and can set each one's test video. YouTube and X are on by default; TikTok has a test video but is off; Instagram and Facebook need a link first.
 
 ## Phase 4: look and feel
 - [ ] Three.js progress scenes as plug-ins with the same inputs (progress, stage, done or failed): Demolition, Compressor, Voyage first; then Rocket, Black hole, Dominoes. Random per job, with a favorite setting.

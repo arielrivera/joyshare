@@ -231,6 +231,7 @@
           <li data-i18n="acc.how3"></li>
           <li data-i18n="acc.how4"></li>
         </ol>
+        <p class="muted" data-i18n="acc.onceNote"></p>
         <p class="muted" data-i18n="acc.howNote"></p>
       </section>
     </div>
@@ -397,11 +398,26 @@
         </div>
         <p class="label" data-i18n="sys.platformChecks"></p>
         <p class="muted" data-i18n="sys.platformHelp"></p>
-        <ul id="sys-checks" class="rows"></ul>
-        <p id="sys-checks-empty" class="muted" data-i18n="sys.noChecks" hidden></p>
-        <div class="actions">
-          <button id="sys-test-platforms" type="button" class="secondary" data-i18n="sys.testNow"></button>
+        <form id="sys-checks-form" autocomplete="off">
+          <ul id="sys-checks" class="rows"></ul>
+          <div class="actions">
+            <button type="submit" class="secondary" data-i18n="sys.saveChecks"></button>
+            <button id="sys-test-platforms" type="button" class="secondary" data-i18n="sys.testNow"></button>
+          </div>
+        </form>
+        <p id="sys-tests-left" class="muted"></p>
+
+        <p class="label" data-i18n="bak.title"></p>
+        <p class="muted" data-i18n="bak.help"></p>
+        <div id="bak-tiles" class="tiles"></div>
+        <p id="bak-message" class="error" hidden></p>
+        <div class="checks">
+          <label for="bak-auto"><input id="bak-auto" type="checkbox"><span data-i18n="bak.auto"></span></label>
         </div>
+        <div class="actions">
+          <button id="bak-now" type="button" data-i18n="bak.now"></button>
+        </div>
+        <p class="muted" data-i18n="bak.restoreNote"></p>
       </section>
 
       <section class="card" data-pane="log" hidden>

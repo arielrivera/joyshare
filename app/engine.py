@@ -180,8 +180,10 @@ def check_platforms(conn) -> dict:
     raw, _ = db.get_state(conn, "canary")
     before = json.loads(raw) if raw else {}
     results = {}
-    for platform, url in settings.get(conn, "canary_urls").items():
-        if not url:
+    cfg = settings.get_all(conn)
+    for platform in cfg["canary_platforms"]:
+        url = cfg["canary_urls"].get(platform)
+        if not url or platform not in cfg["platforms"]:
             continue
         try:
             media.inspect(url)

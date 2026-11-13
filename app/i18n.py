@@ -223,6 +223,16 @@ ES = {
     "Cloud storage upload failed": "Falló la subida al almacenamiento en la nube",
     "A finished video stayed on the server instead: {reason}": "Un video terminado se quedó en el servidor: {reason}",
 
+    # ---- platform tests and backups ----
+    "Pick platforms from the list.": "Elige plataformas de la lista.",
+    "That link isn't a {platform} link.": "Ese enlace no es de {platform}.",
+    "Platform tests are limited to {count} every 3 hours. Try again in {minutes} minutes.":
+        "Las pruebas de plataformas están limitadas a {count} cada 3 horas. Inténtalo de nuevo en {minutes} minutos.",
+    "Backup failed": "Falló la copia de seguridad",
+    "The cloud copy failed, the copy on the server was made: {reason}":
+        "Falló la copia en la nube; la copia en el servidor sí se hizo: {reason}",
+    "No backup was made: {reason}": "No se hizo ninguna copia de seguridad: {reason}",
+
     # ---- the page friends see ----
     "This video has expired": "Este video ha caducado",
     "Shared videos are only kept for a short time. Ask the person who sent it to share it again.":
