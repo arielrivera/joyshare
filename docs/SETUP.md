@@ -208,6 +208,15 @@ Keep your `.env` with your backups. If you set `JOYSHARE_SECRET`, connected acco
 
 Leave the topic empty to turn alerts off. If you run your own ntfy server, put its address and access token in the same tab.
 
+## Making it easy on a phone
+
+The app has a **How it works** page in the ☰ menu that explains all of this to the people you invite.
+
+- **Send or save.** On a phone the finished video shows one big button. It opens the phone's own share sheet: pick WhatsApp or Messages to send the real video, or **Save Video** to keep it in Photos. Download and the link are under **More options**. (On an iPhone, Download puts the file in the Files app, which is rarely what people want.)
+- **No size step.** A pasted link is made straight away at a size that's easy to send: the usual quality if it is under 25 MB, otherwise shrunk to fit. **Another size** on the finished screen leads to the size step. To always be asked, press the pencil and tick **Ask me which size every time**.
+- **Link cards.** A share link pasted into WhatsApp or iMessage shows the video's picture, title, who made it and how long it is. WhatsApp only plays videos inside the chat for a few partners such as YouTube; a link from here opens the page, where the video plays.
+- **The simple iPhone Shortcut.** Opening `https://your-domain/#url=` followed by a video's link looks that link up at once. The How it works page has the five steps to make a Shortcut that does this from any app's Share button. It needs no access token: it uses the Safari sign-in.
+
 ## Access tokens and the iPhone Shortcut
 
 A token lets a script add videos as you without a passkey. It can't manage devices or people.

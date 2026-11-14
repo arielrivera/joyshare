@@ -74,12 +74,15 @@ def test_browser_language_is_used_when_nothing_is_chosen(anon):
 def test_saved_look_follows_the_account(client, conn):
     status = client.get("/api/auth/status").json()
     assert status["prefs"] == {"name": "vidshare", "font": "mono", "theme": "zine", "lang": None,
-                               "scene": "random", "motion": "auto"}
+                               "scene": "random", "motion": "auto", "sizes": "auto"}
 
     saved = client.put("/api/auth/prefs", json={"name": "  share  ", "font": "glitch", "theme": "acid", "lang": "es"})
-    assert saved.json() == {"name": "share", "font": "glitch", "theme": "acid", "lang": "es", "scene": "random", "motion": "auto"}
+    assert saved.json() == {"name": "share", "font": "glitch", "theme": "acid", "lang": "es", "scene": "random", "motion": "auto", "sizes": "auto"}
     assert client.put("/api/auth/prefs", json={"scene": "voyage", "motion": "full"}).json()["scene"] == "voyage"
     assert client.put("/api/auth/prefs", json={"scene": "fireworks"}).status_code == 422
+    assert client.put("/api/auth/prefs", json={"sizes": "ask"}).json()["sizes"] == "ask"
+    assert client.put("/api/auth/prefs", json={"sizes": "maybe"}).status_code == 422
+    assert client.put("/api/auth/prefs", json={"sizes": "auto"}).json()["sizes"] == "auto"
     assert client.get("/api/auth/status").json()["prefs"]["name"] == "share"
     assert auth.get_prefs(conn, 1)["name"] == "share"
 

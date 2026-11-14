@@ -200,6 +200,15 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] **Copy link** in Recent says so clearly: the button flips to "✓ Copied" and a highlighted line stays under the row. When the app doesn't answer (for example while it restarts) the message now says that, instead of "Something went wrong".
 - [x] Removed at the owner's request: the Void, Sunset and Vaporwave looks and the Audiowide lettering. Anyone who had one of them falls back to Zine. Looks now: Zine, Acid, Clay, Windows 95, Comic, Editorial, Swiss, Midnight, Nordic, Library, Studio.
 
+### Easy on a phone — done 14 Nov 2026 (branch `easy-sharing`)
+- [x] Finished screen is share-first on touch devices: one big **Send or save** button (the share sheet), Download and the link under **More options** (`prepareShare()` in `web/app.js`).
+- [x] One-tap mode: preference `sizes` (`auto` by default, `ask` to see the size step). `autoPick()` takes the usual preset if it is under 25 MB, else Fit a size at 25 MB or the nearest offered.
+- [x] Link cards: `og:image` is our own copy at `/v/{token}/thumb` (public, ends with the link), plus `og:description` and a large Twitter card. The share page's player uses it as poster.
+- [x] **Send or save** on each Recent row.
+- [x] `/#url=<encoded link>` looks a link up on open (after sign-in). Text around the link is dropped.
+- [x] **How it works** screen (☰ menu) and a first-time three-step card: the steps, sending and saving on a phone, home screen, and how to build the iPhone Shortcut.
+- [ ] Not verified on a real iPhone: the share sheet from Recent (it may ask for a second tap), and the Shortcut steps (the action names "URL Encode" and "Open URLs" are from memory).
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

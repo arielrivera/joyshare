@@ -12,7 +12,7 @@ const THEME_FONT = { acid: "warp", zine: "mono", clay: "fredoka", win95: "win", 
 const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none"];
 // scene: which 3D progress scene to show ("random", one of them, or "none").
 // motion: "auto" follows the device's Reduce Motion setting, "full" always shows the full scenes.
-const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto" };
+const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto", sizes: "auto" };
 let defaultName = "vidshare";
 let prefsSignedIn = false;
 
@@ -22,6 +22,8 @@ if (!FONT_CHOICES.includes(prefs.font)) prefs.font = "mono";
 if (!THEME_CHOICES.includes(prefs.theme)) prefs.theme = "zine";
 if (!SCENE_CHOICES.includes(prefs.scene)) prefs.scene = "random";
 if (prefs.motion !== "full") prefs.motion = "auto";
+// sizes: "auto" makes a pasted link straight away at a sensible size; "ask" shows the size step first.
+if (prefs.sizes !== "ask") prefs.sizes = "auto";
 
 function brandName() {
   return prefs.name || defaultName;
@@ -61,7 +63,7 @@ function setPrefs(changes) {
     fetch("/api/auth/prefs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion }),
+      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion, sizes: prefs.sizes }),
     }).catch(() => { /* saved locally; the account copy catches up next time */ });
   }, 500);
 }
@@ -77,6 +79,7 @@ function adoptAccountPrefs(status) {
     prefs.theme = saved.theme;
     prefs.scene = saved.scene || "random";
     prefs.motion = saved.motion || "auto";
+    prefs.sizes = saved.sizes || "auto";
     if (saved.lang) prefs.lang = saved.lang;
     try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* private window */ }
   }

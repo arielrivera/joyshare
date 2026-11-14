@@ -727,3 +727,15 @@ ul.rows li > .row-main { display: flex; align-items: center; gap: 10px; }
 ul.rows li .row-note.copied { font-size: 14px; }
 ul.rows li .row-note.bad { color: var(--bad); }
 .row-actions button.chip.done { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+/* Finished file: one big button first on phones, the rest under "More options" */
+#share.big { width: 100%; }
+details.more { display: grid; gap: 10px; }
+details.more > summary { font-weight: 700; padding: 6px 0; }
+details.more[open] > summary { margin-bottom: 8px; }
+details.more.plain > summary { display: none; }
+.row-actions button.chip.strong { background: var(--pop); color: var(--pop-ink); border-color: var(--edge); }
+ol.steps.big { font-size: 17px; gap: 10px; padding-left: 38px; }
+ol.steps.big li::marker { font-family: var(--display); font-weight: var(--display-weight); color: var(--hot); }
+#help { display: grid; gap: 22px; }
+#help .row input { flex: 1 1 180px; font-size: 14px; }

@@ -324,6 +324,7 @@ THEMES = ("zine", "acid", "clay", "win95", "comic", "editorial", "swiss", "midni
 DEFAULT_THEME, DEFAULT_FONT = "zine", "mono"   # the look a new person starts with
 SCENES = ("random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none")
 MOTION = ("auto", "full")
+SIZES = ("auto", "ask")   # "auto": a pasted link is made straight away at a sensible size; "ask": show the size step first
 
 
 def get_prefs(conn, user_id: int) -> dict:
@@ -337,6 +338,7 @@ def get_prefs(conn, user_id: int) -> dict:
         "lang": saved.get("lang") if saved.get("lang") in LANGS else None,
         "scene": saved.get("scene") if saved.get("scene") in SCENES else SCENES[0],
         "motion": saved.get("motion") if saved.get("motion") in MOTION else MOTION[0],
+        "sizes": saved.get("sizes") if saved.get("sizes") in SIZES else SIZES[0],
     }
 
 
@@ -349,6 +351,7 @@ class PrefsBody(BaseModel):
     lang: str | None = None
     scene: str | None = None
     motion: str | None = None
+    sizes: str | None = None
 
 
 class RegisterOptionsBody(BaseModel):
@@ -402,7 +405,8 @@ def save_prefs(body: PrefsBody, auth: Auth = Depends(session_auth), conn=Depends
         if len(name) > 24:
             raise HTTPException(422, "That name is too long.")
         saved["name"] = name  # empty means: back to the default name
-    for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS), ("scene", SCENES), ("motion", MOTION)):
+    for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS), ("scene", SCENES), ("motion", MOTION),
+                           ("sizes", SIZES)):
         value = getattr(body, field)
         if value is not None:
             if value not in allowed:

@@ -71,6 +71,7 @@ The first thing lost is the protection of having no open ports. R2 (or any S3-co
 | **Moving to another computer** | Backup and restore were run on one computer. A full move between two machines hasn't been done. The Caddy web server passed requests through in a test, but has never fetched a real certificate. |
 | **Clips** | One real clip was made from an X video. "Start here / End here" was tried with a desktop browser, not on a phone. |
 | **New scenes and the look-up animation** | Confirmed to draw in every state by reading pixels. Nobody has watched them yet. |
+| **The phone flow** | "Send or save", sharing from the Recent list and the link card were checked in a desktop browser at phone size with a stand-in share sheet. On a real iPhone: try Send or save, Save Video, a link pasted into WhatsApp, and building the Shortcut from the How it works page. |
 | **Second-copy warning** | Covered by automated tests, and the check reaches the real domain. Two real copies have never been run at once to watch it fire. |
 | **Alerts** | Never sent to the real ntfy service. No topic is set yet. |
 | **Connected accounts** | Never tried against a real sign-in wall with a real cookie file. |

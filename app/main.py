@@ -557,6 +557,8 @@ SHARE_PAGE = """<!doctype html>
 <meta property="og:title" content="{title}">
 <meta property="og:site_name" content="{brand}">
 <meta property="og:type" content="{og_type}">
+<meta property="og:description" content="{about}">
+<meta name="twitter:card" content="{card}">
 {og_media}
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="stylesheet" href="{assets}/style.css">
@@ -570,12 +572,13 @@ SHARE_PAGE = """<!doctype html>
 
 
 def share_shell(title: str, body: str, lang: str, look: dict, og_type: str = "website", og_media: str = "",
-                status: int = 200):
+                status: int = 200, about: str = ""):
     """The page a friend sees. It wears the sender's look: their name, colors and lettering."""
     brand = html.escape(look["name"])
     page = SHARE_PAGE.format(
         title=html.escape(title), body=body, og_type=og_type, og_media=og_media, lang=lang, brand=brand,
-        theme=look["theme"], font=look["font"], assets=ASSETS,
+        theme=look["theme"], font=look["font"], assets=ASSETS, about=html.escape(about or look["name"]),
+        card="summary_large_image" if "og:image" in og_media else "summary",
         shared_with=i18n.render(T("shared with {name}", name=f"<strong>{brand}</strong>"), lang),
     )
     return HTMLResponse(page, status_code=status)
@@ -618,7 +621,8 @@ def share_page(token: str, conn=Depends(db.get_conn), lang: str = Depends(get_la
         og_type = "music.song"
         og_media = f'<meta property="og:audio" content="{html.escape(absolute)}">'
     else:
-        player = f'<video controls playsinline preload="metadata" src="{src}"></video>'
+        poster = f' poster="/v/{token}/thumb"' if item["thumbnail"] else ""
+        player = f'<video controls playsinline preload="metadata"{poster} src="{src}"></video>'
         og_type = "video.other"
         og_media = (f'<meta property="og:video" content="{html.escape(absolute)}">\n'
                     f'<meta property="og:video:type" content="video/mp4">')
@@ -626,10 +630,30 @@ def share_page(token: str, conn=Depends(db.get_conn), lang: str = Depends(get_la
             og_media += (f'\n<meta property="og:video:width" content="{row["width"]}">'
                          f'\n<meta property="og:video:height" content="{row["height"]}">')
     if item["thumbnail"]:
-        og_media += f'\n<meta property="og:image" content="{html.escape(item["thumbnail"])}">'
+        # Our own copy of the picture: the platform's address stops working, and then the card in the chat goes blank.
+        og_media += f'\n<meta property="og:image" content="{config.PUBLIC_URL}/v/{token}/thumb">'
+    # The line under the title in the chat's preview card: who made it, where, how long.
+    length = int(row["duration"] or 0)
+    about = " · ".join(part for part in (
+        item["uploader"], platforms.PLATFORMS[item["platform"]]["label"],
+        f"{length // 60}:{length % 60:02d}" if length else "") if part)
     body = (f"{player}<h2>{html.escape(title)}</h2>{credit}"
             f'<p><a class="button" href="{src}?download=1">{html.escape(tr("Download"))}</a></p>')
-    return share_shell(title, body, lang, look, og_type, og_media)
+    return share_shell(title, body, lang, look, og_type, og_media, about=about)
+
+
+@app.get("/v/{token}/thumb")
+def share_thumb(token: str, conn=Depends(db.get_conn)):
+    """The preview picture for a shared video: what chat apps show in the link's card."""
+    link, row = live_share(conn, token)
+    if not link:
+        raise HTTPException(410, "This video has expired.")
+    item = conn.execute("SELECT thumbnail FROM media WHERE id=?", (row["media_id"],)).fetchone()
+    path = thumbs.find(row["media_id"]) or thumbs.save(row["media_id"], item["thumbnail"] if item else None)
+    if not path:
+        raise HTTPException(404, "Not found.")
+    return FileResponse(path, media_type=thumbs.MIME[path.suffix],
+                        headers={"Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/v/{token}/file")

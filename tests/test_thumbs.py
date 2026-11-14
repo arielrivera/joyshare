@@ -65,3 +65,26 @@ def test_addresses_inside_the_network_are_refused():
     assert thumbs._safe("https://localhost/a.jpg") is False
     assert thumbs._safe("not an address") is False
     assert thumbs._safe("https://192.168.1.1/a.jpg") is False
+
+
+def test_a_shared_link_shows_our_copy_of_the_picture(client, fake_media, folder, monkeypatch, conn):
+    from app import config, store
+    monkeypatch.setattr(thumbs, "_download", lambda url: (JPEG, "image/jpeg"))
+    media = client.post("/api/inspect", json={"url": URL}).json()["media"]
+    path = config.OUTPUTS_DIR / "card.mp4"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"0123456789")
+    file_id = store.add_file(conn, user_id=1, media_id=media["id"], kind="output", key="720", path=path,
+                             ttl_seconds=3600, meta={"width": 1280, "height": 720, "duration": 75})
+    token = client.post(f"/api/files/{file_id}/share").json()["url"].rsplit("/", 1)[1]
+    stranger = browser()
+    page = stranger.get(f"/v/{token}").text
+    assert f'property="og:image" content="{config.PUBLIC_URL}/v/{token}/thumb"' in page       # not the platform's address
+    assert 'name="twitter:card" content="summary_large_image"' in page
+    assert 'property="og:description" content="someone · X (Twitter) · 1:15"' in page
+    assert f'poster="/v/{token}/thumb"' in page
+    picture = stranger.get(f"/v/{token}/thumb")                                               # no sign-in needed
+    assert picture.status_code == 200 and picture.content == JPEG
+    client.delete(f"/api/share/{token}")
+    assert stranger.get(f"/v/{token}/thumb").status_code == 410                               # gone with the link
+    path.unlink()

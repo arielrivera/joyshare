@@ -83,6 +83,27 @@ function stopLooking() {
   lookingTimer = 0;
 }
 
+// ---------- one-tap mode: choosing a size for the person ----------
+
+const EASY_SIZE = 25 * MB;   // small enough to send in a chat without a long wait
+
+// Returns { preset, target_mb? } or null when nothing can be made without asking.
+function autoPick({ presets }) {
+  const usable = presets.filter((p) => p.allowed);
+  const usual = usable.find((p) => p.recommended) || usable.find((p) => p.kind === "video");
+  if (usual && usual.id !== "fit" && (!usual.est_bytes || usual.est_bytes <= EASY_SIZE)) return { preset: usual.id };
+  // Too big to send comfortably: shrink it to fit.
+  const fit = usable.find((p) => p.id === "fit" && p.targets && p.targets.length);
+  if (fit) {
+    const under = fit.targets.filter((x) => x.mb <= 25).pop() || fit.targets[0];
+    return { preset: "fit", target_mb: under.mb };
+  }
+  const smallest = usable.filter((p) => p.kind === "video" && p.id !== "fit" && p.est_bytes)
+    .sort((a, b) => a.est_bytes - b.est_bytes)[0];
+  const choice = smallest || usual || usable.find((p) => p.id !== "fit");
+  return choice ? { preset: choice.id } : null;
+}
+
 // ---------- look up a link ----------
 
 async function lookUp() {
@@ -104,6 +125,18 @@ async function lookUp() {
     $("clip-start").value = "";
     $("clip-end").value = "";
     renderMedia();
+    // One-tap mode: no size step. A sensible size is picked and the file is made straight away.
+    // "Another size" on the finished screen still leads to the size step.
+    const pick = prefs.sizes === "ask" ? null : autoPick(current);
+    if (pick) {
+      try {
+        const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ media_id: current.media.id, ...pick }) });
+        watch(job.id);
+        return;
+      } catch (err) {
+        showError($("make-error"), err.message);   // couldn't start it: let the person choose
+      }
+    }
     showStep("media");
   } catch (err) {
     current = null;
@@ -494,28 +527,51 @@ function setUpClipTools(job, player) {
 
 // The phone's share sheet needs the whole file in memory and a fresh tap,
 // so we fetch it ahead of time and only then show the button.
-async function prepareShare(job, file) {
-  const button = $("share"), note = $("share-note");
-  shareFile = null;
-  button.hidden = true;
-  note.hidden = true;
-  if (!navigator.canShare) return;
-  if (file.size > SHARE_SHEET_MAX) {
-    note.textContent = t("res.tooBig");
-    note.hidden = false;
-    return;
-  }
+// Fetches the finished file into memory as something the share sheet accepts. null when it can't be shared that way.
+async function fetchShareFile(job, file) {
+  if (!navigator.canShare || file.size > SHARE_SHEET_MAX) return null;
   try {
     const blob = await (await fetch(file.stream_url)).blob();
     const ext = file.kind === "audio" ? "m4a" : "mp4";
     const base = (job.media && job.media.title ? job.media.title : brandName()).replace(/[\\/:*?"<>|]+/g, " ").slice(0, 60).trim() || "video";
     const candidate = new File([blob], `${base}.${ext}`, { type: file.mime });
-    if (!navigator.canShare({ files: [candidate] })) throw new Error("not shareable");
-    shareFile = candidate;
-    button.hidden = false;
+    return navigator.canShare({ files: [candidate] }) ? candidate : null;
   } catch {
-    button.hidden = true;
+    return null;
   }
+}
+
+// A phone or tablet: there the share sheet is the natural way to send a video or keep it in Photos.
+const touchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+
+async function prepareShare(job, file) {
+  const button = $("share"), note = $("share-note"), help = $("share-help"), more = $("more-options");
+  shareFile = null;
+  note.hidden = true;
+  help.hidden = true;
+  // Without the share sheet, Download and the link are simply the buttons.
+  const plain = () => { button.hidden = true; more.open = true; more.classList.add("plain"); };
+  if (!navigator.canShare) { plain(); return; }
+  if (file.size > SHARE_SHEET_MAX) {
+    note.textContent = t("res.tooBig");
+    note.hidden = false;
+    plain();
+    return;
+  }
+  // On a phone: one big button, with Download and the link folded under "More options".
+  const first = touchDevice();
+  more.classList.toggle("plain", !first);
+  more.open = !first;
+  button.hidden = false;
+  button.disabled = true;
+  button.textContent = t("res.preparing");
+  const ready = await fetchShareFile(job, file);
+  if (lastJob !== job) return;      // something newer is on screen
+  if (!ready) { plain(); return; }
+  shareFile = ready;
+  button.disabled = false;
+  button.textContent = t("res.send");
+  help.hidden = false;
 }
 
 $("share").addEventListener("click", async () => {
@@ -667,6 +723,32 @@ async function loadRecent() {
         copy.disabled = false;
       });
       state.append(a, copy);
+      if (navigator.canShare && job.file.size <= SHARE_SHEET_MAX) {
+        // The phone's share sheet, straight from the list. The file has to be fetched first; if the phone
+        // then says the tap is too old, the button asks for one more tap.
+        let ready = null;
+        const send = chip(t("res.send"), async () => {
+          const offer = async () => {
+            try { await navigator.share({ files: [ready] }); send.textContent = t("res.send"); }
+            catch (err) { send.textContent = err && err.name === "NotAllowedError" ? t("recent.tapToSend") : t("res.send"); }
+          };
+          if (ready) { await offer(); return; }
+          send.disabled = true;
+          send.textContent = t("res.preparing");
+          ready = await fetchShareFile(job, job.file);
+          send.disabled = false;
+          if (!ready) {
+            send.textContent = t("res.send");
+            note.className = "row-note bad";
+            note.textContent = t("recent.cantSend");
+            note.hidden = false;
+            return;
+          }
+          await offer();
+        });
+        send.classList.add("strong");
+        state.prepend(send);
+      }
     } else if (job.status === "done") {
       state.append(t("recent.expired"), again());
     } else if (job.status === "failed") {
@@ -776,15 +858,61 @@ $("hint-close").addEventListener("click", hideHint);
 for (const id of ["open-admin", "open-devices", "open-accounts", "menu-button"]) $(id).addEventListener("click", hideHint);
 $("open-style").addEventListener("click", () => { writeHint({ ...readHint(), used: true }); hideHint(); });
 
-// Runs each time someone signs in. A link like /#job=12 (opened by the iPhone Shortcut) jumps to that job.
+// ---------- opened with a link already attached ----------
+// An address like /#url=https%3A%2F%2Fx.com%2F… looks that link up as soon as the app opens.
+// The iPhone Shortcut uses it: Share -> vidshare in another app lands here with the video's link.
+function openAttachedLink() {
+  const attached = location.hash.match(/^#url=(.+)$/);
+  if (!attached || !me) return false;
+  history.replaceState(null, "", location.pathname);
+  let link = attached[1];
+  try { link = decodeURIComponent(link); } catch { /* use it as it came */ }
+  showScreen("app");
+  $("url").value = link;
+  syncUrlTools();
+  lookUp();
+  return true;
+}
+window.addEventListener("hashchange", openAttachedLink);
+
+// ---------- how it works, and the first-time intro ----------
+
+const INTRO_KEY = "joyshare_intro";
+const introSeen = () => { try { return localStorage.getItem(INTRO_KEY) === "1"; } catch { return true; } };
+function closeIntro() {
+  $("intro").hidden = true;
+  try { localStorage.setItem(INTRO_KEY, "1"); } catch { /* private window */ }
+}
+$("intro-ok").addEventListener("click", closeIntro);
+
+function openHelp() {
+  closeIntro();
+  $("shortcut-address").value = `${location.origin}/#url=`;
+  showScreen("help");
+  window.scrollTo({ top: 0 });
+}
+$("intro-more").addEventListener("click", openHelp);
+$("open-help").addEventListener("click", () => { hideHint(); openHelp(); });
+$("close-help").addEventListener("click", () => showScreen("app"));
+$("shortcut-copy").addEventListener("click", () => copyFrom($("shortcut-address"), $("shortcut-copy")));
+
+// "Ask me which size every time" in the style panel.
+$("ask-size").addEventListener("change", () => setPrefs({ sizes: $("ask-size").checked ? "ask" : "auto" }));
+$("open-style").addEventListener("click", () => { $("ask-size").checked = prefs.sizes === "ask"; });
+
+// Runs each time someone signs in. A link like /#job=12 jumps to that job; /#url=… looks a link up.
 document.addEventListener("joyshare:signed-in", () => {
   loadRecent();
-  maybeShowHint();
+  $("ask-size").checked = prefs.sizes === "ask";
   const match = location.hash.match(/^#job=(\d+)$/);
   if (match) {
     history.replaceState(null, "", location.pathname);
     watch(Number(match[1]));
+    return;
   }
+  if (openAttachedLink()) return;
+  $("intro").hidden = introSeen();
+  if (introSeen()) maybeShowHint();   // one tip at a time
 });
 
 // Language changed: repaint whatever step is showing.

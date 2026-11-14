@@ -43,6 +43,7 @@
             <button id="open-devices" type="button" class="quiet" data-i18n="nav.devices"></button>
             <button id="open-accounts" type="button" class="quiet" data-i18n="acc.title"></button>
             <button id="open-admin" type="button" class="quiet" data-i18n="nav.adminPanel" hidden></button>
+            <button id="open-help" type="button" class="quiet" data-i18n="help.title"></button>
             <button id="sign-out" type="button" class="quiet" data-i18n="nav.signout"></button>
           </div>
         </nav>
@@ -104,6 +105,11 @@
       <div id="scene-motion-row" class="checks" hidden>
         <label for="scene-motion"><input id="scene-motion" type="checkbox"><span data-i18n="scn.always"></span></label>
       </div>
+      <p class="label" data-i18n="size.title"></p>
+      <div class="checks">
+        <label for="ask-size"><input id="ask-size" type="checkbox"><span data-i18n="size.ask"></span></label>
+      </div>
+      <p class="muted" data-i18n="size.askHelp"></p>
       <button id="close-style" type="button" data-i18n="style.done"></button>
     </section>
 
@@ -129,6 +135,20 @@
 
     <!-- Signed in -->
     <div id="app" hidden>
+      <!-- Shown until dismissed: the whole idea in three lines. -->
+      <section id="intro" class="card" hidden>
+        <h2 data-i18n="intro.title"></h2>
+        <ol class="steps big">
+          <li data-i18n="help.s1"></li>
+          <li data-i18n="help.s2"></li>
+          <li data-i18n="help.s3"></li>
+        </ol>
+        <div class="actions">
+          <button id="intro-ok" type="button" data-i18n="intro.ok"></button>
+          <button id="intro-more" type="button" class="quiet" data-i18n="intro.more"></button>
+        </div>
+      </section>
+
       <form id="lookup" class="card" autocomplete="off">
         <label for="url" data-i18n="link.label"></label>
         <div class="row">
@@ -202,12 +222,17 @@
           <p id="result-name"></p>
           <p id="result-meta" class="muted"></p>
           <div id="player"></div>
-          <div class="actions">
-            <button id="share" type="button" data-i18n="res.share" hidden></button>
-            <a id="download" class="button" href="#" data-i18n="res.download"></a>
-            <button id="link" type="button" class="secondary" data-i18n="res.link"></button>
-          </div>
+          <!-- On a phone the one big button comes first: it opens the phone's own sheet, which sends the video or saves it to Photos. -->
+          <button id="share" type="button" class="big" data-i18n="res.send" hidden></button>
+          <p id="share-help" class="muted" data-i18n="res.sendHelp" hidden></p>
           <p id="share-note" class="muted" hidden></p>
+          <details id="more-options" class="more plain" open>
+            <summary data-i18n="res.more"></summary>
+            <div class="actions">
+              <a id="download" class="button" href="#" data-i18n="res.download"></a>
+              <button id="link" type="button" class="secondary" data-i18n="res.link"></button>
+            </div>
+          </details>
           <div id="link-box" class="row" hidden>
             <label for="link-url" class="sr" data-i18n="res.linkLabel"></label>
             <input id="link-url" type="text" readonly>
@@ -285,6 +310,53 @@
       </section>
     </div>
     <!-- Connected accounts: each person's own cookie files -->
+    <!-- How it works: the three steps, sending and saving on a phone, the home screen, and sharing from other apps. -->
+    <div id="help" hidden>
+      <button id="close-help" type="button" class="quiet" data-i18n="dev.back"></button>
+      <section class="card">
+        <h2 data-i18n="help.title"></h2>
+        <ol class="steps big">
+          <li data-i18n="help.s1"></li>
+          <li data-i18n="help.s2"></li>
+          <li data-i18n="help.s3"></li>
+        </ol>
+      </section>
+      <section class="card">
+        <h2 data-i18n="help.phoneTitle"></h2>
+        <dl class="explain">
+          <dt data-i18n="help.sendQ"></dt><dd data-i18n="help.sendA"></dd>
+          <dt data-i18n="help.saveQ"></dt><dd data-i18n="help.saveA"></dd>
+          <dt data-i18n="help.linkQ"></dt><dd data-i18n="help.linkA"></dd>
+          <dt data-i18n="help.downloadQ"></dt><dd data-i18n="help.downloadA"></dd>
+        </dl>
+      </section>
+      <section class="card">
+        <h2 data-i18n="help.homeTitle"></h2>
+        <p data-i18n="help.homeWhy"></p>
+        <dl class="explain">
+          <dt>iPhone</dt><dd data-i18n="help.homeIphone"></dd>
+          <dt>Android</dt><dd data-i18n="help.homeAndroid"></dd>
+        </dl>
+      </section>
+      <section class="card">
+        <h2 data-i18n="help.shortcutTitle"></h2>
+        <p data-i18n="help.shortcutWhy"></p>
+        <ol class="steps">
+          <li data-i18n="help.sc1"></li>
+          <li data-i18n="help.sc2"></li>
+          <li data-i18n="help.sc3"></li>
+          <li data-i18n="help.sc4"></li>
+          <li data-i18n="help.sc5"></li>
+        </ol>
+        <div class="row">
+          <label for="shortcut-address" class="sr" data-i18n="help.address"></label>
+          <input id="shortcut-address" type="text" readonly>
+          <button id="shortcut-copy" type="button" class="secondary" data-i18n="copy"></button>
+        </div>
+        <p class="muted" data-i18n="help.shortcutNote"></p>
+      </section>
+    </div>
+
     <div id="accounts" hidden>
       <button id="close-accounts" type="button" class="quiet" data-i18n="dev.back"></button>
       <p id="accounts-error" class="error" role="alert" hidden></p>
