@@ -1,7 +1,11 @@
-# joyshare: two containers from one image.
+# joyshare: everything it runs is defined here.
 #   web    - the website and API
 #   worker - downloads, converts, cleans up
+#   tunnel - optional: the Cloudflare Tunnel (when CLOUDFLARE_TUNNEL_TOKEN is in .env)
+#   caddy  - optional: a web server with automatic https, for hosts without Cloudflare (when JOYSHARE_DOMAIN is in .env)
 # All data (database + videos) lives in the "joyshare_data" volume.
+#
+# Use the ./joyshare script to start, stop and update: it turns the optional parts on from what is in .env.
 
 x-app: &app
   image: joyshare:dev
@@ -32,7 +36,7 @@ services:
     stop_grace_period: 30s
 
   # Optional: the Cloudflare Tunnel, in the same private network as the app, so it reaches it as http://web:8080.
-  # Put CLOUDFLARE_TUNNEL_TOKEN in .env, then start everything with:  docker compose --profile tunnel up -d
+  # Put CLOUDFLARE_TUNNEL_TOKEN in .env, then:  ./joyshare start
   tunnel:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel"]
@@ -43,5 +47,25 @@ services:
     depends_on:
       - web
 
+  # Optional: a web server for a host that is reachable from the internet directly (a cloud server),
+  # without Cloudflare in front. It gets and renews the https certificate by itself.
+  # Put JOYSHARE_DOMAIN=your-domain.example in .env, then:  ./joyshare start
+  caddy:
+    image: caddy:2
+    profiles: ["caddy"]
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${JOYSHARE_DOMAIN:-localhost} --to web:8080
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data       # the certificates
+      - caddy_config:/config
+    depends_on:
+      - web
+
 volumes:
   joyshare_data:
+  caddy_data:
+  caddy_config:

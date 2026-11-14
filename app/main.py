@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import account, admin, auth, config, cookies, db, engine, i18n, media, platforms, presets, settings, storage, store
+from . import account, admin, auth, config, cookies, db, engine, i18n, media, platforms, presets, settings, storage, store, thumbs, twin
 from .i18n import T
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -124,6 +124,9 @@ def get_lang(request: Request) -> str:
 
 # ---------- request bodies ----------
 
+LINK_NEARLY_OVER = 2 * 3600   # a share link with less than this left counts as "about to run out"
+
+
 class InspectBody(BaseModel):
     url: str
 
@@ -132,6 +135,8 @@ class JobBody(BaseModel):
     media_id: int
     preset: str
     target_mb: int | None = None
+    clip_start: float | None = None   # only part of the video: seconds from the beginning
+    clip_end: float | None = None
 
 
 class QuickBody(BaseModel):
@@ -145,6 +150,7 @@ class QuickBody(BaseModel):
 def preset_options(info: dict, cfg: dict, lang: str = "en") -> list[dict]:
     """Each preset with its estimated size and whether it's within the limits."""
     limit = cfg["max_file_mb"] * MB
+    source_limit = cfg["max_source_mb"] * MB
     duration = info.get("duration")
     estimates: dict = {}
 
@@ -194,6 +200,9 @@ def preset_options(info: dict, cfg: dict, lang: str = "en") -> list[dict]:
             if est["height"]:
                 option["detail"] = f"{est['height']}p"
         option.update(est_bytes=est["bytes"], height=est["height"], needs_convert=est["needs_convert"])
+        # A part of the video can still be made when the whole thing is too big to share,
+        # as long as the original itself can be downloaded.
+        option["clip_ok"] = not est["bytes"] or est["bytes"] <= source_limit
         if est["bytes"] and est["bytes"] > limit * 1.03:
             option["allowed"] = False
             option["reason"] = i18n.render(T("About {size} MB, over the {limit} MB limit.",
@@ -263,7 +272,8 @@ def manifest():
 def health(conn=Depends(db.get_conn)):
     """Public on purpose (uptime monitors call it), so it says very little."""
     beat, _ = db.get_state(conn, "worker_heartbeat")
-    return {"ok": True, "worker_alive": bool(beat and db.now() - int(beat) < 90)}
+    # "instance" is a random id of this copy, so a copy can tell when another one answers at its address.
+    return {"ok": True, "worker_alive": bool(beat and db.now() - int(beat) < 90), "instance": twin.instance_id()}
 
 
 @app.get("/api/config")
@@ -323,6 +333,7 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
         ).lastrowid
 
     conn.execute("UPDATE media SET needs_login=? WHERE id=?", (int(used_account), media_id))
+    thumbs.save_soon(media_id, info.get("thumbnail"))   # keep our own copy: the platform's address won't last
 
     return {
         "media": {
@@ -334,6 +345,7 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
             "uploader": info.get("uploader") or info.get("channel"),
             "duration": duration,
             "thumbnail": info.get("thumbnail"),
+            "thumb_url": f"/api/media/{media_id}/thumb" if info.get("thumbnail") else None,
         },
         "presets": preset_options(info, cfg, lang),
         "max_file_mb": cfg["max_file_mb"],
@@ -341,20 +353,24 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
 
 
 def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int | None,
-                  lang: str = "en") -> dict:
+                  lang: str = "en", clip_start: float | None = None, clip_end: float | None = None) -> dict:
     cfg = settings.get_all(conn)
     if preset not in presets.BY_ID:
         raise HTTPException(422, "Unknown preset.")
     item = conn.execute("SELECT * FROM media WHERE id=? AND user_id=?", (media_id, user_id)).fetchone()
     if not item:
         raise HTTPException(404, "Look up the link again first.")
+    try:
+        clip = presets.check_clip(clip_start, clip_end, item["duration"])
+    except (presets.PresetError, ValueError) as exc:
+        raise HTTPException(422, exc.args[0]) from exc
     if preset != "fit":
         target_mb = None
     else:
         if not target_mb or target_mb < 1 or target_mb > cfg["max_file_mb"]:
             raise HTTPException(422, T("Pick a size between 1 and {max} MB.", max=cfg["max_file_mb"]))
         try:
-            presets.fit_plan(target_mb * MB, item["duration"] or 0)
+            presets.fit_plan(target_mb * MB, (clip[1] - clip[0]) if clip else (item["duration"] or 0))
         except presets.PresetError as exc:
             raise HTTPException(422, exc.args[0]) from exc
     if cfg["paused"]:
@@ -368,8 +384,8 @@ def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int
     if queued >= MAX_QUEUED_PER_USER:
         raise HTTPException(429, "Too many videos are already in progress. Wait for some to finish.")
     job_id = conn.execute(
-        "INSERT INTO jobs (user_id, media_id, preset, target_mb, created_at) VALUES (?,?,?,?,?)",
-        (user_id, media_id, preset, target_mb, db.now()),
+        "INSERT INTO jobs (user_id, media_id, preset, target_mb, clip_start, clip_end, created_at) VALUES (?,?,?,?,?,?,?)",
+        (user_id, media_id, preset, target_mb, clip[0] if clip else None, clip[1] if clip else None, db.now()),
     ).lastrowid
     return store.job_view(conn, job_id, user_id, lang)
 
@@ -380,10 +396,24 @@ def inspect(body: InspectBody, conn=Depends(db.get_conn), user_id: int = Depends
     return do_inspect(conn, user_id, body.url, lang)
 
 
+@app.get("/api/media/{media_id}/thumb")
+def media_thumb(media_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+    """The saved preview picture of one of your videos."""
+    item = conn.execute("SELECT thumbnail FROM media WHERE id=? AND user_id=?", (media_id, user_id)).fetchone()
+    if not item:
+        raise HTTPException(404, "Not found.")
+    # Usually saved when the link was looked up. If not (an older video), try once now.
+    path = thumbs.find(media_id) or thumbs.save(media_id, item["thumbnail"])
+    if not path:
+        raise HTTPException(404, "Not found.")
+    return FileResponse(path, media_type=thumbs.MIME[path.suffix],
+                        headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
+
 @app.post("/api/jobs")
 def create_job(body: JobBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
                lang: str = Depends(get_lang)):
-    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb, lang)
+    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb, lang, body.clip_start, body.clip_end)
 
 
 @app.post("/api/quick")
@@ -484,21 +514,25 @@ def download_file(file_id: int, conn=Depends(db.get_conn), user_id: int = Depend
 def share_file(file_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
     row = owned_file(conn, file_id, user_id)
     link = conn.execute(
-        "SELECT * FROM share_links WHERE file_id=? AND user_id=? AND revoked_at IS NULL AND expires_at>?",
+        "SELECT * FROM share_links WHERE file_id=? AND user_id=? AND revoked_at IS NULL AND expires_at>? "
+        "ORDER BY expires_at DESC",
         (file_id, user_id, db.now()),
     ).fetchone()
-    if link:
+    ttl = settings.get(conn, "link_ttl_hours") * 3600
+    longest = min(db.now() + ttl, row["expires_at"])   # a link never outlives its file
+    # Hand back the link that already exists, unless it is about to run out and a new one would last longer.
+    if link and (link["expires_at"] - db.now() > LINK_NEARLY_OVER or longest - link["expires_at"] < 600):
         token, expires_at = link["token"], link["expires_at"]
     else:
         token = secrets.token_urlsafe(16)  # 128 random bits
-        ttl = settings.get(conn, "link_ttl_hours") * 3600
-        expires_at = min(db.now() + ttl, row["expires_at"])
+        expires_at = longest
         conn.execute(
             "INSERT INTO share_links (token, file_id, user_id, created_at, expires_at) VALUES (?,?,?,?,?)",
             (token, file_id, user_id, db.now(), expires_at),
         )
         db.audit(conn, user_id, "share_link.create", json.dumps({"file_id": file_id}))
-    return {"url": f"{config.PUBLIC_URL}/v/{token}", "expires_at": expires_at}
+    return {"url": f"{config.PUBLIC_URL}/v/{token}", "expires_at": expires_at,
+            "ends_soon": expires_at - db.now() <= LINK_NEARLY_OVER}
 
 
 @app.delete("/api/share/{token}")

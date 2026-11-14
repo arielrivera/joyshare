@@ -171,6 +171,11 @@ MIGRATIONS = [
     );
     ALTER TABLE media ADD COLUMN needs_login INTEGER NOT NULL DEFAULT 0;
     """,
+    # 5: clips (only part of a video): where the part starts and ends, in seconds
+    """
+    ALTER TABLE jobs ADD COLUMN clip_start REAL;
+    ALTER TABLE jobs ADD COLUMN clip_end REAL
+    """,
 ]
 
 

@@ -273,21 +273,33 @@ def _scale(height: int) -> str:
 
 
 def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
-            on_progress, should_cancel) -> Path:
-    """Turn a downloaded source into the finished file for a preset."""
+            on_progress, should_cancel, clip: tuple[float, float] | None = None) -> Path:
+    """Turn a downloaded source into the finished file for a preset.
+
+    clip = (start, end) in seconds keeps only that part. A clip is always re-encoded, so it starts and
+    ends exactly where asked (copying without re-encoding can only cut at keyframes, seconds away).
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     preset = presets.BY_ID[preset_id]
     info = probe(src)
     duration = info["duration"]
     name = uuid.uuid4().hex
     common_in = ["-i", str(src)]
+    if clip:
+        start, end = clip
+        if duration:
+            end = min(end, duration)
+        if end - start < presets.MIN_CLIP:
+            raise MediaError("That part is outside the video.")
+        common_in = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src)]
+        duration = end - start
     common_out = ["-sn", "-dn", "-map_metadata", "-1", "-movflags", "+faststart"]
 
     if preset["kind"] == "audio":
         if not info["acodec"]:
             raise MediaError("This video has no sound.")
         out = out_dir / f"{name}.m4a"
-        codec = ["-c:a", "copy"] if info["acodec"] == "aac" else ["-c:a", "aac", "-b:a", "128k"]
+        codec = ["-c:a", "copy"] if info["acodec"] == "aac" and not clip else ["-c:a", "aac", "-b:a", "128k"]
         _run_ffmpeg([*common_in, "-vn", "-map", "0:a:0", *codec, *common_out, str(out)],
                     duration, on_progress, should_cancel)
         return out
@@ -295,8 +307,8 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
     if not info["vcodec"]:
         raise MediaError("No video was found in the download. Try Audio only.")
     out = out_dir / f"{name}.mp4"
-    video_ok = info["vcodec"] == "h264" and info["pix_fmt"] in OK_PIXEL_FORMATS
-    audio_ok = info["acodec"] in (None, "aac")
+    video_ok = info["vcodec"] == "h264" and info["pix_fmt"] in OK_PIXEL_FORMATS and not clip
+    audio_ok = info["acodec"] in (None, "aac") and not clip
     maps = ["-map", "0:v:0", "-map", "0:a:0?"]
 
     fits_already = True

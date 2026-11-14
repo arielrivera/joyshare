@@ -51,3 +51,13 @@ def client(conn):
     """The owner (admin, user 1) is signed in."""
     with browser(auth.create_session(conn, 1)) as c:
         yield c
+
+
+@pytest.fixture(autouse=True)
+def no_thumbnail_fetching(monkeypatch):
+    """Tests never go to the internet for preview pictures. Tests about them replace this again."""
+    from app import thumbs
+
+    def offline(url):
+        raise OSError("offline in tests")
+    monkeypatch.setattr(thumbs, "_download", offline)

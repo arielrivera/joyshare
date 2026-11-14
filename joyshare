@@ -1,13 +1,27 @@
 #!/usr/bin/env bash
-# joyshare helper for the person who runs the server.
+# joyshare helper for the person who runs the server. Everything is controlled from here.
+#
+#   ./joyshare start                    Start everything (or apply changes made in .env)
+#   ./joyshare stop                     Stop everything. Data is kept.
+#   ./joyshare restart                  Stop, then start
+#   ./joyshare update                   Rebuild after getting new code, then start
+#   ./joyshare status                   What is running, and whether it is healthy
+#   ./joyshare logs [web|worker|tunnel|caddy]   Follow what it is doing (Ctrl+C to leave)
+#   ./joyshare test                     Run the automated tests
 #
 #   ./joyshare backup [--with-videos]   Pack everything joyshare knows into one file in ./backups
 #   ./joyshare restore FILE [--yes]     Replace all joyshare data with a file made by "backup"
 #   ./joyshare restore-db FILE [--yes]  Put back just the database from a nightly snapshot (.db.gz)
 #   ./joyshare setup-code               Print a one-time code to register a device (first run or lockout)
 #
-# "backup" then "restore" is also how you move joyshare to another computer:
-# copy the backup file and your .env to the new machine, then run restore there.
+#   ./joyshare retire                   This computer no longer runs joyshare (it moved): stop and stay stopped
+#   ./joyshare unretire                 Allow this computer to run joyshare again
+#
+# Optional parts are turned on by what is in .env:
+#   CLOUDFLARE_TUNNEL_TOKEN  -> the Cloudflare Tunnel container
+#   JOYSHARE_DOMAIN          -> the Caddy web server (https without Cloudflare)
+#
+# Moving to another computer: docs/MOVING-MAC.md and docs/MOVING-LINUX.md.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -29,10 +43,116 @@ in_data() { # in_data HOST_FOLDER MOUNT_POINT COMMAND...
   $COMPOSE run --rm --no-deps -T --user root -v "$host:$mount" web "$@"
 }
 
+# A value from .env (empty when the line is missing or commented out).
+setting() {
+  [[ -f .env ]] || return 0
+  { grep -E "^[[:space:]]*$1=" .env || true; } | tail -n 1 | cut -d= -f2- | sed -e 's/^["'"'"']//' -e 's/["'"'"'][[:space:]]*$//' -e 's/[[:space:]]*$//'
+}
+
+# The optional containers this computer should run, worked out from .env.
+wanted=()
+[[ -n "$(setting CLOUDFLARE_TUNNEL_TOKEN)" ]] && wanted+=(tunnel)
+[[ -n "$(setting JOYSHARE_DOMAIN)" ]] && wanted+=(caddy)
+WANTED="$(IFS=,; echo "${wanted[*]:-}")"
+export COMPOSE_PROFILES="$WANTED"
+everything() { COMPOSE_PROFILES="tunnel,caddy" $COMPOSE "$@"; }   # for stopping: reach the optional ones too
+
+RETIRED=".retired"
+not_retired() {
+  [[ -f "$RETIRED" ]] || return 0
+  die "This computer was retired from running joyshare on $(cat "$RETIRED").
+If it runs here while another computer also runs it, visitors land on either one at random.
+To run it here again, first stop it on the other computer, then: ./joyshare unretire"
+}
+
+# Two tunnel containers with the same token means Cloudflare splits visitors between them.
+stray_tunnel() {
+  local engine="${COMPOSE%% *}" ours others
+  [[ " ${wanted[*]:-} " == *" tunnel "* ]] || return 0
+  ours="$($COMPOSE ps -q 2>/dev/null || true)"
+  others="$($engine ps --format '{{.ID}} {{.Image}} {{.Names}}' 2>/dev/null | grep -i cloudflared || true)"
+  while read -r id image name; do
+    [[ -z "$id" ]] && continue
+    grep -q "^$id" <<<"$ours" && continue
+    say ""
+    say "Warning: another Cloudflare Tunnel container is running here: $name"
+    say "If it uses the same tunnel, remove it so only one is connected:  $engine rm -f $name"
+  done <<<"$others"
+}
+
+summary() {
+  say "Address:        $(setting JOYSHARE_PUBLIC_URL || true)"
+  say "On this machine: http://localhost:$(v="$(setting JOYSHARE_PORT)"; echo "${v:-8080}")"
+  say "Optional parts:  ${WANTED:-none} (from .env)"
+}
+
 command="${1:-}"
 [[ "${*: -1}" == "--yes" ]] && ASSUME_YES=1
 
 case "$command" in
+  start)
+    not_retired
+    $COMPOSE up -d --remove-orphans
+    summary; stray_tunnel
+    ;;
+
+  stop)
+    everything stop
+    say "Stopped. Your data is kept. Start again with: ./joyshare start"
+    ;;
+
+  restart)
+    not_retired
+    everything stop
+    $COMPOSE up -d --remove-orphans
+    summary; stray_tunnel
+    ;;
+
+  update)
+    not_retired
+    $COMPOSE up -d --build --remove-orphans
+    summary; stray_tunnel
+    ;;
+
+  status)
+    [[ -f "$RETIRED" ]] && say "This computer is retired from running joyshare (since $(cat "$RETIRED"))."
+    everything ps
+    say ""
+    summary
+    $COMPOSE exec -T web python -c "
+import json, urllib.request
+try:
+    h = json.load(urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3))
+    print('Website:         answering')
+    print('Worker:         ', 'running' if h.get('worker_alive') else 'NOT running')
+except Exception as exc:
+    print('Website:         NOT answering:', exc)
+" 2>/dev/null || say "Website:         not running"
+    stray_tunnel
+    ;;
+
+  logs)
+    if [[ -n "${2:-}" ]]; then everything logs -f --tail 100 "$2"; else everything logs -f --tail 100; fi
+    ;;
+
+  test)
+    $COMPOSE build -q web
+    $COMPOSE run --rm --no-deps -T web python -m pytest -q tests
+    ;;
+
+  retire)
+    confirm "This stops joyshare on this computer and keeps it stopped, because it now runs somewhere else."
+    everything stop
+    date "+%Y-%m-%d %H:%M" > "$RETIRED"
+    say "Retired. Nothing was deleted: the data is still here if you need to come back."
+    say "If the other computer uses the same Cloudflare Tunnel, you can also remove CLOUDFLARE_TUNNEL_TOKEN from this .env."
+    ;;
+
+  unretire)
+    rm -f "$RETIRED"
+    say "This computer may run joyshare again. Make sure no other computer is running it, then: ./joyshare start"
+    ;;
+
   backup)
     mkdir -p backups
     name="joyshare-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
@@ -52,11 +172,15 @@ case "$command" in
     [[ -f "$file" ]] || die "Give the backup file, for example: ./joyshare restore backups/joyshare-backup-20261113-101500.tar.gz"
     folder="$(cd "$(dirname "$file")" && pwd)"; name="$(basename "$file")"
     confirm "This replaces ALL current joyshare data with $name."
+    not_retired
+    say "Getting the app ready (the first time takes a few minutes)…"
+    $COMPOSE build -q web   # so this works on a brand-new computer
     $COMPOSE stop web worker >/dev/null 2>&1 || true
     in_data "$folder" /in sh -c "find /data -mindepth 1 -delete && tar xzf '/in/$name' -C /data && mkdir -p /data/media && chown -R app:app /data" \
       || die "The restore failed."
-    $COMPOSE up -d >/dev/null
+    $COMPOSE up -d --remove-orphans >/dev/null
     say "Restored from $name. joyshare is starting."
+    summary
     ;;
 
   restore-db)
@@ -76,7 +200,7 @@ case "$command" in
     ;;
 
   *)
-    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

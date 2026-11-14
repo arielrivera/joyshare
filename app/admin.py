@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store
+from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store, twin
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -155,6 +155,7 @@ def overview(_admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.get_c
         "disk": json.loads(disk) if disk else None,
         "worker_alive": bool(beat and now - int(beat) < 90),
         "paused": settings.get(conn, "paused"),
+        "second_copy": bool(twin.read_state(conn).get("found")),
         "yt_dlp": yt_dlp.version.__version__,
     }
 
@@ -196,7 +197,26 @@ def audit_log(limit: int = 100, _admin: auth.Auth = Depends(auth.admin_auth), co
         "SELECT a.id, a.action, a.detail, a.created_at, u.name AS person FROM audit_log a "
         "LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT ?", (max(1, min(limit, 500)),)
     ).fetchall()
-    return [dict(row) for row in rows]
+    entries = []
+    for row in rows:
+        entry = dict(row)
+        try:
+            detail = json.loads(row["detail"]) if row["detail"] else {}
+        except ValueError:
+            detail = {"text": row["detail"]}
+        if not isinstance(detail, dict):
+            detail = {"text": str(detail)}
+        # Numbers mean nothing to a reader: add the person's name and the video's title.
+        if "user_id" in detail and "name" not in detail:
+            who = conn.execute("SELECT name FROM users WHERE id=?", (detail["user_id"],)).fetchone()
+            detail["name"] = who["name"] if who else None
+        if "file_id" in detail:
+            video = conn.execute("SELECT m.title FROM files f JOIN media m ON m.id=f.media_id WHERE f.id=?",
+                                 (detail["file_id"],)).fetchone()
+            detail["title"] = video["title"] if video else None
+        entry["detail"] = detail
+        entries.append(entry)
+    return entries
 
 
 @router.get("/system")

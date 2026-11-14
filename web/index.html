@@ -57,6 +57,20 @@
       <label for="style-name" data-i18n="style.name"></label>
       <input id="style-name" type="text" maxlength="24" autocomplete="off" spellcheck="false">
       <p class="muted" data-i18n="style.nameHelp"></p>
+      <p class="label" data-i18n="style.theme"></p>
+      <div id="style-themes" class="choices">
+        <button type="button" data-theme-pick="acid" class="swatch swatch-acid" data-i18n="theme.acid"></button>
+        <button type="button" data-theme-pick="zine" class="swatch swatch-zine" data-i18n="theme.zine"></button>
+        <button type="button" data-theme-pick="clay" class="swatch swatch-clay" data-i18n="theme.clay"></button>
+        <button type="button" data-theme-pick="win95" class="swatch swatch-win95" data-i18n="theme.win95"></button>
+        <button type="button" data-theme-pick="comic" class="swatch swatch-comic" data-i18n="theme.comic"></button>
+        <button type="button" data-theme-pick="editorial" class="swatch swatch-editorial" data-i18n="theme.editorial"></button>
+        <button type="button" data-theme-pick="swiss" class="swatch swatch-swiss" data-i18n="theme.swiss"></button>
+        <button type="button" data-theme-pick="midnight" class="swatch swatch-midnight" data-i18n="theme.midnight"></button>
+        <button type="button" data-theme-pick="nordic" class="swatch swatch-nordic" data-i18n="theme.nordic"></button>
+        <button type="button" data-theme-pick="library" class="swatch swatch-library" data-i18n="theme.library"></button>
+        <button type="button" data-theme-pick="studio" class="swatch swatch-studio" data-i18n="theme.studio"></button>
+      </div>
       <p class="label" data-i18n="style.font"></p>
       <div id="style-fonts" class="choices">
         <button type="button" data-font="unbounded" class="font-unbounded">Unbounded</button>
@@ -66,19 +80,13 @@
         <button type="button" data-font="mono" class="font-mono">Rubik Mono</button>
         <button type="button" data-font="fredoka" class="font-fredoka">Fredoka</button>
         <button type="button" data-font="bangers" class="font-bangers">Bangers</button>
-        <button type="button" data-font="audiowide" class="font-audiowide">Audiowide</button>
         <button type="button" data-font="win" class="font-win">System</button>
-      </div>
-      <p class="label" data-i18n="style.theme"></p>
-      <div id="style-themes" class="choices">
-        <button type="button" data-theme-pick="void" class="swatch swatch-void" data-i18n="theme.void"></button>
-        <button type="button" data-theme-pick="acid" class="swatch swatch-acid" data-i18n="theme.acid"></button>
-        <button type="button" data-theme-pick="sunset" class="swatch swatch-sunset" data-i18n="theme.sunset"></button>
-        <button type="button" data-theme-pick="zine" class="swatch swatch-zine" data-i18n="theme.zine"></button>
-        <button type="button" data-theme-pick="clay" class="swatch swatch-clay" data-i18n="theme.clay"></button>
-        <button type="button" data-theme-pick="win95" class="swatch swatch-win95" data-i18n="theme.win95"></button>
-        <button type="button" data-theme-pick="comic" class="swatch swatch-comic" data-i18n="theme.comic"></button>
-        <button type="button" data-theme-pick="vapor" class="swatch swatch-vapor" data-i18n="theme.vapor"></button>
+        <button type="button" data-font="playfair" class="font-playfair">Playfair</button>
+        <button type="button" data-font="intertight" class="font-intertight">Inter Tight</button>
+        <button type="button" data-font="cormorant" class="font-cormorant">Cormorant</button>
+        <button type="button" data-font="manrope" class="font-manrope">Manrope</button>
+        <button type="button" data-font="dmserif" class="font-dmserif">DM Serif</button>
+        <button type="button" data-font="plex" class="font-plex">Plex Sans</button>
       </div>
       <p class="label" data-i18n="scn.title"></p>
       <div id="style-scenes" class="choices">
@@ -86,6 +94,10 @@
         <button type="button" data-scene="demolition" data-i18n="scn.demolition"></button>
         <button type="button" data-scene="compressor" data-i18n="scn.compressor"></button>
         <button type="button" data-scene="voyage" data-i18n="scn.voyage"></button>
+        <button type="button" data-scene="rocket" data-i18n="scn.rocket"></button>
+        <button type="button" data-scene="blackhole" data-i18n="scn.blackhole"></button>
+        <button type="button" data-scene="dominoes" data-i18n="scn.dominoes"></button>
+        <button type="button" data-scene="ufo" data-i18n="scn.ufo"></button>
         <button type="button" data-scene="none" data-i18n="scn.none"></button>
       </div>
       <div id="scene-preview" class="scene-canvas" hidden></div>
@@ -121,14 +133,26 @@
         <label for="url" data-i18n="link.label"></label>
         <div class="row">
           <input id="url" name="url" type="url" inputmode="url" required data-i18n-ph="link.placeholder">
-          <button id="paste" type="button" class="secondary" data-i18n="link.paste" hidden></button>
           <button id="lookup-button" type="submit" data-i18n="link.lookup"></button>
+        </div>
+        <!-- One-tap helpers for the box above. Copy and Clear only show when there is something in it. -->
+        <div id="url-tools" class="tools">
+          <button id="paste" type="button" class="chip" data-i18n="link.paste" hidden></button>
+          <button id="url-copy" type="button" class="chip" data-i18n="link.copy" hidden></button>
+          <button id="url-clear" type="button" class="chip" data-i18n="link.clear" hidden></button>
+          <span id="url-said" class="said" role="status" hidden></span>
         </div>
         <p id="lookup-error" class="error" role="alert" hidden></p>
       </form>
 
       <!-- One step shows at a time here: pick a size, then progress, then the finished file. -->
       <div id="stage">
+        <!-- While the link is being looked up: something to watch instead of a frozen button. -->
+        <section id="looking" class="card" hidden aria-live="polite">
+          <div class="seeker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><b></b></div>
+          <p id="looking-text" class="looking-text" tabindex="-1"></p>
+        </section>
+
         <section id="media" class="card" hidden aria-live="polite">
           <div class="media-head">
             <img id="thumb" alt="" referrerpolicy="no-referrer">
@@ -143,6 +167,16 @@
               <legend data-i18n="media.pick"></legend>
               <div id="presets"></div>
             </fieldset>
+            <div class="checks">
+              <label for="clip-on"><input id="clip-on" type="checkbox"><span data-i18n="clip.just"></span></label>
+            </div>
+            <div id="clip-box" class="clip-box" hidden>
+              <div class="clip-times">
+                <div><label for="clip-start" data-i18n="clip.start"></label><input id="clip-start" type="text" inputmode="decimal" placeholder="0:00" autocomplete="off"></div>
+                <div><label for="clip-end" data-i18n="clip.end"></label><input id="clip-end" type="text" inputmode="decimal" placeholder="0:30" autocomplete="off"></div>
+              </div>
+              <p id="clip-info" class="muted"></p>
+            </div>
             <button id="make-button" type="submit" class="big" data-i18n="media.make"></button>
             <p id="make-error" class="error" role="alert" hidden></p>
           </form>
@@ -181,6 +215,17 @@
           </div>
           <p id="link-copied" class="copied" role="status" hidden></p>
           <p id="link-note" class="muted" hidden></p>
+          <!-- Cut a part out of what is playing: watch, tap Start here, tap End here. -->
+          <div id="clip-tools" class="clip-tools" hidden>
+            <p class="label" data-i18n="clip.cutTitle"></p>
+            <div class="tools">
+              <button id="clip-here-start" type="button" class="chip" data-i18n="clip.startHere"></button>
+              <button id="clip-here-end" type="button" class="chip" data-i18n="clip.endHere"></button>
+              <span id="clip-picked" class="said"></span>
+            </div>
+            <button id="clip-make" type="button" class="secondary" data-i18n="clip.make" disabled></button>
+            <p id="clip-error" class="error" role="alert" hidden></p>
+          </div>
           <div class="actions next">
             <button id="again" type="button" class="quiet" data-i18n="res.another"></button>
             <button id="new-link" type="button" class="spark" data-i18n="res.new"></button>
@@ -293,6 +338,7 @@
 
       <section class="card" data-pane="overview">
         <h2 data-i18n="adm.tab.overview"></h2>
+        <p id="adm-second-copy" class="error" role="alert" data-i18n="adm.secondCopy" hidden></p>
         <div id="adm-tiles" class="tiles"></div>
         <div class="actions">
           <button id="adm-pause" type="button" class="secondary"></button>

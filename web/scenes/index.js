@@ -10,14 +10,18 @@
 // The rest of the app only talks to window.joyshareScenes.
 import * as THREE from "/vendor/three.module.min.js";
 
+import blackhole from "./blackhole.js";
 import bloom from "./bloom.js";
 import compressor from "./compressor.js";
 import demolition from "./demolition.js";
+import dominoes from "./dominoes.js";
 import mascots from "./mascot.js";
 import ring from "./ring.js";
+import rocket from "./rocket.js";
+import ufo from "./ufo.js";
 import voyage from "./voyage.js";
 
-const SCENES = [demolition, compressor, voyage];   // the full ones
+const SCENES = [demolition, compressor, voyage, rocket, blackhole, dominoes, ufo];   // the full ones
 const CALM = [ring, bloom];                        // slow and steady, for people with "Reduce motion" on
 const HALF_HEIGHT = 3;                             // every scene is 6 units tall; width follows the screen
 

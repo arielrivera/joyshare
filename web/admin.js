@@ -109,6 +109,7 @@ async function loadOverview() {
     tile(t("adm.worker"), d.worker_alive ? t("adm.running") : t("adm.stopped"), "", !d.worker_alive),
     tile("yt-dlp", d.yt_dlp),
   );
+  $("adm-second-copy").hidden = !d.second_copy;
   const pause = $("adm-pause");
   pause.textContent = d.paused ? t("adm.resume") : t("adm.pause");
   pause.onclick = () => adminAct(async () => {
@@ -304,12 +305,72 @@ $("adm-clear-token").addEventListener("click", () => adminAct(async () => {
 
 // ---------- Activity log ----------
 
+// Turns one entry's details into a sentence. Each kind of entry has a pattern in the dictionary
+// ("actd.<action>") with {blanks}; a blank the entry can't fill means the pattern doesn't apply.
+function fill(key, detail) {
+  const pattern = t(key);
+  if (pattern === key) return null;
+  let missing = false;
+  const text = pattern.replace(/\{(\w+)\}/g, (_, name) => {
+    const value = detail[name];
+    if (value === undefined || value === null || value === "") { missing = true; return ""; }
+    const known = t(`actv.${name}.${value}`);                 // some values have a friendlier name
+    return known === `actv.${name}.${value}` ? String(value) : known;
+  });
+  return missing ? null : text;
+}
+
+function settingName(key) {
+  for (const prefix of ["set.", "lim."]) {
+    const known = t(prefix + key);
+    if (known !== prefix + key) return known;
+  }
+  return key.replaceAll("_", " ");
+}
+
+function settingValue(value) {
+  if (value === true) return t("log.on");
+  if (value === false) return t("log.off");
+  if (Array.isArray(value)) return value.join(", ") || "—";
+  if (value && typeof value === "object") {
+    return Object.entries(value).map(([k, v]) => `${k.replaceAll("_", " ")} ${settingValue(v)}`).join(", ");
+  }
+  return String(value);
+}
+
+function describeEntry(entry) {
+  const detail = entry.detail || {};
+  if (entry.action === "settings.change") {
+    return Object.entries(detail).map(([key, value]) => `${settingName(key)}: ${settingValue(value)}`).join(" · ");
+  }
+  if (entry.action === "storage.test") return t(detail.passed ? "log.passed" : "log.notPassed");
+  const sentence = fill(`actd.${entry.action}.${detail.kind}`, detail) || fill(`actd.${entry.action}`, detail);
+  if (sentence !== null) return sentence;
+  // No pattern for this one: still better than raw text.
+  return Object.entries(detail).filter(([, v]) => v !== null && v !== "")
+    .map(([k, v]) => `${k.replaceAll("_", " ")}: ${settingValue(v)}`).join(" · ");
+}
+
 async function loadLog() {
   const entries = await api("/api/admin/audit?limit=150");
   $("adm-log").replaceChildren(...entries.map((entry) => {
     const known = t(`act.${entry.action}`);
-    const what = known === `act.${entry.action}` ? entry.action : known; // unknown actions show their raw name
-    return row(what, [fmtWhen(entry.created_at), entry.person, entry.detail].filter(Boolean).join(" · "));
+    const what = known === `act.${entry.action}` ? entry.action.replaceAll(/[._]/g, " ") : known;
+    const li = document.createElement("li");
+    li.className = "log-entry";
+    const head = document.createElement("span");
+    head.className = "log-what";
+    head.textContent = what;
+    const detail = document.createElement("span");
+    detail.className = "log-detail";
+    detail.textContent = describeEntry(entry);
+    const meta = document.createElement("span");
+    meta.className = "log-meta muted";
+    const who = entry.person || t(entry.action === "auth.failure" ? "log.nobody" : "log.system");
+    meta.textContent = [fmtWhen(entry.created_at), who].join(" · ");
+    li.append(head, meta);
+    if (detail.textContent) li.append(detail);
+    return li;
   }));
 }
 

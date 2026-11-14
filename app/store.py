@@ -64,11 +64,15 @@ def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None,
         "SELECT id, title, uploader, platform, thumbnail, duration FROM media WHERE id=?",
         (job["media_id"],),
     ).fetchone()
+    media = dict(media) if media else None
+    if media:
+        media["thumb_url"] = f"/api/media/{media['id']}/thumb" if media["thumbnail"] else None
     view = {
         "id": job["id"],
-        "media": dict(media) if media else None,
+        "media": media,
         "preset": job["preset"],
         "target_mb": job["target_mb"],
+        "clip": [job["clip_start"], job["clip_end"]] if job["clip_start"] is not None else None,
         "status": job["status"],
         "stage": job["stage"],
         "progress": round(job["progress"] or 0, 3),

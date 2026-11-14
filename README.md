@@ -13,7 +13,7 @@ joyshare is a small private web app you run on your own computer. Paste a link, 
 
 1. **Paste a link** from X (Twitter), YouTube, TikTok, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
 2. **Pick a size.** joyshare shows how big the file will be before you commit: original, 720p, 480p, "fit under 25 MB", or audio only.
-3. **Watch something fun** while it works. Progress is a small 3D scene: a tower being demolished, a block being crushed, a spaceship on its way.
+3. **Watch something fun** while it works. Progress is a small 3D scene: a tower being demolished, a rocket launch, a black hole, a cow meeting a flying saucer.
 4. **Send it.** Share it to WhatsApp or iMessage, download it, or copy a link your friend can open in any browser. No account needed on their side.
 
 ## Quick facts
@@ -24,6 +24,7 @@ joyshare is a small private web app you run on your own computer. Paste a link, 
 | **Works from** | iPhone, Android, Mac, Windows. Anything with a browser. |
 | **Sign-in** | Face ID / Touch ID (passkeys). No passwords. Only devices you approve get in. |
 | **Share links** | Expire after 48 hours. |
+| **Clips** | Share just a part of a video: give a start and an end, or tap while watching. |
 | **Files** | Deleted automatically. Nothing piles up. |
 | **Size limit** | 200 MB per video by default. You can change it. |
 | **Output** | MP4 that plays in iMessage, WhatsApp and every browser. M4A for audio. |
@@ -47,7 +48,7 @@ git clone https://github.com/arielrivera/joyshare.git
 ```
 
 ```bash
-cd joyshare && docker compose up -d --build
+cd joyshare && ./joyshare update
 ```
 
 Then open http://localhost:8080, register your device with the setup code from the log, and paste a link.
@@ -60,7 +61,7 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 - **[Cloudflare R2 guide](docs/R2.md)**: serving videos from R2, step by step
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
-- **Moving guide** (coming): moving between a cloud server, a Mac mini and a Raspberry Pi, and what changes if you don't use Cloudflare
+- **Moving guides**: [to another Mac](docs/MOVING-MAC.md) and [to a Linux cloud server](docs/MOVING-LINUX.md), with or without Cloudflare, and what happens if the old computer is left running
 - **How it's built**: the project plan (`docs/proposal.html`) and a one-page visual of the process and stack (`docs/infographic.html`)
 
 ## Fair use

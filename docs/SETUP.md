@@ -17,8 +17,10 @@ Nothing else. Python, ffmpeg and yt-dlp all come inside the container.
 From the joyshare folder:
 
 ```bash
-docker compose up -d --build
+./joyshare update
 ```
+
+`joyshare` is a small script in the project folder. Starting, stopping, updating, backups and moving all go through it; the list is under [Everyday commands](#everyday-commands).
 
 The first run takes a few minutes while it downloads and builds. After that, open:
 
@@ -68,13 +70,13 @@ Phones can only use passkeys on an `https://` address, so this is the step that 
 JOYSHARE_PUBLIC_URL=https://your-domain.example
 ```
 
-Then `docker compose up -d`. Share links and invites now use that address, and passkeys made there are tied to it.
+Then `./joyshare start`. Share links and invites now use that address, and passkeys made there are tied to it.
 
 **2. Run the Cloudflare Tunnel next to the app.** The tunnel is part of `docker-compose.yml`, in the same private network as the app, so it reaches the app by name and nothing depends on the host computer.
 
 1. In the Cloudflare dashboard (Zero Trust → Networks → Tunnels), open your tunnel. Under **Public hostname**, set the service to `http://web:8080`.
 2. Put the tunnel's token in `.env`: `CLOUDFLARE_TUNNEL_TOKEN=…`
-3. Start everything: `docker compose --profile tunnel up -d`
+3. Start everything: `./joyshare start`. The script sees the token and runs the tunnel together with the app.
 4. If you were running `cloudflared` as a separate container before, remove that one, so only one copy is connected.
 
 **Shortcut if you already have a device signed in at `localhost`:** open **Devices → Add a device** there. The QR code, the typed code and the link it shows all lead to the main address, so scanning it with your phone registers the phone on the domain. To register the same computer on the domain, open the link shown under the code.
@@ -84,6 +86,19 @@ Then `docker compose up -d`. Share links and invites now use that address, and p
 **The server itself can still open the app at `http://localhost:8080`** with a passkey made there. That is a way back in if the domain or tunnel is down. To allow other addresses, set `JOYSHARE_EXTRA_ORIGINS` in `.env`.
 
 Before sharing videos through the domain, turn on R2 storage (below): Cloudflare's rules don't allow video through the tunnel itself.
+
+## Sharing only part of a video
+
+Two ways to make a clip:
+
+- **Before making the file:** on the size step, tick **Just a part of the video** and give a Start and an End, written as minutes:seconds (`1:30`). The sizes shown shrink to match the part. A video that is too big to share whole can often still be shared as a part.
+- **After making the file:** play the finished video, press **Start here** where the part should begin and **End here** where it should stop, then **Make this clip**.
+
+A clip starts and ends exactly where you asked, and must be at least 1 second long. The whole video is downloaded first and kept for an hour, so more clips of the same video are quick.
+
+## Getting a link again
+
+The **Recent** list on the main screen shows a small picture of each video and has a **Copy link** button next to every finished file. When the link is copied, the button says **✓ Copied** and a line under the video confirms it. It gives the same link while it still has time left, or a fresh one if the old one ran out. If the file itself has expired, **Make again** creates it again with the same size and part.
 
 ## Add another device
 
@@ -131,7 +146,7 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 
 | Tab | What it's for |
 |---|---|
-| Overview | Videos in the last day and week, what's in progress, files kept, active links, disk use, whether the worker is running, the yt-dlp version. The **Pause new videos** button is here. |
+| Overview | A red warning if a second copy of the app is answering at your address. Videos in the last day and week, what's in progress, files kept, active links, disk use, whether the worker is running, the yt-dlp version. The **Pause new videos** button is here. |
 | Videos | Everyone's videos, newest first, with a filter. Failed ones show the reason. |
 | Share links | Every link that still works, with its views. **Revoke** makes one stop working right away. |
 | People | Invite a person, or turn a person off and on. |
@@ -139,7 +154,7 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 | Alerts | Where alerts go and which ones you want. |
 | Storage | Serve finished videos from this server or from Cloudflare R2, with the setup steps and a connection test. |
 | System | The yt-dlp version in use, checking for updates, going back a version, the daily platform checks (you choose which platforms and their test videos), and backups. |
-| Activity log | Sign-in problems and every change to devices, people, links and settings. |
+| Activity log | Sign-in problems and every change to devices, people, links and settings, in plain sentences: what happened, when, who did it and the details. |
 
 ### Serve videos from Cloudflare R2
 
@@ -180,7 +195,7 @@ For moving to another computer, or keeping your own copy, use the `joyshare` scr
 
 `backup` stops joyshare for a few seconds so the copy is consistent. Both restore commands ask you to type `yes` first, because they replace what is there.
 
-**Moving to another computer:** run `./joyshare backup`, copy the backup file and your `.env` to the joyshare folder on the new computer, and run `./joyshare restore` there.
+**Moving to another computer:** follow [MOVING-MAC.md](MOVING-MAC.md) (another Mac) or [MOVING-LINUX.md](MOVING-LINUX.md) (a Linux cloud server). In short: back up, retire the old computer, copy the backup file and `.env`, restore on the new one.
 
 Keep your `.env` with your backups. If you set `JOYSHARE_SECRET`, connected accounts in a backup can only be read with that same secret.
 
@@ -218,7 +233,7 @@ Like passkeys on a phone, the Shortcut needs joyshare's https address, so it wor
 If you lose every device, get a new one-time code on the server itself:
 
 ```bash
-docker compose exec web python -m app.cli setup-code
+./joyshare setup-code
 ```
 
 It registers a new device for the admin, works once and lasts 30 minutes. Only someone with access to the server can run it.
@@ -227,13 +242,22 @@ It registers a new device for the admin, works once and lasts 30 minutes. Only s
 
 | I want to… | Command |
 |---|---|
-| Start joyshare | `docker compose up -d` |
-| Stop it | `docker compose down` |
-| See what it's doing | `docker compose logs -f` |
-| See only the downloads and converting | `docker compose logs -f worker` |
-| Update after pulling new code | `docker compose up -d --build` |
-| Run the tests | `docker compose run --rm --no-deps web python -m pytest -q tests` |
-| Check it's healthy | open http://localhost:8080/api/health |
+| Start joyshare, or apply a change in `.env` | `./joyshare start` |
+| Stop it (data is kept) | `./joyshare stop` |
+| Stop and start again | `./joyshare restart` |
+| Update after getting new code | `git pull` then `./joyshare update` |
+| See what is running and whether it's healthy | `./joyshare status` |
+| See what it's doing | `./joyshare logs` |
+| See only the downloads and converting | `./joyshare logs worker` |
+| Run the tests | `./joyshare test` |
+| Stop for good on this computer because it moved | `./joyshare retire` |
+
+Everything joyshare runs is defined in one file, `docker-compose.yml`: the app (`web` and `worker`), plus two optional containers that the script turns on from what is in `.env`:
+
+- **`tunnel`**, the Cloudflare Tunnel, when `CLOUDFLARE_TUNNEL_TOKEN` is set.
+- **`caddy`**, a web server with automatic https for a server without Cloudflare, when `JOYSHARE_DOMAIN` is set. See [MOVING-LINUX.md](MOVING-LINUX.md).
+
+Plain `docker compose` commands still work for the app itself, but they don't know about the optional containers unless you add `--profile tunnel` or `--profile caddy`. The script is the simpler way.
 
 ## Settings
 
@@ -243,7 +267,7 @@ To change one, for example the name:
 
 1. If there is no `.env` yet, make it from the example: `cp .env.example .env`
 2. Open `.env` in any text editor and set the line, for example `JOYSHARE_NAME=vidshare`
-3. Restart so the containers pick it up: `docker compose up -d`
+3. Restart so the containers pick it up: `./joyshare start`
 
 `JOYSHARE_NAME` is the name people see until they pick their own with the pencil button. A name someone already chose for themselves stays as they set it.
 
@@ -253,7 +277,8 @@ To change one, for example the name:
 | `JOYSHARE_PUBLIC_URL` | The address people use to reach joyshare. Share links and passkeys are tied to it. | `http://localhost:8080` |
 | `JOYSHARE_NAME` | The name shown at the top until a person picks their own | `vidshare` |
 | `JOYSHARE_EXTRA_ORIGINS` | Other addresses the app may be opened at, separated by commas | `http://localhost:8080` |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Your tunnel's token, used by `docker compose --profile tunnel up -d` | none |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Your tunnel's token. With it set, `./joyshare start` runs the tunnel too. | none |
+| `JOYSHARE_DOMAIN` | Your domain, without `https://`. With it set, `./joyshare start` runs the Caddy web server on ports 80 and 443. Only for servers without Cloudflare. | none |
 | `JOYSHARE_SECRET` | Long random text used to encrypt connected accounts | made automatically |
 | `JOYSHARE_BIND` | Who can reach joyshare directly. `127.0.0.1` means only this computer. | `127.0.0.1` |
 
@@ -265,7 +290,7 @@ Everything (the database and the videos) is in one Docker volume called `joyshar
 
 - It survives restarts, rebuilds and `docker compose down`.
 - `docker compose down -v` **deletes it**. Only use `-v` when you want to start from nothing.
-- Why a volume and not a normal folder: on a Mac, a database inside a shared folder can become unreliable when two containers use it at once. A volume avoids that. The backup and move commands (coming in the go-live phase) pack it into a single file you can copy anywhere.
+- Why a volume and not a normal folder: on a Mac, a database inside a shared folder can become unreliable when two containers use it at once. A volume avoids that. `./joyshare backup` packs it into a single file you can copy anywhere.
 
 To look inside:
 
@@ -311,8 +336,11 @@ Docker isn't running. Open Docker Desktop and wait for it to finish starting, th
 **The page looks half-updated after an update**
 This should no longer happen: scripts and styles get a new address with every update. If you ever see it, reload the page once.
 
+**"A second copy is running" (alert, or a red warning on the Overview tab)**
+joyshare is running on two computers that answer at the same address, usually after a move. People look signed out at random and videos go missing. On the computer that should no longer run it: `./joyshare retire`. More in [MOVING-MAC.md](MOVING-MAC.md).
+
 **The page doesn't load**
-Run `docker compose ps`. Both `web` and `worker` should say "Up". If not, `docker compose logs web` shows why. If port 8080 is taken by another app, set `JOYSHARE_PORT=8081` in `.env` and start again.
+Run `./joyshare status`. Both `web` and `worker` should say "Up". If not, `./joyshare logs web` shows why. If port 8080 is taken by another app, set `JOYSHARE_PORT=8081` in `.env` and start again.
 
 **"… only shows this video to signed-in accounts"**
 The platform wants a login for that video. Connect an account for that platform under **☰ → Connected accounts**.

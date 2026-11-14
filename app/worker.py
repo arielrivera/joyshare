@@ -11,7 +11,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store
+from . import backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store, twin
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -103,6 +103,8 @@ class Worker:
             engine.check_platforms(conn)
         if asked == "backup" or backup.due(conn):
             backup.run(conn)
+        if twin.due(conn):
+            twin.check(conn)
 
     # ---------- one job ----------
 
@@ -148,13 +150,16 @@ class Worker:
             preset_id, target_mb = job["preset"], job["target_mb"]
 
             # Same video and preset asked for again: hand back the file we already have.
-            out_key = presets.output_key(preset_id, target_mb)
+            clip = presets.check_clip(job["clip_start"], job["clip_end"], item["duration"])
+            clip_length = clip[1] - clip[0] if clip else None
+            out_key = presets.output_key(preset_id, target_mb, clip)
             existing = store.find_file(conn, user_id, media_id, "output", out_key)
             if existing:
                 finish(existing["id"], reused=True)
                 return
 
-            key = presets.source_key(preset_id, target_mb, item["duration"])
+            # A clip is cut from the whole original, which is then kept for more clips of the same video.
+            key = presets.source_key(preset_id, target_mb, clip_length or item["duration"])
             with self.source_lock(media_id, key):
                 source = store.find_file(conn, user_id, media_id, "source", key)
                 if source:
@@ -186,7 +191,7 @@ class Worker:
 
             set_stage("converting")
             out = media.convert(source_path, config.OUTPUTS_DIR, preset_id, target_mb,
-                                on_progress, should_cancel)
+                                on_progress, should_cancel, clip=clip)
             size = out.stat().st_size
             if size > cfg["max_file_mb"] * MB:
                 out.unlink(missing_ok=True)

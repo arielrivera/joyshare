@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vidshare look options, round 3: traditional, modern, stylish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=Inter+Tight:wght@400;500;700;800&family=Libre+Franklin:wght@400;600;800&family=Lora:wght@400;600&family=Manrope:wght@400;600;800&family=Playfair+Display:wght@500;700;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Sketches only: round 3 of look options. Nothing here is wired into the app. */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 28px 16px 48px; background: #ececea; color: #1c1c1c; font: 15px/1.5 system-ui, sans-serif; }
+h1 { font-size: 22px; margin: 0 0 4px; text-align: center; }
+.sub { text-align: center; color: #5c5c5c; margin: 0 auto 28px; max-width: 60ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 38px 26px; max-width: 1000px; margin: 0 auto; }
+.opt-wrap { display: grid; gap: 10px; justify-items: center; align-content: start; }
+.opt-wrap h2 { margin: 6px 0 0; font-size: 17px; }
+.opt-wrap p { margin: 0; color: #555; font-size: 14px; text-align: center; max-width: 32ch; }
+
+.phone { width: 280px; border-radius: 36px; padding: 9px; background: #111; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+.scr { position: relative; overflow: hidden; border-radius: 28px; padding: 16px 14px 18px; display: grid; gap: 12px;
+  background: var(--bg); color: var(--ink); font-family: var(--f-b); font-size: 13px; line-height: 1.4; }
+.hd { display: flex; align-items: center; gap: 7px; padding-bottom: var(--hd-pad, 0); border-bottom: var(--hd-rule, 0); }
+.logo { font-family: var(--f-d); font-size: var(--logo, 24px); font-weight: var(--logo-w, 700); line-height: 1; letter-spacing: var(--logo-ls, 0); font-style: var(--logo-style, normal); text-transform: var(--logo-tt, none); }
+.pen { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--pen-r, 50%); font-size: 11px;
+  background: var(--acc); color: var(--acc-ink); }
+.sp { flex: 1; }
+.chip { font-size: 10px; padding: 4px 8px; border-radius: var(--chip-r, 99px); border: 1px solid var(--line); background: var(--chip-bg, transparent); color: var(--ink); white-space: nowrap; }
+.card { background: var(--card); border: var(--bw, 1px) solid var(--line); border-radius: var(--r); padding: 13px; display: grid; gap: 9px; box-shadow: var(--sh, none); }
+.lbl { font-size: 9.5px; letter-spacing: var(--lbl-ls, .12em); text-transform: var(--lbl-tt, uppercase); color: var(--soft); font-weight: 600; font-family: var(--f-l, var(--f-b)); }
+.in { border: 1px solid var(--line-in, var(--line)); border-radius: var(--r-in, 8px); padding: 9px 10px; background: var(--field); color: var(--soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-width: var(--in-bw, 1px); }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+.btn { text-align: center; padding: 9px 13px; border-radius: var(--r-btn, 8px); background: var(--acc); color: var(--acc-ink); font-weight: var(--btn-w, 600);
+  font-family: var(--f-btn, var(--f-b)); letter-spacing: var(--btn-ls, 0); text-transform: var(--btn-tt, none); font-size: var(--btn-fs, 13px); box-shadow: var(--btn-sh, none); }
+.btn.big { padding: 12px; }
+.ttl { font-family: var(--f-d); font-size: var(--ttl, 16px); font-weight: var(--ttl-w, 700); line-height: 1.2; font-style: var(--ttl-style, normal); }
+.meta { font-size: 11px; color: var(--soft); }
+.o { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--r-in, 8px); border: 1px solid var(--line); background: var(--field); }
+.o.on { border-color: var(--acc-line, var(--acc)); background: var(--hi); color: var(--hi-ink, inherit); box-shadow: var(--on-sh, none); }
+.o span:last-child { color: var(--soft); } .o.on span:last-child { color: inherit; opacity: .8; }
+.pct { font-family: var(--f-d); font-size: 30px; font-weight: var(--ttl-w, 700); line-height: 1; text-align: center; font-style: var(--ttl-style, normal); }
+.bar { height: var(--bar-h, 6px); border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; width: 62%; height: 100%; background: var(--acc); border-radius: inherit; }
+
+/* M. Editorial: a magazine page */
+.m { --bg: #f6f1e7; --ink: #1a1714; --soft: #6e655a; --card: #fffdf8; --field: #fffdf8; --line: #d9cfbf; --acc: #b3261e; --acc-ink: #fff; --hi: #f3e7d6;
+  --f-d: "Playfair Display", serif; --f-b: "Source Serif 4", serif; --f-l: "Libre Franklin", sans-serif; --f-btn: "Libre Franklin", sans-serif;
+  --r: 2px; --r-in: 2px; --r-btn: 2px; --logo: 28px; --logo-w: 900; --logo-style: italic; --hd-pad: 10px; --hd-rule: 3px double #1a1714;
+  --btn-tt: uppercase; --btn-ls: .1em; --btn-fs: 11px; --btn-w: 800; --ttl: 18px; --chip-r: 2px; --pen-r: 2px; --bar-h: 4px; }
+/* N. Swiss: grid, grotesk, one red */
+.n { --bg: #ffffff; --ink: #0a0a0a; --soft: #6b6b6b; --card: #ffffff; --field: #f4f4f4; --line: #0a0a0a; --line-in: transparent; --acc: #e4002b; --acc-ink: #fff; --hi: #0a0a0a; --hi-ink: #fff; --acc-line: #0a0a0a;
+  --f-d: "Inter Tight", sans-serif; --f-b: "Inter Tight", sans-serif; --r: 0; --r-in: 0; --r-btn: 0; --bw: 2px; --logo: 30px; --logo-w: 800; --logo-ls: -.04em;
+  --btn-w: 700; --ttl: 17px; --ttl-w: 800; --chip-r: 0; --pen-r: 0; --lbl-ls: .02em; --lbl-tt: none; --bar-h: 8px; }
+.n .bar { border-radius: 0; } .n .bar i { border-radius: 0; }
+/* O. Midnight: dark, gold, serif */
+.o-look { --bg: #101216; --ink: #ece7dc; --soft: #9a958a; --card: #171a20; --field: #0e1013; --line: #2b2f37; --acc: #c9a45c; --acc-ink: #17130a; --hi: #1f232b; --acc-line: #c9a45c;
+  --f-d: "Cormorant Garamond", serif; --f-b: "DM Sans", sans-serif; --r: 14px; --r-in: 10px; --r-btn: 99px; --logo: 30px; --logo-w: 700; --logo-style: italic;
+  --ttl: 20px; --lbl-ls: .2em; --btn-w: 700; --btn-ls: .04em; --sh: 0 10px 30px rgba(0,0,0,.35); --bar-h: 3px; }
+/* P. Nordic: warm, calm, sage */
+.p { --bg: #f3f0ea; --ink: #2b2d2a; --soft: #7b7f76; --card: #fbfaf7; --field: #f3f0ea; --line: #e3dfd6; --line-in: transparent; --acc: #5f7a61; --acc-ink: #fff; --hi: #e6ede4; --acc-line: #5f7a61;
+  --f-d: "Manrope", sans-serif; --f-b: "Manrope", sans-serif; --r: 22px; --r-in: 14px; --r-btn: 14px; --logo: 24px; --logo-w: 800; --logo-ls: -.02em;
+  --ttl-w: 800; --lbl-tt: none; --lbl-ls: 0; --sh: 0 6px 20px rgba(70,60,40,.07); --bw: 0px; --btn-w: 700; --bar-h: 8px; }
+/* Q. Library: bottle green and cream */
+.q { --bg: #16302b; --ink: #f2ead8; --soft: #b9c2b0; --card: #f6f0e0; --field: #fffaf0; --line: #d8cdb2; --acc: #b5532a; --acc-ink: #fff8ec; --hi: #ece2c8; --acc-line: #16302b;
+  --f-d: "DM Serif Display", serif; --f-b: "Lora", serif; --f-l: "Libre Franklin", sans-serif; --r: 6px; --r-in: 4px; --r-btn: 4px; --logo: 28px; --logo-w: 400;
+  --ttl: 18px; --ttl-w: 400; --btn-w: 600; --chip-bg: transparent; --sh: 0 2px 0 #0c1d1a; }
+.q .card { color: #20302c; --soft: #6f6a58; } .q .chip { border-color: #5d7a70; }
+/* R. Studio: soft grey, graphite, amber */
+.r { --bg: #e9ebee; --ink: #1d2126; --soft: #6c737c; --card: #ffffff; --field: #f3f4f6; --line: #e1e4e8; --line-in: transparent; --acc: #1d2126; --acc-ink: #fff; --hi: #fff6dd; --acc-line: #e8a317;
+  --f-d: "IBM Plex Sans", sans-serif; --f-b: "IBM Plex Sans", sans-serif; --r: 16px; --r-in: 10px; --r-btn: 10px; --logo: 24px; --logo-w: 600; --logo-ls: -.02em;
+  --ttl-w: 600; --lbl-tt: none; --lbl-ls: 0; --sh: 0 1px 2px rgba(20,25,35,.06), 0 8px 24px rgba(20,25,35,.07); --bw: 0px; --bar-h: 6px; }
+.r .bar i { background: #e8a317; } .r .pen { background: #e8a317; color: #1d2126; }
+</style>
+</head>
+<body>
+<h1>Look options, round 3</h1>
+<p class="sub">Traditional, but modern and stylish. Each phone shows the same three moments: paste a link, pick a size, progress. Tell me the letters you like and I'll build them as switchable looks.</p>
+<div class="grid" id="grid"></div>
+<script>
+const looks = [
+  ["m", "M. Editorial", "A magazine page. Cream paper, big italic serif headlines, thin rules, one newspaper red."],
+  ["n", "N. Swiss", "Poster design from Zurich. White, black, a strict grid, heavy grotesk type, one red."],
+  ["o-look", "O. Midnight", "Dark and quiet. Charcoal, soft gold, an elegant serif. Feels like a private club."],
+  ["p", "P. Nordic", "Warm off-white, sage green, round corners, lots of air. Calm and friendly."],
+  ["q", "Q. Library", "Bottle green with cream cards and a rust accent. Bookish, classic, a little British."],
+  ["r", "R. Studio", "Soft grey, graphite and amber. Clean and professional, like a good design tool."],
+];
+document.getElementById("grid").innerHTML = looks.map(([cls, name, text]) => `
+  <div class="opt-wrap">
+    <div class="phone"><div class="scr ${cls}">
+      <div class="hd"><span class="logo">vidshare</span><span class="pen">✎</span><span class="sp"></span><span class="chip">🇺🇸 EN</span><span class="chip">☰</span></div>
+      <div class="card"><span class="lbl">Video link</span>
+        <div class="row"><div class="in">https://x.com/someone/status/19…</div><div class="btn">Look up</div></div></div>
+      <div class="card"><div class="ttl">The goal nobody saw coming</div><div class="meta">someone · X (Twitter) · 0:42</div>
+        <div class="o on"><span>Share · 720p</span><span>about 12 MB</span></div>
+        <div class="o"><span>Small · 480p</span><span>about 5 MB</span></div>
+        <div class="btn big">Make the file</div></div>
+      <div class="card"><div class="pct">62%</div><div class="meta" style="text-align:center">Converting…</div><div class="bar"><i></i></div></div>
+    </div></div>
+    <h2>${name}</h2><p>${text}</p>
+  </div>`).join("");
+</script>
+</body>
+</html>

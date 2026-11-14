@@ -10,10 +10,15 @@ let joining = false;    // true when the page was opened from an invite link or 
 // ---------- talking to the server ----------
 
 async function api(path, options = {}, retried = false) {
-  const res = await fetch(path, {
-    ...options,
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      ...options,
+      headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    });
+  } catch {
+    throw new Error(t("err.unreachable"));   // no answer at all: offline, or the app is restarting
+  }
   let data = null;
   try { data = await res.json(); } catch { /* empty body */ }
   if (res.status === 401 && res.headers.get("x-joyshare-reauth") && !retried) {
@@ -24,7 +29,11 @@ async function api(path, options = {}, retried = false) {
     me = null;
     showSignedOut();
   }
-  if (!res.ok) throw new Error((data && typeof data.detail === "string" && data.detail) || t("err.generic"));
+  if (!res.ok) {
+    // 502 to 504 come from whatever sits in front of the app (the tunnel) when the app itself isn't answering.
+    const fallback = [502, 503, 504].includes(res.status) ? t("err.unreachable") : t("err.generic");
+    throw new Error((data && typeof data.detail === "string" && data.detail) || fallback);
+  }
   return data;
 }
 

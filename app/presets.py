@@ -72,5 +72,26 @@ def ydl_format(key: str) -> dict:
     }
 
 
-def output_key(preset_id: str, target_mb: int | None = None) -> str:
-    return f"fit-{int(target_mb)}" if preset_id == "fit" else preset_id
+MIN_CLIP = 1.0   # seconds
+
+
+def check_clip(start, end, duration: float | None) -> tuple[float, float] | None:
+    """Tidies and checks the part of a video someone asked for. None means the whole video."""
+    if start is None and end is None:
+        return None
+    if start is None or end is None:
+        raise PresetError("Give both a start and an end for the part.")
+    start, end = round(float(start), 1), round(float(end), 1)
+    if duration and end > duration:
+        if end > duration + 1:
+            raise PresetError("The part must be inside the video.")
+        end = round(float(duration), 1)
+    if start < 0 or end - start < MIN_CLIP:
+        raise PresetError("The end must be at least 1 second after the start.")
+    return start, end
+
+
+def output_key(preset_id: str, target_mb: int | None = None, clip: tuple[float, float] | None = None) -> str:
+    """Names a finished file, so the same request reuses it. A clip's range is part of the name."""
+    key = f"fit-{int(target_mb)}" if preset_id == "fit" else preset_id
+    return f"{key}@{clip[0]:.1f}-{clip[1]:.1f}" if clip else key

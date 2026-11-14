@@ -2,12 +2,14 @@
 // Kept in this browser for instant loading, and saved to the account so it follows you.
 // Loaded in <head>, so the right colors and font are in place before anything is drawn.
 const PREF_KEY = "joyshare_prefs";
-const FONT_CHOICES = ["unbounded", "syne", "warp", "glitch", "mono", "fredoka", "bangers", "audiowide", "win"];
-const THEME_CHOICES = ["void", "acid", "sunset", "zine", "clay", "win95", "comic", "vapor"];
+const FONT_CHOICES = ["unbounded", "syne", "warp", "glitch", "mono", "fredoka", "bangers", "win",
+  "playfair", "intertight", "cormorant", "manrope", "dmserif", "plex"];
+const THEME_CHOICES = ["zine", "acid", "clay", "win95", "comic", "editorial", "swiss", "midnight", "nordic", "library", "studio"];
 // Each look comes with lettering that suits it. Picking a look switches to it; you can still change it after.
-const THEME_FONT = { void: "unbounded", acid: "warp", sunset: "syne", zine: "mono", clay: "fredoka", win95: "win", comic: "bangers", vapor: "audiowide" };
+const THEME_FONT = { acid: "warp", zine: "mono", clay: "fredoka", win95: "win", comic: "bangers",
+  editorial: "playfair", swiss: "intertight", midnight: "cormorant", nordic: "manrope", library: "dmserif", studio: "plex" };
 
-const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "none"];
+const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none"];
 // scene: which 3D progress scene to show ("random", one of them, or "none").
 // motion: "auto" follows the device's Reduce Motion setting, "full" always shows the full scenes.
 const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto" };
@@ -36,12 +38,12 @@ function applyPrefs() {
   // The name and color a phone uses when the app is added to the home screen.
   const appTitle = document.getElementById("app-title"), themeColor = document.getElementById("theme-color");
   if (appTitle) appTitle.content = brandName();
-  if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#07050d";
+  if (themeColor) themeColor.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#efe8d8";
   if (!document.body) return; // called once from <head> before the page exists
   document.getElementById("brand").textContent = brandName();
   document.getElementById("ticker").textContent = t("ticker").repeat(8);
   document.getElementById("lang-toggle").textContent = prefs.lang === "es" ? "🇲🇽 ES" : "🇺🇸 EN";
-  for (const b of document.querySelectorAll("[data-font]")) b.setAttribute("aria-pressed", String(b.dataset.font === prefs.font));
+  for (const b of document.querySelectorAll("#style-fonts [data-font]")) b.setAttribute("aria-pressed", String(b.dataset.font === prefs.font));
   for (const b of document.querySelectorAll("[data-theme-pick]")) b.setAttribute("aria-pressed", String(b.dataset.themePick === prefs.theme));
   for (const b of document.querySelectorAll("[data-scene]")) b.setAttribute("aria-pressed", String(b.dataset.scene === prefs.scene));
   translatePage();
@@ -88,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyPrefs();
 
   $id("lang-toggle").addEventListener("click", () => setPrefs({ lang: prefs.lang === "es" ? "en" : "es" }));
-  for (const b of document.querySelectorAll("[data-font]")) {
+  for (const b of document.querySelectorAll("#style-fonts [data-font]")) {
     b.addEventListener("click", () => setPrefs({ font: b.dataset.font }));
   }
   for (const b of document.querySelectorAll("[data-theme-pick]")) {

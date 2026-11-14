@@ -9,3 +9,4 @@ backups/
 # Personal notes that may hold secrets (for example the Cloudflare tunnel token)
 cloudfare_tunnel_docker_notes.txt
 *_notes.txt
+.retired

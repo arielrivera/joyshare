@@ -230,6 +230,16 @@ ES = {
     "Platform tests are limited to {count} every 3 hours. Try again in {minutes} minutes.":
         "Las pruebas de plataformas están limitadas a {count} cada 3 horas. Inténtalo de nuevo en {minutes} minutos.",
     "Backup failed": "Falló la copia de seguridad",
+    "Not found.": "No encontrado.",
+    "Give both a start and an end for the part.": "Indica el inicio y el final de la parte.",
+    "The part must be inside the video.": "La parte debe estar dentro del video.",
+    "The end must be at least 1 second after the start.": "El final debe estar al menos 1 segundo después del inicio.",
+    "That part is outside the video.": "Esa parte está fuera del video.",
+    "A second copy is running": "Hay una segunda copia funcionando",
+    "Another copy of this app is answering at {url}. People will look signed out at random and "
+    "videos will go missing. Stop the old one with: ./joyshare retire":
+        "Otra copia de esta app está respondiendo en {url}. La gente aparecerá sin sesión al azar y "
+        "faltarán videos. Detén la anterior con: ./joyshare retire",
     "The cloud copy failed, the copy on the server was made: {reason}":
         "Falló la copia en la nube; la copia en el servidor sí se hizo: {reason}",
     "No backup was made: {reason}": "No se hizo ninguna copia de seguridad: {reason}",

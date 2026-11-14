@@ -20,12 +20,14 @@ Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesi
 ## How to work on it
 
 ```bash
-docker compose up -d --build
+./joyshare update
 ```
 
 ```bash
-docker compose run --rm --no-deps web python -m pytest -q tests
+./joyshare test
 ```
+
+The `joyshare` script is the one place to start, stop, update, back up and retire. It turns on the optional `tunnel` and `caddy` containers from what is in `.env` (`CLOUDFLARE_TUNNEL_TOKEN`, `JOYSHARE_DOMAIN`).
 
 - App: http://localhost:8080. Two containers from one image: `web` (FastAPI, `app/main.py`) and `worker` (`app/worker.py`, also runs the scheduler).
 - Data lives in the Docker volume `joyshare_joyshare_data`. Never run `docker compose down -v` unless a wipe is wanted.
@@ -134,7 +136,13 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] Adding a look: a variables block and an override block in `web/style.css`, a swatch button in `web/index.html`, the name in `web/i18n.js`, its lettering in `THEME_FONT` (`web/prefs.js`), and the allowed lists in `app/auth.py`.
 - [ ] Decide: stay with plain HTML/CSS/JS or move to SvelteKit. Current advice: stay.
 
-## Clips: sharing only part of a video — planned, not built
+## Clips: sharing only part of a video — steps 1 and 2 built (13 Nov 2026), step 3 open
+
+Built: `jobs.clip_start` / `clip_end` (migration 5), `presets.check_clip()` and the range in `output_key()`, `media.convert(clip=…)` (always re-encodes, so the cut is exact), size estimates scaled in the interface, `clip_ok` on presets so a video too big to share whole can still be clipped. Interface: "Just a part of the video" with Start and End on the size step, and "Start here" / "End here" / "Make this clip" under the finished video. Tests in `tests/test_clips.py` include real cuts made with ffmpeg. A real 6.5-second clip of an X video was made end to end.
+
+Not built: step 3 below (fetching only the part with `download_ranges`). Until then the whole original is downloaded first, so the video must be within the download limit (`max_source_mb`) and the length limit.
+
+The original plan, kept for reference:
 
 The idea: the person gives a start and an end, and only that part is made and shared. It also lets a video that is over the size limit be shared as a clip.
 
@@ -173,9 +181,28 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] The app is called **vidshare** in the interface (`JOYSHARE_NAME`); the repository, script and settings keep the name joyshare. New people and devices start in the Zine look.
 - [x] Confirmed by the owner on 13 Nov 2026: a passkey registered on the domain from the iPhone, and sign-in on the Mac at the domain with that same passkey (it reached the Mac through iCloud Keychain).
 
+### Moving and running in one place — done 13 Nov 2026 (branch `easier-moves`)
+- [x] `./joyshare start | stop | restart | update | status | logs | test | retire | unretire`, next to backup and restore. Optional containers follow `.env`.
+- [x] `caddy` service (profile `caddy`, `JOYSHARE_DOMAIN`): https without Cloudflare. The visitor's address is read from `X-Forwarded-For` when the request comes from a private network. Proxying was checked; a real certificate on a real server was not.
+- [x] Second-copy detection (`app/twin.py`): each copy has a random id in `/data/cache/instance_id` (not in backups), shown by `/api/health`. The worker asks the public address 4 times every 10 minutes; a different id means another copy is answering. Urgent alert `second_copy` (at most every 6 hours), a red warning on the Overview tab, an audit entry.
+- [x] `docs/MOVING-MAC.md` and `docs/MOVING-LINUX.md` (these replace the planned `docs/MOVING.md`). Neither move has been done for real yet.
+- [x] Link box: tapping it selects what's there; Paste, Copy and Clear buttons under it. The iPhone's own "Paste" confirmation can't be removed by a web page.
+
+### Polish round — done 13 Nov 2026 (branch `easier-moves`)
+- [x] A lively wait while a link is looked up (`#looking`, CSS only, rotating lines in both languages).
+- [x] Recent list: **Copy link** on every finished file, **Make again** on expired, failed and canceled ones. The server reuses a live link, and makes a new one only when the old one has under 2 hours left and a longer one is possible (`LINK_NEARLY_OVER`).
+- [x] Style panel: looks first, then fonts.
+- [x] Readable activity log: `/api/admin/audit` returns details as an object with names and titles filled in; `web/admin.js` turns them into sentences from `actd.*` and `actv.*` entries in the dictionary. A new kind of entry needs an `act.` title and, if it has details, an `actd.` pattern.
+- [x] Four more scenes: Rocket, Black hole, Dominoes, Abduction (`web/scenes/`). All drawn in code, no downloaded models. Checked by reading pixels in every state; not yet watched by a person.
+- [x] Looks, round 3: all six built (Editorial, Swiss, Midnight, Nordic, Library, Studio) from the sketches in `docs/design/look-options-3.html`. They share one block of "classic" rules at the end of `web/style.css` (no glow, nothing tilted, thin lines); each look only sets colors and a few shape values, plus a short block of its own. Fonts are self-hosted (`web/fonts/README.md`).
+- [x] Preview pictures are copied to the server when a link is looked up (`app/thumbs.py`, `/data/thumbs`, `GET /api/media/{id}/thumb`) and shown on the size step, in the Recent list and as the player's poster. Older videos get theirs the first time it is asked for. Only https addresses on the public internet are fetched.
+- [x] The link box only takes web addresses: Paste, a pasted text and Look up all go through `webAddress()` in `web/app.js`, which also pulls the address out of surrounding text.
+- [x] **Copy link** in Recent says so clearly: the button flips to "✓ Copied" and a highlighted line stays under the row. When the app doesn't answer (for example while it restarts) the message now says that, instead of "Something went wrong".
+- [x] Removed at the owner's request: the Void, Sunset and Vaporwave looks and the Audiowide lettering. Anyone who had one of them falls back to Zine. Looks now: Zine, Acid, Clay, Windows 95, Comic, Editorial, Swiss, Midnight, Nordic, Library, Studio.
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
-- [ ] Move to the Mac mini with the backup and restore scripts; write `docs/MOVING.md` while doing it, including a "Leaving Cloudflare" chapter (then a web server such as Caddy, a fixed IP or dynamic DNS, and open ports are needed).
+- [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.
 - [ ] Cloudflare Tunnel container in `docker-compose.yml`; set `JOYSHARE_PUBLIC_URL` to the https address; read the visitor's address from Cloudflare's header for the failed-attempt limit.
 - [ ] Every device registers its passkey again on the real domain (passkeys are tied to the address).
 - [ ] Uptime Kuma in a container on the DigitalOcean droplet, watching `/api/health` and a worker heartbeat, alerting through ntfy.

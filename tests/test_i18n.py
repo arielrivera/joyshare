@@ -83,7 +83,7 @@ def test_saved_look_follows_the_account(client, conn):
     assert client.get("/api/auth/status").json()["prefs"]["name"] == "share"
     assert auth.get_prefs(conn, 1)["name"] == "share"
 
-    for theme, font in (("zine", "mono"), ("clay", "fredoka"), ("win95", "win"), ("comic", "bangers"), ("vapor", "audiowide")):
+    for theme, font in (("zine", "mono"), ("clay", "fredoka"), ("win95", "win"), ("comic", "bangers"), ("editorial", "playfair"), ("studio", "plex")):
         assert client.put("/api/auth/prefs", json={"theme": theme, "font": font}).json()["theme"] == theme
     assert client.put("/api/auth/prefs", json={"font": "comic-sans"}).status_code == 422
     assert client.put("/api/auth/prefs", json={"name": "x" * 25}).status_code == 422

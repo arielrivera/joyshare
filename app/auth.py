@@ -82,11 +82,12 @@ _failures: dict[str, deque] = defaultdict(deque)
 
 
 def _ip(request: Request) -> str:
-    """The visitor's address. Behind the Cloudflare Tunnel every request arrives from the tunnel
-    container, so the real address is in a header, which is only believed when it comes from a private network."""
+    """The visitor's address. Behind the Cloudflare Tunnel (or the Caddy web server) every request arrives
+    from that container, so the real address is in a header, which is only believed when it comes from a
+    private network. Caddy writes X-Forwarded-For itself and puts the visitor last."""
     peer = request.client.host if request.client else "unknown"
-    forwarded = request.headers.get("cf-connecting-ip")
-    if forwarded:
+    forwarded = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for", "").split(",")[-1]
+    if forwarded.strip():
         try:
             if ipaddress.ip_address(peer).is_private:
                 return forwarded.strip()[:64]
@@ -315,12 +316,13 @@ def _take_challenge(conn, challenge_id: str, kind: str):
 
 # ---------- each person's own look ----------
 
-FONTS = ("unbounded", "syne", "glitch", "warp", "mono", "fredoka", "bangers", "audiowide", "win")
-THEMES = ("void", "acid", "sunset", "zine", "clay", "win95", "comic", "vapor")
+FONTS = ("unbounded", "syne", "glitch", "warp", "mono", "fredoka", "bangers", "win",
+         "playfair", "intertight", "cormorant", "manrope", "dmserif", "plex")
+THEMES = ("zine", "acid", "clay", "win95", "comic", "editorial", "swiss", "midnight", "nordic", "library", "studio")
 
 
 DEFAULT_THEME, DEFAULT_FONT = "zine", "mono"   # the look a new person starts with
-SCENES = ("random", "demolition", "compressor", "voyage", "none")
+SCENES = ("random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none")
 MOTION = ("auto", "full")
 
 

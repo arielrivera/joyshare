@@ -93,6 +93,16 @@ def test_the_visitor_header_is_only_believed_from_a_private_network():
     assert auth._ip(Fake("172.19.0.5", None)) == "172.19.0.5"
 
 
+def test_the_web_server_header_is_read_the_same_way():
+    class Fake:
+        def __init__(self, peer, forwarded):
+            self.client = type("C", (), {"host": peer})()
+            self.headers = {"x-forwarded-for": forwarded}
+    assert auth._ip(Fake("172.19.0.7", "203.0.113.9")) == "203.0.113.9"              # from the Caddy container
+    assert auth._ip(Fake("172.19.0.7", "10.9.9.9, 203.0.113.9")) == "203.0.113.9"    # the last one is what Caddy saw
+    assert auth._ip(Fake("8.8.8.8", "203.0.113.9")) == "8.8.8.8"
+
+
 def test_invite_a_new_admin_and_change_roles(client, conn):
     invite = client.post("/api/auth/invites", json={"kind": "user", "name": "Dana", "role": "admin"})
     assert invite.status_code == 200
