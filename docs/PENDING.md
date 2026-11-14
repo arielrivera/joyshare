@@ -9,7 +9,7 @@ Last updated: 13 Nov 2026 (after going live on the domain).
 | What | Why | Where the steps are |
 |---|---|---|
 | **Move the tunnel into the app's network** | Your `cloudflared` runs as a separate container reaching the app through the host. The compose file now has a `tunnel` service that reaches the app by name, which is what makes a move to another computer just work. | [SETUP.md](SETUP.md), same section, step 2 |
-| **Set up Cloudflare R2** (create a bucket and an access key) | So videos are served from Cloudflare's storage and never pass through the tunnel. Cloudflare's rules don't allow video through the tunnel itself. Also gives backups a safe place off the machine. | [SETUP.md](SETUP.md), "Serve videos from Cloudflare R2" |
+| **Set up Cloudflare R2** (create a bucket and an access key) | So videos are served from Cloudflare's storage and never pass through the tunnel. Cloudflare's rules don't allow video through the tunnel itself. Also gives backups a safe place off the machine. | [R2.md](R2.md), a step-by-step guide |
 | **Install the ntfy app and choose a topic** | So alerts reach your phone. | [SETUP.md](SETUP.md), "Turn on alerts" |
 | **Set `JOYSHARE_SECRET` in `.env`** | Stronger protection for connected accounts and the R2 secret. Do it before anyone uploads a cookie file. Keep a copy of it somewhere safe. | [SETUP.md](SETUP.md), "Settings" |
 | **Connect your accounts** (cookie files, ideally from spare accounts) | Instagram, and some videos elsewhere, are only shown to signed-in accounts. | App: ☰ → Connected accounts |
@@ -21,6 +21,7 @@ Last updated: 13 Nov 2026 (after going live on the domain).
 | What | Size | Notes |
 |---|---|---|
 | **Go live on the Mac mini** | Large | Cloudflare Tunnel container, move the data with `./joyshare backup` and `restore`, register every device again on the real domain, Uptime Kuma, write the moving and troubleshooting guides. R2 must be on first. |
+| **Clips: share only part of a video** | Medium | Give a start and end, or tap "Start here" and "End here" while watching. Planned in two steps; see the roadmap, "Clips". |
 | **More progress scenes** | Small each | Demolition, Compressor and Voyage are built, plus two calm ones. Next ideas: Rocket, Black hole, Dominoes. |
 | **Alerts per person** | Medium | Today every alert goes to the admin's ntfy topic. Members should get their own "video ready" and "account stopped working". |
 | **Platforms tab** | Small | An optional proxy per platform, for when a platform blocks your address. |

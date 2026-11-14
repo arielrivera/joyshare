@@ -27,7 +27,7 @@ def test_health_and_static(client):
     assert "default-src 'self'" in page.headers["content-security-policy"]
     # Scripts and styles are referenced at an address that changes with every update, so no cache can serve old ones.
     import re
-    assert page.headers["cache-control"] == "no-store"
+    assert page.headers["cache-control"] == "no-cache"
     script = re.search(r'src="(/a/[0-9a-f]{12}/auth\.js)"', page.text).group(1)
     assert re.search(r'href="/a/[0-9a-f]{12}/style\.css"', page.text) and 'src="/auth.js"' not in page.text
     asset = client.get(script)

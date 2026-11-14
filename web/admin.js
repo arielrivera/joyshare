@@ -9,6 +9,46 @@ let adminSettings = null; // { settings, limits, platforms, alert_events } from 
 const LIMIT_ORDER = ["max_file_mb", "max_duration_min", "max_concurrent_jobs", "source_ttl_min",
   "output_ttl_hours", "link_ttl_hours", "disk_warn_pct", "disk_pause_pct", "max_source_mb"];
 
+// ---------- not losing what was typed ----------
+// A phone often reloads a page when you leave it to copy something from another app. So every admin form
+// remembers what was typed, for this browser tab only, until it has been saved. The tab you were on is
+// remembered too, so a reload brings you back to the same place.
+
+const DRAFT_FORMS = ["sto-form", "adm-alerts", "adm-limits", "sys-checks-form"];
+const draftKey = (formId) => `joyshare_draft_${formId}`;
+const store = {
+  get(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; } },
+  set(key, value) { try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* private window */ } },
+  drop(key) { try { sessionStorage.removeItem(key); } catch { /* private window */ } },
+};
+
+function rememberDraft(formId) {
+  const draft = {};
+  for (const field of $(formId).querySelectorAll("input[id], select[id]")) {
+    draft[field.id] = field.type === "checkbox" ? field.checked : field.value;
+  }
+  store.set(draftKey(formId), draft);
+}
+
+// Puts unsaved typing back over the values that came from the server. Returns true if there was any.
+function restoreDraft(formId) {
+  const draft = store.get(draftKey(formId));
+  if (!draft) return false;
+  for (const [id, value] of Object.entries(draft)) {
+    const field = document.getElementById(id);
+    if (!field) continue;
+    if (field.type === "checkbox") field.checked = value; else field.value = value;
+  }
+  return true;
+}
+
+const forgetDraft = (formId) => store.drop(draftKey(formId));
+
+for (const formId of DRAFT_FORMS) {
+  $(formId).addEventListener("input", () => rememberDraft(formId));
+  $(formId).addEventListener("change", () => rememberDraft(formId));
+}
+
 async function adminAct(fn, okMessage) {
   showError($("admin-error"), "");
   $("admin-ok").hidden = true;
@@ -26,6 +66,7 @@ async function adminAct(fn, okMessage) {
 
 function showAdminTab(name) {
   adminTab = name;
+  store.set("joyshare_admin_tab", name);   // so a reload comes back here
   for (const pane of document.querySelectorAll("#admin [data-pane]")) pane.hidden = pane.dataset.pane !== name;
   for (const tab of document.querySelectorAll("#admin-tabs [data-tab]")) tab.setAttribute("aria-pressed", String(tab.dataset.tab === name));
   showError($("admin-error"), "");
@@ -190,6 +231,7 @@ async function loadLimits() {
     fields.append(label, input);
   }
   $("adm-platforms").replaceChildren(...Object.entries(platforms).map(([id, name]) => checkbox(`adm-platform-${id}`, id, name, settings.platforms.includes(id))));
+  restoreDraft("adm-limits");
 }
 
 function checkbox(id, value, text, checked) {
@@ -216,6 +258,7 @@ $("adm-limits").addEventListener("submit", (e) => {
     if (Object.keys(changes).length) {
       await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes }) });
     }
+    forgetDraft("adm-limits");
     await loadLimits();
   }, t("adm.saved"));
 });
@@ -232,6 +275,7 @@ async function loadAlerts() {
   $("adm-clear-token").hidden = !settings.has_ntfy_token;
   $("adm-events").replaceChildren(...events.filter((ev) => ev !== "test")
     .map((ev) => checkbox(`adm-event-${ev}`, ev, t(`alert.${ev}`), settings.alerts[ev] !== false)));
+  restoreDraft("adm-alerts");
 }
 
 async function saveAlerts() {
@@ -239,6 +283,7 @@ async function saveAlerts() {
   if ($("adm-ntfy-token").value) changes.ntfy_token = $("adm-ntfy-token").value; // empty box = keep the saved one
   for (const box of document.querySelectorAll("#adm-events input")) changes.alerts[box.value] = box.checked;
   await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes }) });
+  forgetDraft("adm-alerts");
   await loadAlerts();
 }
 
@@ -289,6 +334,7 @@ async function loadStorage(steps) {
   $("sto-secret").placeholder = s.has_r2_secret_access_key ? t("sto.secretSaved") : "";
   $("sto-endpoint").value = s.r2_endpoint;
   $("sto-region").value = s.r2_region;
+  $("sto-draft-note").hidden = !restoreDraft("sto-form");   // unsaved typing wins over what the server has
   const shown = steps || data.last_test;
   $("sto-steps").replaceChildren(...shown.map((step) => {
     const li = row(t(`sto.test.${step.step}`), step.ok ? t("sto.passed") : (step.optional ? t("sto.skipped") : t("sto.failed")));
@@ -313,10 +359,17 @@ $("sto-form").addEventListener("submit", (e) => {
     };
     if ($("sto-secret").value) changes.r2_secret_access_key = $("sto-secret").value; // empty box = keep the saved one
     await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes }) });
+    forgetDraft("sto-form");   // it is saved on the server now
     const result = await api("/api/admin/storage/test", { method: "POST" });
     await loadStorage(result.steps);
     if (!result.passed) throw new Error(t("sto.testFailed"));
   }, t("sto.testPassed"));
+});
+
+// "Clear what I typed": throw away unsaved typing and show what is saved on the server.
+$("sto-clear").addEventListener("click", () => {
+  forgetDraft("sto-form");
+  adminAct(() => loadStorage());
 });
 
 function switchStorage(mode, message) {
@@ -374,6 +427,7 @@ async function loadSystem() {
     li.append(stack);
     return li;
   }));
+  restoreDraft("sys-checks-form");
   $("sys-test-platforms").disabled = data.checking_platforms || data.manual_tests_left <= 0;
   $("sys-tests-left").textContent = data.manual_tests_left > 0
     ? t("sys.testsLeft", { n: data.manual_tests_left })
@@ -420,6 +474,7 @@ $("sys-checks-form").addEventListener("submit", (e) => {
     const urls = {};
     for (const input of document.querySelectorAll("#sys-checks input[data-platform]")) urls[input.dataset.platform] = input.value.trim();
     await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { canary_platforms: included, canary_urls: urls } }) });
+    forgetDraft("sys-checks-form");
     await loadSystem();
   }, t("adm.saved"));
 });
@@ -444,7 +499,18 @@ $("open-admin").addEventListener("click", () => {
   showAdminTab("overview");
 });
 
-$("close-admin").addEventListener("click", () => showScreen("app"));
+$("close-admin").addEventListener("click", () => {
+  store.drop("joyshare_admin_tab");
+  showScreen("app");
+});
+
+// After a reload (a phone does this on its own when you switch apps), go back to the tab that was open.
+document.addEventListener("joyshare:signed-in", () => {
+  const tab = store.get("joyshare_admin_tab");
+  if (!tab || !ADMIN_LOADERS[tab] || !me || me.role !== "admin") return;
+  showScreen("admin");
+  showAdminTab(tab);
+});
 
 // Language changed while the panel is open: reload the tab so its words follow.
 document.addEventListener("joyshare:prefs", () => {

@@ -133,7 +133,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v6.2</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v6.3</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -616,6 +616,7 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>13 Nov 2026</time><div>v6.3. Sign-in on the domain confirmed from iPhone and Mac. Scripts and styles now get a new address with every update, so Cloudflare and browsers can't serve old copies. The share button says "Share video", and "Get a link for friends" copies the link and says so. New: a step-by-step Cloudflare R2 guide (<code>docs/R2.md</code>) and a plan for sharing clips of long videos (roadmap, "Clips").</div></li>
         <li><time>13 Nov 2026</time><div>v6.2. Live on a domain through the Cloudflare Tunnel: the app now works at its domain and at localhost on the server, with passkeys tied to whichever address is used. The tunnel can run inside the app's own network. The interface is renamed vidshare, new people start in the Zine look, an animated tip points at the pencil, admin tabs wrap instead of scrolling, and admins can add other admins. 115 automated tests.</div></li>
         <li><time>13 Nov 2026</time><div>v6.1. Look and feel, first part: three 3D progress scenes (Demolition, Compressor, Voyage) with failure endings, two calm scenes for devices with Reduce Motion on, a scene picker with preview, an app icon and home-screen install, and the share page in the sender's look. Backups and the storage switch are on main.</div></li>
         <li><time>13 Nov 2026</time><div>v6.0. Backups are built: a daily database snapshot kept on the server and, when R2 is set up, in the bucket; "Back up now" on the System tab; and a <code>joyshare</code> script to back up, restore and move servers. "Test platforms now" is limited to 2 every 3 hours, and the admin chooses which platforms are checked. A short summary of everything pending is in <code>docs/PENDING.md</code>. Phase 3 is complete except a Platforms tab. 109 automated tests.</div></li>

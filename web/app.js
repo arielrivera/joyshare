@@ -301,6 +301,7 @@ function renderResult(job, fresh) {
   $("download").href = file.download_url;
   $("link-box").hidden = true;
   $("link-note").hidden = true;
+  $("link-copied").hidden = true;
   $("link").onclick = () => makeLink(file);
   prepareShare(job, file);
 }
@@ -336,19 +337,57 @@ $("share").addEventListener("click", async () => {
   try { await navigator.share({ files: [shareFile] }); } catch { /* closed the sheet */ }
 });
 
+// Says clearly whether the link is on the clipboard. Stays on screen: a button label that flips for two seconds is easy to miss.
+function showCopied(ok) {
+  const note = $("link-copied");
+  note.textContent = ok ? t("res.copiedNote") : t("res.copyManual");
+  note.classList.toggle("ok", ok);
+  note.hidden = false;
+  if (ok) {
+    $("copy").textContent = t("copied");
+    setTimeout(() => { $("copy").textContent = t("copy"); }, 2500);
+  } else {
+    $("link-url").focus();
+    $("link-url").select();
+  }
+}
+
+// "Get a link for friends": make the link and put it on the clipboard in the same tap.
 async function makeLink(file) {
+  $("link-copied").hidden = true;
+  const request = api(`/api/files/${file.id}/share`, { method: "POST" });
+  // Browsers only allow copying as a direct result of a tap. Handing the clipboard a promise (instead of
+  // waiting for the link first) keeps that permission alive while the link is being made. Safari needs this.
+  let copying = null;
+  if (navigator.clipboard && window.ClipboardItem) {
+    try {
+      const text = request.then((link) => new Blob([link.url], { type: "text/plain" }));
+      copying = navigator.clipboard.write([new ClipboardItem({ "text/plain": text })]);
+    } catch { copying = null; }
+  }
   try {
-    const link = await api(`/api/files/${file.id}/share`, { method: "POST" });
+    const link = await request;
     $("link-url").value = link.url;
     $("link-box").hidden = false;
     $("link-note").textContent = t("res.linkNote", { when: fmtWhen(link.expires_at) });
+    let copied = false;
+    try {
+      if (copying) { await copying; copied = true; }
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(link.url); copied = true; }
+    } catch { copied = false; }
+    showCopied(copied);
   } catch (err) {
+    if (copying) copying.catch(() => {});
     $("link-note").textContent = err.message;
   }
   $("link-note").hidden = false;
 }
 
-$("copy").addEventListener("click", () => copyFrom($("link-url"), $("copy")));
+$("copy").addEventListener("click", async () => {
+  let copied = false;
+  try { await navigator.clipboard.writeText($("link-url").value); copied = true; } catch { copied = false; }
+  showCopied(copied);
+});
 $("again").addEventListener("click", () => showStep("media"));
 $("new-link").addEventListener("click", startOver);
 

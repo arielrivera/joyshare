@@ -57,6 +57,7 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 ## Dig deeper
 
 - **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut, troubleshooting
+- **[Cloudflare R2 guide](docs/R2.md)**: serving videos from R2, step by step
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
 - **Moving guide** (coming): moving between a cloud server, a Mac mini and a Raspberry Pi, and what changes if you don't use Cloudflare

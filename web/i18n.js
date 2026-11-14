@@ -53,9 +53,11 @@ const STRINGS = {
 
     "res.ready": "Ready", "res.reused": "Ready (you already had this one)",
     "res.kept": "kept until {when}",
-    "res.share": "Share", "res.download": "Download", "res.link": "Get a link for friends",
+    "res.share": "Share video", "res.download": "Download", "res.link": "Get a link for friends",
     "res.tooBig": "This file is too big for the share sheet. Use Download or a link instead.",
     "res.linkNote": "Anyone with this link can watch until {when}.",
+    "res.copiedNote": "Link copied. Paste it into a message to send it.",
+    "res.copyManual": "The link is selected. Copy it from the box above.",
     "res.linkLabel": "Share link",
     "res.another": "Another size", "res.new": "New link",
 
@@ -229,6 +231,8 @@ const STRINGS = {
     "join.helpInvite": "Your invite code is already filled in. Give this device a name, then press the button. You'll confirm with Face ID, Touch ID or your screen lock.",
     "auth.already": "Already registered this device?", "auth.alreadyHelp": "Then you don't need the code. Just sign in.",
     "join.cancel": "Cancel and go back",
+    "sto.draftNote": "What you typed earlier is still here. It isn't saved until you press \"Save and test\".",
+    "sto.clearDraft": "Clear what I typed",
     "out.title": "Sign out everywhere",
     "out.help": "Signs you out on every device. Your passkeys keep working, so you can sign back in.",
   },
@@ -284,9 +288,11 @@ const STRINGS = {
 
     "res.ready": "Listo", "res.reused": "Listo (ya lo tenías)",
     "res.kept": "se guarda hasta {when}",
-    "res.share": "Compartir", "res.download": "Descargar", "res.link": "Crear enlace para amigos",
+    "res.share": "Compartir video", "res.download": "Descargar", "res.link": "Crear enlace para amigos",
     "res.tooBig": "Este archivo es demasiado grande para compartirlo directamente. Usa Descargar o un enlace.",
     "res.linkNote": "Cualquiera con este enlace puede verlo hasta {when}.",
+    "res.copiedNote": "Enlace copiado. Pégalo en un mensaje para enviarlo.",
+    "res.copyManual": "El enlace está seleccionado. Cópialo del recuadro de arriba.",
     "res.linkLabel": "Enlace para compartir",
     "res.another": "Otro tamaño", "res.new": "Nuevo enlace",
 
@@ -460,6 +466,8 @@ const STRINGS = {
     "join.helpInvite": "Tu código de invitación ya está puesto. Ponle un nombre a este dispositivo y pulsa el botón. Confirmarás con Face ID, Touch ID o el bloqueo de pantalla.",
     "auth.already": "¿Ya registraste este dispositivo?", "auth.alreadyHelp": "Entonces no necesitas el código. Solo entra.",
     "join.cancel": "Cancelar y volver",
+    "sto.draftNote": "Lo que escribiste antes sigue aquí. No se guarda hasta que pulses \"Guardar y probar\".",
+    "sto.clearDraft": "Borrar lo que escribí",
     "out.title": "Cerrar sesión en todas partes",
     "out.help": "Cierra tu sesión en todos los dispositivos. Tus llaves de acceso siguen funcionando, así que puedes volver a entrar.",
   },

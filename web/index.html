@@ -179,6 +179,7 @@
             <input id="link-url" type="text" readonly>
             <button id="copy" type="button" class="secondary" data-i18n="copy"></button>
           </div>
+          <p id="link-copied" class="copied" role="status" hidden></p>
           <p id="link-note" class="muted" hidden></p>
           <div class="actions next">
             <button id="again" type="button" class="quiet" data-i18n="res.another"></button>
@@ -401,6 +402,7 @@
           <li data-i18n="sto.step4"></li>
           <li data-i18n="sto.step5"></li>
         </ol>
+        <p id="sto-draft-note" class="note" data-i18n="sto.draftNote" hidden></p>
         <form id="sto-form" autocomplete="off">
           <div class="fields one">
             <label for="sto-account" data-i18n="sto.account"></label>
@@ -423,6 +425,7 @@
           </details>
           <div class="actions">
             <button type="submit" class="secondary" data-i18n="sto.saveTest"></button>
+            <button id="sto-clear" type="button" class="quiet" data-i18n="sto.clearDraft"></button>
           </div>
         </form>
         <ul id="sto-steps" class="rows"></ul>

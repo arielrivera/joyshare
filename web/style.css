@@ -252,6 +252,12 @@ form#make { display: grid; gap: 14px; }
 #result-name { font-weight: 700; overflow-wrap: anywhere; }
 #player video, #player audio { width: 100%; max-height: 60vh; border-radius: 14px; border: 2px solid var(--edge); background: #000; display: block; }
 #player audio { background: transparent; border: 0; }
+.copied { font-weight: 700; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--edge); background: var(--field); }
+.copied.ok { background: var(--zap); color: var(--pop-ink); }
+.copied.ok::before { content: "✓ "; }
+:root[data-theme="zine"] .copied.ok, :root[data-theme="comic"] .copied.ok, :root[data-theme="clay"] .copied.ok { color: var(--ink); }
+:root[data-theme="acid"] .copied.ok, :root[data-theme="win95"] .copied.ok { background: var(--card); color: var(--ink); }
+:root[data-theme="zine"] .copied, :root[data-theme="win95"] .copied { border-radius: 2px; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .actions.next { justify-content: space-between; border-top: 2px dashed color-mix(in srgb, var(--edge) 40%, transparent); padding-top: 14px; }
 

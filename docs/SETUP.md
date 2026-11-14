@@ -143,6 +143,8 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 
 ### Serve videos from Cloudflare R2
 
+**The full step-by-step guide is in [R2.md](R2.md).** In short:
+
 By default, finished videos are served from the computer joyshare runs on. With R2 on, each finished video is uploaded to your R2 bucket and viewers get it straight from Cloudflare's storage.
 
 **Turn this on before joyshare is reachable from the internet through a Cloudflare Tunnel.** Cloudflare's rules don't allow video through the tunnel itself, and with R2 the video never goes through it. R2 is free for the first 10 GB stored.

@@ -134,6 +134,36 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [ ] Adding a look: a variables block and an override block in `web/style.css`, a swatch button in `web/index.html`, the name in `web/i18n.js`, its lettering in `THEME_FONT` (`web/prefs.js`), and the allowed lists in `app/auth.py`.
 - [ ] Decide: stay with plain HTML/CSS/JS or move to SvelteKit. Current advice: stay.
 
+## Clips: sharing only part of a video — planned, not built
+
+The idea: the person gives a start and an end, and only that part is made and shared. It also lets a video that is over the size limit be shared as a clip.
+
+**Two ways to get the part**
+
+| | A. Fetch only the part | B. Fetch the whole video, then cut |
+|---|---|---|
+| How | yt-dlp's `download_ranges` (the `--download-sections` option) | The cached original is cut with ffmpeg (`-ss` / `-to`) |
+| Good | Little data, quick for a short part of a long video; works when the whole video is too big | Several clips from one download; reuses today's pipeline and cache |
+| Bad | Slower per second of video on some platforms; another code path to keep working | The whole video must be downloaded first, within today's size and length limits |
+
+**Two ways to cut**
+
+- *Copy without re-encoding:* instant, no quality loss, but the clip can only start on a keyframe, so it may begin a few seconds early.
+- *Re-encode the clip:* starts and ends exactly where asked. Clips are short, so this takes seconds.
+
+**Plan**
+
+1. **Server, step one (B + re-encode).** `jobs` gets `clip_start` and `clip_end` (seconds). `media.convert()` takes them and re-encodes just that range (libx264, AAC, fast start). The range becomes part of the output key, so the same clip is reused and different clips don't collide. Size estimate = the preset's estimate × (clip length ÷ video length); the size limit applies to the clip. Validate: start < end, both inside the video, a minimum length of 1 second.
+2. **Interface, two entry points.**
+   - *Before making:* a "Just a part" switch on the size step with Start and End boxes (`m:ss`), for people who already know the times.
+   - *After making:* on the finished video, "Start here" and "End here" buttons that read the player's current time, then "Make this clip". This is the easy way: watch, tap, tap. It cuts from the original that is cached for an hour.
+3. **Long videos, step two (A).** When the whole video is over the download limit, fetch only the requested part with `download_ranges` and `force_keyframes_at_cuts`. Until this exists, a clip from a too-big video is refused with a clear message.
+4. **Fit a size + clip** work together: the clip is cut first, then fitted.
+5. Tests: range validation, the output key, the estimate, a real cut of a short public video checked with ffprobe (length within 0.2 s).
+6. Both languages, both guides.
+
+Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus checking each platform.
+
 ## Phase 5: go live — started by the owner
 - [x] Domain and Cloudflare Tunnel are up (`https://vids.arielrivera.app`), with `JOYSHARE_PUBLIC_URL` set in `.env`.
 - [x] The app accepts more than one address (`config.ORIGINS`, `auth.site()`): the main one plus `http://localhost:PORT` on the server. Passkeys, the cross-site check and the cookie's https flag follow the address in use.

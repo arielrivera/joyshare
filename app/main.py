@@ -74,7 +74,9 @@ async def security_headers(request: Request, call_next):
     elif path.startswith(("/fonts/", "/vendor/", "/icons/")):
         response.headers.setdefault("Cache-Control", "public, max-age=604800")
     elif not path.startswith("/api/"):
-        response.headers.setdefault("Cache-Control", "no-store")
+        # "no-cache" means: ask the server before reusing. Unlike "no-store" it doesn't push browsers to
+        # throw the page away (and reload it) the moment you look at another app.
+        response.headers.setdefault("Cache-Control", "no-cache")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("X-Frame-Options", "DENY")
