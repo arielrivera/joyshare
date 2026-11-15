@@ -228,6 +228,7 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] People: inviting sits at the top in its own box; the list of people with access comes below under its own heading.
 - [x] System: an animation next to **Check for updates now** while the worker checks (it shows straight away, and goes when the check is done).
 - [x] Videos: pictures (admin route `/api/admin/media/{id}/thumb`, any person's video), search (`q` on `/api/admin/jobs`: every word must match the title, channel, description, link, platform or person), and a details panel per video with the original link.
+- [x] The finished screen has **✕ Close** at the right of New link: it puts the video away and goes back to the Recent list (or the link box).
 - Preview pictures are kept in `/data/thumbs` after the video files expire; nothing removes them yet. At about 50 KB each that's small, but a clean-up of pictures for very old videos may be worth adding later.
 
 ## Phase 5: remaining

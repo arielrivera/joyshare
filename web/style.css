@@ -939,3 +939,7 @@ dl.adm-details dd { margin: 0; overflow-wrap: anywhere; }
 @keyframes orbit-spin { to { transform: rotate(360deg); } }
 @keyframes orbit-pulse { from { transform: scale(.6); } to { transform: scale(1.4); } }
 @media (prefers-reduced-motion: reduce) { .busy-orbit i, .busy-orbit b, .busy-orbit b::after { animation-duration: 3s; } }
+
+/* Finished screen: Another size, New link, and Close at the far right */
+.actions.next { align-items: center; }
+#close-result { margin-left: auto; }

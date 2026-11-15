@@ -509,6 +509,7 @@ $("scene-full").addEventListener("click", () => {
 });
 
 function watch(jobId, media) {
+  resultFrom = null;
   if (events) events.close();
   lastJob = null;
   startScene();
@@ -782,6 +783,18 @@ $("copy").addEventListener("click", async () => {
 $("again").addEventListener("click", () => showStep("media"));
 $("new-link").addEventListener("click", startOver);
 
+// Close: put the finished video away and go back to where you came from (the Recent list, or the link box).
+$("close-result").addEventListener("click", () => {
+  const player = $("player").querySelector("video, audio");
+  if (player) player.pause();
+  if (events) { events.close(); events = null; }
+  stopScene();
+  showStep(null);
+  const back = resultFrom === "recent" && !$("recent").hidden ? $("recent") : $("lookup");
+  resultFrom = null;
+  back.scrollIntoView({ block: "start", behavior: "smooth" });
+});
+
 // ---------- recent ----------
 
 function chip(label, onClick) {
@@ -814,7 +827,10 @@ async function makeAgain(job, note) {
 let openRecentId = null;   // the row that is open in the list, kept when the list is redrawn
 
 // Shows an earlier video on the finished screen: player, Send or save, link, and the clip timeline.
+let resultFrom = null;   // "recent" when the finished screen was opened from the Recent list
+
 function openFinished(job, toClip) {
+  resultFrom = "recent";
   if (events) { events.close(); events = null; }
   stopScene();
   current = null;   // no size step behind it
