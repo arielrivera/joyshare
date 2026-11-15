@@ -290,7 +290,7 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
         if duration:
             end = min(end, duration)
         if end - start < presets.MIN_CLIP:
-            raise MediaError("That part is outside the video.")
+            raise MediaError("That clip is outside the video.")
         common_in = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src)]
         duration = end - start
     common_out = ["-sn", "-dn", "-map_metadata", "-1", "-movflags", "+faststart"]

@@ -9,6 +9,7 @@ import signal
 import threading
 import time
 import uuid
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from . import backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store, twin
@@ -160,11 +161,34 @@ class Worker:
 
             # A clip is cut from the whole original, which is then kept for more clips of the same video.
             key = presets.source_key(preset_id, target_mb, clip_length or item["duration"])
+            fetched = None   # a copy brought back from cloud storage just for this job
             with self.source_lock(media_id, key):
                 source = store.find_file(conn, user_id, media_id, "source", key)
                 if source:
                     source_id = source["id"]
                     source_path = store.abs_path(source)
+                elif clip and job["from_file_id"]:
+                    # Cut from a finished file we already hold. The platform is not asked again.
+                    base = conn.execute(
+                        "SELECT * FROM files WHERE id=? AND user_id=? AND media_id=? AND kind='output' "
+                        "AND deleted_at IS NULL AND expires_at>?",
+                        (job["from_file_id"], user_id, media_id, db.now())).fetchone()
+                    if not base:
+                        raise media.MediaError("The file to cut from is gone. Make the video again first.")
+                    source_id = base["id"]
+                    if base["storage"] == "local":
+                        source_path = store.abs_path(base)
+                    else:
+                        set_stage("downloading")
+                        config.TMP_DIR.mkdir(parents=True, exist_ok=True)
+                        fetched = config.TMP_DIR / f"{uuid.uuid4().hex}{Path(base['path']).suffix}"
+                        storage.download(conn, base["path"], fetched)
+                        source_path = fetched
+                    # That file may itself be a clip: its key ends in "@start-end". Count from where it starts.
+                    offset = float(base["key"].split("@")[1].split("-")[0]) if "@" in base["key"] else 0.0
+                    clip = (round(clip[0] - offset, 1), round(clip[1] - offset, 1))
+                    if clip[0] < 0:
+                        raise media.MediaError("That clip is outside the video.")
                 else:
                     set_stage("downloading")
                     tmp = config.TMP_DIR / uuid.uuid4().hex
@@ -235,6 +259,8 @@ class Worker:
         finally:
             with self.guard:
                 self.in_use.difference_update(held)
+            if locals().get("fetched"):
+                locals()["fetched"].unlink(missing_ok=True)
             conn.close()
 
     @staticmethod

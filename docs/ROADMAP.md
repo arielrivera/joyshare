@@ -138,7 +138,7 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 
 ## Clips: sharing only part of a video — steps 1 and 2 built (13 Nov 2026), step 3 open
 
-Built: `jobs.clip_start` / `clip_end` (migration 5), `presets.check_clip()` and the range in `output_key()`, `media.convert(clip=…)` (always re-encodes, so the cut is exact), size estimates scaled in the interface, `clip_ok` on presets so a video too big to share whole can still be clipped. Interface: "Just a part of the video" with Start and End on the size step, and "Start here" / "End here" / "Make this clip" under the finished video. Tests in `tests/test_clips.py` include real cuts made with ffmpeg. A real 6.5-second clip of an X video was made end to end.
+Built: `jobs.clip_start` / `clip_end` (migration 5), `presets.check_clip()` and the range in `output_key()`, `media.convert(clip=…)` (always re-encodes, so the cut is exact), size estimates scaled in the interface, `clip_ok` on presets so a video too big to share whole can still be clipped. Interface: "✂️ Just a clip of the video" with Start and End on the size step, and "Start here" / "End here" / "Make this clip" under the finished video. Tests in `tests/test_clips.py` include real cuts made with ffmpeg. A real 6.5-second clip of an X video was made end to end.
 
 Not built: step 3 below (fetching only the part with `download_ranges`). Until then the whole original is downloaded first, so the video must be within the download limit (`max_source_mb`) and the length limit.
 
@@ -208,6 +208,14 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] `/#url=<encoded link>` looks a link up on open (after sign-in). Text around the link is dropped.
 - [x] **How it works** screen (☰ menu) and a first-time three-step card: the steps, sending and saving on a phone, home screen, and how to build the iPhone Shortcut.
 - [ ] Not verified on a real iPhone: the share sheet from Recent (it may ask for a second tap), and the Shortcut steps (the action names "URL Encode" and "Open URLs" are from memory).
+
+### Clips and sizes, round 2 — done 15 Nov 2026 (branch `small-polish`)
+- [x] The size step is the default again (`prefs.sizes` = `ask`). A default size can be set in the pencil panel (`size_pick`: easy, best, 720, 480, audio) or with "Always make this size" on the size step.
+- [x] Clips from a finished file: `jobs.from_file_id` (migration 6). The worker cuts from that file (bringing it back from R2 to a temporary file if needed) and never calls the platform; a clip of a clip subtracts the file's own start, read from its key. Tested in `tests/test_clips.py` with real ffmpeg cuts and a stand-in bucket.
+- [x] Two-handle timeline (`rangeSlider()` in `web/app.js`) on the size step and under the finished video, with keyboard support, and **▶ Play the clip**.
+- [x] Pencil panel sections have headings and dividers; "part" is now "clip" with ✂️; the size button says "Do it!".
+- [x] A clearer message when registering a device fails with "prompt closed" (Chrome on iPhone reports an existing passkey that way).
+- [x] Recent list: the owner picked layouts C (rows that open in place) and D (picture grid), switched with two icons beside the heading. The choice is the `recent` preference (`list` or `grid`), saved to the account. Clip in the list opens the finished screen with the timeline, which cuts from the saved file (`from_file`). Sketches of all four layouts stay in `docs/design/recent-options.html`.
 
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.

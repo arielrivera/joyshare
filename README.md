@@ -1,4 +1,4 @@
-# joyshare
+# a-vid-share-app
 
 **Share the video, not the app.**
 

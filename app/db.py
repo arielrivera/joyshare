@@ -176,6 +176,10 @@ MIGRATIONS = [
     ALTER TABLE jobs ADD COLUMN clip_start REAL;
     ALTER TABLE jobs ADD COLUMN clip_end REAL
     """,
+    # 6: a clip can be cut from a finished file we already hold, instead of fetching the video again
+    """
+    ALTER TABLE jobs ADD COLUMN from_file_id INTEGER REFERENCES files(id)
+    """,
 ]
 
 

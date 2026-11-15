@@ -99,6 +99,12 @@ def upload(conn, path, key: str, mime: str | None) -> None:
     _client(cfg).upload_file(str(path), cfg["bucket"], key, ExtraArgs={"ContentType": mime or "application/octet-stream"})
 
 
+def download(conn, key: str, dest) -> None:
+    """Brings one file back from the bucket to this server (to cut a clip from it)."""
+    cfg = _ready(conn)
+    _client(cfg).download_file(cfg["bucket"], key, str(dest))
+
+
 def put_file(conn, path, key: str, mime: str) -> None:
     """Upload any file (used for backups)."""
     upload(conn, path, key, mime)

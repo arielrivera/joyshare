@@ -80,11 +80,11 @@ def check_clip(start, end, duration: float | None) -> tuple[float, float] | None
     if start is None and end is None:
         return None
     if start is None or end is None:
-        raise PresetError("Give both a start and an end for the part.")
+        raise PresetError("Give both a start and an end for the clip.")
     start, end = round(float(start), 1), round(float(end), 1)
     if duration and end > duration:
         if end > duration + 1:
-            raise PresetError("The part must be inside the video.")
+            raise PresetError("The clip must be inside the video.")
         end = round(float(duration), 1)
     if start < 0 or end - start < MIN_CLIP:
         raise PresetError("The end must be at least 1 second after the start.")

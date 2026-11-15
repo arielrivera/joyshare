@@ -55,10 +55,10 @@
     <!-- Name, lettering and colors -->
     <section id="style-panel" class="card" hidden>
       <h2 data-i18n="style.title"></h2>
-      <label for="style-name" data-i18n="style.name"></label>
+      <h3 class="section first"><label for="style-name" data-i18n="style.name"></label></h3>
       <input id="style-name" type="text" maxlength="24" autocomplete="off" spellcheck="false">
       <p class="muted" data-i18n="style.nameHelp"></p>
-      <p class="label" data-i18n="style.theme"></p>
+      <h3 class="section" data-i18n="style.theme"></h3>
       <div id="style-themes" class="choices">
         <button type="button" data-theme-pick="acid" class="swatch swatch-acid" data-i18n="theme.acid"></button>
         <button type="button" data-theme-pick="zine" class="swatch swatch-zine" data-i18n="theme.zine"></button>
@@ -72,7 +72,7 @@
         <button type="button" data-theme-pick="library" class="swatch swatch-library" data-i18n="theme.library"></button>
         <button type="button" data-theme-pick="studio" class="swatch swatch-studio" data-i18n="theme.studio"></button>
       </div>
-      <p class="label" data-i18n="style.font"></p>
+      <h3 class="section" data-i18n="style.font"></h3>
       <div id="style-fonts" class="choices">
         <button type="button" data-font="unbounded" class="font-unbounded">Unbounded</button>
         <button type="button" data-font="syne" class="font-syne">Syne</button>
@@ -89,7 +89,7 @@
         <button type="button" data-font="dmserif" class="font-dmserif">DM Serif</button>
         <button type="button" data-font="plex" class="font-plex">Plex Sans</button>
       </div>
-      <p class="label" data-i18n="scn.title"></p>
+      <h3 class="section" data-i18n="scn.title"></h3>
       <div id="style-scenes" class="choices">
         <button type="button" data-scene="random" data-i18n="scn.random"></button>
         <button type="button" data-scene="demolition" data-i18n="scn.demolition"></button>
@@ -105,11 +105,17 @@
       <div id="scene-motion-row" class="checks" hidden>
         <label for="scene-motion"><input id="scene-motion" type="checkbox"><span data-i18n="scn.always"></span></label>
       </div>
-      <p class="label" data-i18n="size.title"></p>
-      <div class="checks">
-        <label for="ask-size"><input id="ask-size" type="checkbox"><span data-i18n="size.ask"></span></label>
-      </div>
-      <p class="muted" data-i18n="size.askHelp"></p>
+      <h3 class="section" data-i18n="size.title"></h3>
+      <label for="size-mode" class="sr" data-i18n="size.title"></label>
+      <select id="size-mode">
+        <option value="ask" data-i18n="size.modeAsk"></option>
+        <option value="easy" data-i18n="size.modeEasy"></option>
+        <option value="best" data-i18n="size.modeBest"></option>
+        <option value="720" data-i18n="size.mode720"></option>
+        <option value="480" data-i18n="size.mode480"></option>
+        <option value="audio" data-i18n="size.modeAudio"></option>
+      </select>
+      <p class="muted" data-i18n="size.modeHelp"></p>
       <button id="close-style" type="button" data-i18n="style.done"></button>
     </section>
 
@@ -195,7 +201,11 @@
                 <div><label for="clip-start" data-i18n="clip.start"></label><input id="clip-start" type="text" inputmode="decimal" placeholder="0:00" autocomplete="off"></div>
                 <div><label for="clip-end" data-i18n="clip.end"></label><input id="clip-end" type="text" inputmode="decimal" placeholder="0:30" autocomplete="off"></div>
               </div>
+              <div id="clip-range-pick" class="range" hidden></div>
               <p id="clip-info" class="muted"></p>
+            </div>
+            <div class="checks">
+              <label for="size-remember"><input id="size-remember" type="checkbox"><span data-i18n="size.remember"></span></label>
             </div>
             <button id="make-button" type="submit" class="big" data-i18n="media.make"></button>
             <p id="make-error" class="error" role="alert" hidden></p>
@@ -243,10 +253,13 @@
           <!-- Cut a part out of what is playing: watch, tap Start here, tap End here. -->
           <div id="clip-tools" class="clip-tools" hidden>
             <p class="label" data-i18n="clip.cutTitle"></p>
+            <p class="muted" data-i18n="clip.dragHelp"></p>
+            <div id="clip-range" class="range"></div>
+            <p id="clip-picked" class="clip-picked"></p>
             <div class="tools">
+              <button id="clip-play" type="button" class="chip" data-i18n="clip.play"></button>
               <button id="clip-here-start" type="button" class="chip" data-i18n="clip.startHere"></button>
               <button id="clip-here-end" type="button" class="chip" data-i18n="clip.endHere"></button>
-              <span id="clip-picked" class="said"></span>
             </div>
             <button id="clip-make" type="button" class="secondary" data-i18n="clip.make" disabled></button>
             <p id="clip-error" class="error" role="alert" hidden></p>
@@ -259,8 +272,15 @@
       </div>
 
       <section id="recent" class="card" hidden>
-        <h2 data-i18n="recent.title"></h2>
-        <ul id="recent-list" class="rows"></ul>
+        <div class="recent-head">
+          <h2 data-i18n="recent.title"></h2>
+          <!-- Two ways to see the list. The choice is saved to the account. -->
+          <div class="view-toggle" role="group" data-i18n-aria="recent.view">
+            <button type="button" data-view="list" data-i18n-aria="recent.viewList" data-i18n-title="recent.viewList"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="4" rx="1"/><rect x="10" y="5" width="11" height="2" rx="1"/><rect x="3" y="10" width="5" height="4" rx="1"/><rect x="10" y="11" width="11" height="2" rx="1"/><rect x="3" y="16" width="5" height="4" rx="1"/><rect x="10" y="17" width="11" height="2" rx="1"/></svg></button>
+            <button type="button" data-view="grid" data-i18n-aria="recent.viewGrid" data-i18n-title="recent.viewGrid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></button>
+          </div>
+        </div>
+        <ul id="recent-list" class="recent-list"></ul>
       </section>
     </div>
 

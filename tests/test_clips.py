@@ -133,3 +133,84 @@ def test_the_activity_log_names_people_and_videos(client, conn):
     assert by_action["user.disable"]["name"] == "owner"
     assert by_action["token.revoke"] == {}
     path.unlink()
+
+
+# ---------- cutting from a file we already hold ----------
+
+def held_video(conn, sample, key="720", name="held.mp4"):
+    """A finished file on this server, as if the video had been made earlier."""
+    conn.execute("INSERT INTO media (url, platform, title, duration, user_id, source_id, created_at) VALUES (?,?,?,?,?,?,?)",
+                 (URL, "x", "Held", 12.0, 1, "held1", db.now()))
+    media_id = conn.execute("SELECT id FROM media WHERE source_id='held1'").fetchone()["id"]
+    path = config.OUTPUTS_DIR / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(sample.read_bytes())
+    file_id = store.add_file(conn, user_id=1, media_id=media_id, kind="output", key=key, path=path,
+                             ttl_seconds=3600, meta=media.probe(path))
+    return media_id, file_id
+
+
+def run(job_id):
+    from app.worker import Worker
+    Worker().run_job(job_id)
+
+
+def never(*args, **kwargs):
+    raise AssertionError("the platform must not be asked again")
+
+
+def test_a_clip_is_cut_from_our_own_file_without_fetching_again(client, conn, sample, monkeypatch):
+    monkeypatch.setattr(media, "download", never)
+    media_id, file_id = held_video(conn, sample)
+    job = client.post("/api/jobs", json={"media_id": media_id, "preset": "720", "clip_start": 2, "clip_end": 6,
+                                         "from_file": file_id}).json()
+    run(job["id"])
+    done = client.get(f"/api/jobs/{job['id']}").json()
+    assert done["status"] == "done" and abs(done["file"]["duration"] - 4.0) < 0.2
+
+    # A clip of that clip: times still count from the start of the whole video.
+    again = client.post("/api/jobs", json={"media_id": media_id, "preset": "720", "clip_start": 3, "clip_end": 5,
+                                           "from_file": done["file"]["id"]}).json()
+    run(again["id"])
+    smaller = client.get(f"/api/jobs/{again['id']}").json()
+    assert smaller["status"] == "done" and abs(smaller["file"]["duration"] - 2.0) < 0.2
+
+    # Asking for something outside the file it is cut from fails cleanly, still without fetching.
+    outside = client.post("/api/jobs", json={"media_id": media_id, "preset": "720", "clip_start": 0, "clip_end": 4,
+                                             "from_file": done["file"]["id"]}).json()
+    run(outside["id"])
+    assert client.get(f"/api/jobs/{outside['id']}").json()["status"] == "failed"
+
+
+def test_the_file_to_cut_from_must_be_yours_and_of_that_video(client, conn, sample):
+    media_id, file_id = held_video(conn, sample)
+    conn.execute("INSERT INTO media (url, platform, title, duration, user_id, source_id, created_at) VALUES (?,?,?,?,?,?,?)",
+                 (URL + "2", "x", "Other", 12.0, 1, "other1", db.now()))
+    other = conn.execute("SELECT id FROM media WHERE source_id='other1'").fetchone()["id"]
+    ask = lambda **body: client.post("/api/jobs", json={"preset": "720", "clip_start": 1, "clip_end": 3, **body})  # noqa: E731
+    assert ask(media_id=other, from_file=file_id).status_code == 422
+    assert ask(media_id=media_id, from_file=99999).status_code == 404
+    whole = client.post("/api/jobs", json={"media_id": media_id, "preset": "720", "from_file": file_id}).json()
+    assert conn.execute("SELECT from_file_id FROM jobs WHERE id=?", (whole["id"],)).fetchone()[0] is None   # not a clip
+
+
+def test_a_clip_is_cut_from_a_file_kept_in_cloud_storage(client, conn, sample, monkeypatch):
+    from app import storage
+    monkeypatch.setattr(media, "download", never)
+    media_id, file_id = held_video(conn, sample, name="cloud.mp4")
+    local = config.OUTPUTS_DIR / "cloud.mp4"
+    data = local.read_bytes()
+    local.unlink()
+    conn.execute("UPDATE files SET storage='r2', path='outputs/cloud.mp4' WHERE id=?", (file_id,))
+    brought = []
+
+    def bring_back(conn_, key, dest):
+        brought.append(key)
+        open(dest, "wb").write(data)
+    monkeypatch.setattr(storage, "download", bring_back)
+    job = client.post("/api/jobs", json={"media_id": media_id, "preset": "720", "clip_start": 1, "clip_end": 4,
+                                         "from_file": file_id}).json()
+    run(job["id"])
+    done = client.get(f"/api/jobs/{job['id']}").json()
+    assert done["status"] == "done" and brought == ["outputs/cloud.mp4"]
+    assert not [p for p in config.TMP_DIR.glob("*.mp4")]            # the copy brought back is removed afterwards

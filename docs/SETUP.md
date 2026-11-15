@@ -47,7 +47,7 @@ Once a device exists, a restart prints nothing. To register a device from the se
 ./joyshare setup-code
 ```
 
-Then paste a link from X or YouTube, pick a size and press **Make it**.
+Then paste a link from X or YouTube. The video is made straight away; if you have turned on **Ask me which size every time**, pick a size and press **Do it!**.
 
 > **Passkeys are tied to the address.** A passkey made at `localhost` only works at `localhost`.
 > When joyshare moves to your real domain, each device registers once more there. Pick the final domain before registering all your devices.
@@ -91,14 +91,21 @@ Before sharing videos through the domain, turn on R2 storage (below): Cloudflare
 
 Two ways to make a clip:
 
-- **Before making the file:** on the size step, tick **Just a part of the video** and give a Start and an End, written as minutes:seconds (`1:30`). The sizes shown shrink to match the part. A video that is too big to share whole can often still be shared as a part.
-- **After making the file:** play the finished video, press **Start here** where the part should begin and **End here** where it should stop, then **Make this clip**.
+- **Before making the file:** on the size step, tick **✂️ Just a clip of the video** and give a Start and an End, written as minutes:seconds (`1:30`). The sizes shown shrink to match the part. A video that is too big to share whole can often still be shared as a part.
+- **After making the file:** drag the handles under the finished video (or press **Start here** and **End here** while it plays), check it with **▶ Play the clip**, then **Make this clip**.
 
-A clip starts and ends exactly where you asked, and must be at least 1 second long. The whole video is downloaded first and kept for an hour, so more clips of the same video are quick.
+Both places have a timeline with two handles: drag them to where the clip starts and ends (on the finished video the picture follows the handle). **▶ Play the clip** plays just that stretch and stops at the end handle.
+
+A clip starts and ends exactly where you asked, and must be at least 1 second long. A clip made from a finished video is cut from that file, so the video is never fetched from the platform again; the same goes for a clip of a clip.
 
 ## Getting a link again
 
-The **Recent** list on the main screen shows a small picture of each video and has a **Copy link** button next to every finished file. When the link is copied, the button says **✓ Copied** and a line under the video confirms it. It gives the same link while it still has time left, or a fresh one if the old one ran out. If the file itself has expired, **Make again** creates it again with the same size and part.
+The **Recent** list on the main screen comes in two layouts, switched with the two icons beside its heading. The choice is saved to your account, so it follows you to other devices.
+
+- **List:** short rows with the picture, title and details. Tap a row to open it in place: **Send or save**, **Copy link**, **✂️ Clip** (opens the video with the clip timeline) and **⬇️ Download**.
+- **Pictures:** a grid like the Photos app. **↗** on a picture sends it; tapping the picture opens the video with every option.
+
+**Copy link** says **✓ Copied** when it worked, and a line under the video confirms it. It gives the same link while it still has time left, or a fresh one if the old one ran out. If the file itself has expired, **Make again** creates it again with the same size and part.
 
 ## Add another device
 
@@ -213,7 +220,7 @@ Leave the topic empty to turn alerts off. If you run your own ntfy server, put i
 The app has a **How it works** page in the ☰ menu that explains all of this to the people you invite.
 
 - **Send or save.** On a phone the finished video shows one big button. It opens the phone's own share sheet: pick WhatsApp or Messages to send the real video, or **Save Video** to keep it in Photos. Download and the link are under **More options**. (On an iPhone, Download puts the file in the Files app, which is rarely what people want.)
-- **No size step.** A pasted link is made straight away at a size that's easy to send: the usual quality if it is under 25 MB, otherwise shrunk to fit. **Another size** on the finished screen leads to the size step. To always be asked, press the pencil and tick **Ask me which size every time**.
+- **Sizes.** After a link is looked up you pick a size and press **Do it!**. To skip that step, tick **Always make this size and skip this step** under the sizes, or press the pencil and choose under **Sizes**: easy to send (under 25 MB), best quality, 720p, 480p or audio only. If a video doesn't come in your size, you get one that's easy to send. **Another size** on the finished screen always shows every size.
 - **Link cards.** A share link pasted into WhatsApp or iMessage shows the video's picture, title, who made it and how long it is. WhatsApp only plays videos inside the chat for a few partners such as YouTube; a link from here opens the page, where the video plays.
 - **The simple iPhone Shortcut.** Opening `https://your-domain/#url=` followed by a video's link looks that link up at once. The How it works page has the five steps to make a Shortcut that does this from any app's Share button. It needs no access token: it uses the Safari sign-in.
 

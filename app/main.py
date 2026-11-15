@@ -137,6 +137,7 @@ class JobBody(BaseModel):
     target_mb: int | None = None
     clip_start: float | None = None   # only part of the video: seconds from the beginning
     clip_end: float | None = None
+    from_file: int | None = None      # cut the clip from this finished file of yours, not from the platform
 
 
 class QuickBody(BaseModel):
@@ -353,7 +354,8 @@ def do_inspect(conn, user_id: int, raw_url: str, lang: str = "en") -> dict:
 
 
 def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int | None,
-                  lang: str = "en", clip_start: float | None = None, clip_end: float | None = None) -> dict:
+                  lang: str = "en", clip_start: float | None = None, clip_end: float | None = None,
+                  from_file: int | None = None) -> dict:
     cfg = settings.get_all(conn)
     if preset not in presets.BY_ID:
         raise HTTPException(422, "Unknown preset.")
@@ -364,6 +366,12 @@ def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int
         clip = presets.check_clip(clip_start, clip_end, item["duration"])
     except (presets.PresetError, ValueError) as exc:
         raise HTTPException(422, exc.args[0]) from exc
+    if not clip:
+        from_file = None   # only clips are cut from a file we hold
+    if from_file is not None:
+        base = owned_file(conn, from_file, user_id)   # 404 or 410 if it isn't yours or is gone
+        if base["media_id"] != media_id:
+            raise HTTPException(422, "That file belongs to another video.")
     if preset != "fit":
         target_mb = None
     else:
@@ -384,8 +392,9 @@ def do_create_job(conn, user_id: int, media_id: int, preset: str, target_mb: int
     if queued >= MAX_QUEUED_PER_USER:
         raise HTTPException(429, "Too many videos are already in progress. Wait for some to finish.")
     job_id = conn.execute(
-        "INSERT INTO jobs (user_id, media_id, preset, target_mb, clip_start, clip_end, created_at) VALUES (?,?,?,?,?,?,?)",
-        (user_id, media_id, preset, target_mb, clip[0] if clip else None, clip[1] if clip else None, db.now()),
+        "INSERT INTO jobs (user_id, media_id, preset, target_mb, clip_start, clip_end, from_file_id, created_at) "
+        "VALUES (?,?,?,?,?,?,?,?)",
+        (user_id, media_id, preset, target_mb, clip[0] if clip else None, clip[1] if clip else None, from_file, db.now()),
     ).lastrowid
     return store.job_view(conn, job_id, user_id, lang)
 
@@ -413,7 +422,8 @@ def media_thumb(media_id: int, conn=Depends(db.get_conn), user_id: int = Depends
 @app.post("/api/jobs")
 def create_job(body: JobBody, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
                lang: str = Depends(get_lang)):
-    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb, lang, body.clip_start, body.clip_end)
+    return do_create_job(conn, user_id, body.media_id, body.preset, body.target_mb, lang, body.clip_start, body.clip_end,
+                         body.from_file)
 
 
 @app.post("/api/quick")

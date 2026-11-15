@@ -739,3 +739,116 @@ ol.steps.big { font-size: 17px; gap: 10px; padding-left: 38px; }
 ol.steps.big li::marker { font-family: var(--display); font-weight: var(--display-weight); color: var(--hot); }
 #help { display: grid; gap: 22px; }
 #help .row input { flex: 1 1 180px; font-size: 14px; }
+
+/* The pencil panel: each section starts with a line across and a heading you can't miss */
+h3.section { margin: 10px 0 0; padding-top: 16px; border-top: 3px solid var(--edge);
+  font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-space);
+  font-size: 19px; line-height: 1.2; text-transform: none; color: var(--ink); }
+h3.section.first { margin-top: 0; padding-top: 0; border-top: 0; }
+h3.section label { font: inherit; letter-spacing: inherit; text-transform: none; color: inherit; }
+:root[data-font="mono"] h3.section { font-size: 16px; }
+:root[data-theme="win95"] h3.section { border-top: 2px groove #fff; font-size: 16px; }
+:root[data-theme="clay"] h3.section { border-top-color: var(--edge); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) h3.section { border-top: 1px solid var(--edge); font-size: 20px; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) h3.section label { font-family: var(--display); font-size: inherit; letter-spacing: inherit; text-transform: none; color: var(--ink); }
+:root[data-theme="swiss"] h3.section { border-top: 2px solid var(--ink); }
+:root[data-theme="midnight"] h3.section { font-size: 24px; }
+:root[data-theme="midnight"] h3.section label { letter-spacing: 0; font-size: inherit; }
+
+/* Two-handle timeline for clips */
+.range { padding: 14px 16px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.range-track { position: relative; height: 10px; border-radius: 999px; background: var(--field); border: 2px solid var(--edge); cursor: pointer; }
+.range-fill { position: absolute; top: -2px; bottom: -2px; background: var(--hot); border-radius: 999px; pointer-events: none; }
+button.range-handle { position: absolute; top: 50%; width: 30px; height: 30px; margin: 0; padding: 0; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 3px solid var(--edge); background: var(--card); box-shadow: 2px 2px 0 var(--shadow); cursor: grab; touch-action: none; }
+button.range-handle:hover:not(:disabled), button.range-handle:active:not(:disabled) { transform: translate(-50%, -50%); box-shadow: 2px 2px 0 var(--shadow); }
+button.range-handle.end { background: var(--zap); }
+button.range-handle::after { content: ""; position: absolute; left: 50%; top: 50%; width: 2px; height: 12px; transform: translate(-50%, -50%); background: var(--ink); border-radius: 1px; }
+.clip-picked { font-weight: 700; font-variant-numeric: tabular-nums; margin: 0; }
+:root[data-theme="win95"] .range-track, :root[data-theme="zine"] .range-track { border-radius: 0; }
+:root[data-theme="win95"] button.range-handle { border-radius: 0; box-shadow: var(--out); border: 0; background: #c0c0c0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) .range-track { border: 0; background: var(--edge); height: 6px; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) .range-fill { top: 0; bottom: 0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) button.range-handle { border: 2px solid var(--hot); background: var(--card); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); width: 26px; height: 26px; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) button.range-handle.end { background: var(--hot); }
+#size-mode { width: 100%; }
+.clip-tools .range, .clip-tools .clip-picked { justify-self: stretch; width: 100%; }
+
+/* ---------- Recent: heading with the layout switch ---------- */
+.recent-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.view-toggle { display: flex; gap: 4px; flex: none; }
+#recent .view-toggle button { width: 38px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 10px;
+  background: transparent; color: var(--muted); border: 2px solid transparent; box-shadow: none; transform: none; }
+#recent .view-toggle button svg { width: 20px; height: 20px; fill: currentColor; }
+#recent .view-toggle button[aria-pressed="true"] { background: var(--pop); color: var(--pop-ink); border-color: var(--edge); }
+#recent .view-toggle button:hover { transform: none; box-shadow: none; color: var(--ink); }
+#recent .view-toggle button[aria-pressed="true"]:hover { color: var(--pop-ink); }
+
+/* ---------- Recent, layout C: rows that open in place ---------- */
+#recent-list { list-style: none; margin: 0; padding: 0; display: grid; }
+#recent-list .rc-item { border-top: 2px dashed color-mix(in srgb, var(--edge) 30%, transparent); }
+#recent-list .rc-item:first-child { border-top: 0; }
+#recent-list .rc-row { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0; padding: 9px 2px; text-align: left;
+  font: inherit; font-weight: 400; color: var(--ink); background: transparent; border: 0; border-radius: 10px; box-shadow: none; transform: none; cursor: pointer; }
+#recent-list .rc-row:hover, #recent-list .rc-row:active { transform: none; box-shadow: none; background: color-mix(in srgb, var(--field) 70%, transparent); filter: none; }
+#recent-list .rc-thumb { flex: none; width: 64px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 2px solid var(--edge); background: var(--field); }
+#recent-list .rc-thumb.blank { display: block; }
+#recent-list .rc-words { flex: 1; min-width: 0; display: grid; gap: 1px; }
+#recent-list .rc-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#recent-list .rc-details { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#recent-list .rc-chevron { flex: none; font-size: 22px; line-height: 1; color: var(--muted); transition: transform .15s ease; }
+#recent-list .rc-item.open .rc-chevron { transform: rotate(90deg); }
+#recent-list .rc-panel { display: grid; gap: 8px; padding: 2px 2px 12px; }
+#recent-list .rc-panel[hidden] { display: none; }
+#recent-list .rc-send { width: 100%; }
+#recent-list .rc-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
+#recent-list .rc-buttons > * { margin: 0; padding: 8px 6px; font-size: 14px; text-align: center; }
+#recent-list .rc-buttons button.chip { height: auto; min-height: 38px; border-radius: 10px; background: var(--card); color: var(--ink); border: 2px solid var(--edge); }
+#recent-list .rc-buttons button.chip.done { background: var(--ink); color: var(--card); }
+#recent-list .rc-panel > button.chip { justify-self: start; height: auto; min-height: 36px; padding: 6px 14px; }
+#recent-list .row-note { margin: 0; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+#recent-list .row-note.bad { color: var(--bad); }
+
+/* ---------- Recent, layout D: a grid of pictures ---------- */
+#recent-list.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 560px) { #recent-list.grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+#recent-list .rc-tile-item { position: relative; display: grid; gap: 4px; align-content: start; }
+#recent-list .rc-tile { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; margin: 0; padding: 0; overflow: hidden;
+  border-radius: 12px; border: 2px solid var(--edge); background: var(--field); box-shadow: none; transform: none; cursor: pointer; text-align: left; }
+#recent-list .rc-tile:hover, #recent-list .rc-tile:active { transform: none; box-shadow: none; filter: brightness(1.05); }
+#recent-list .rc-tile-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#recent-list .rc-shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(0, 0, 0, .82)); }
+#recent-list .rc-tile-words { position: absolute; left: 8px; right: 8px; bottom: 7px; display: grid; gap: 2px; }
+#recent-list .rc-tile-words .rc-title { color: #fff; font-size: 13px; line-height: 1.25; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#recent-list .rc-tile-words .rc-details { color: rgba(255, 255, 255, .82); font-size: 11.5px; }
+#recent-list .rc-tile-item.dim .rc-tile-img { filter: grayscale(1) brightness(.7); }
+#recent-list .rc-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 5px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .92); color: #111; font-size: 12px; font-weight: 700; white-space: nowrap; }
+#recent-list .rc-tile-send { position: absolute; top: 6px; left: 6px; width: 38px; height: 38px; margin: 0; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; font-size: 17px; background: var(--pop); color: var(--pop-ink); border: 2px solid var(--edge);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .3); transform: none; }
+#recent-list .rc-tile-send:hover, #recent-list .rc-tile-send:active { transform: none; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+#recent-list .rc-tile-send:disabled { width: auto; padding: 0 10px; border-radius: 999px; font-size: 12px; opacity: 1; }
+
+/* the looks */
+:root[data-theme="zine"] #recent-list .rc-thumb, :root[data-theme="zine"] #recent-list .rc-tile,
+:root[data-theme="win95"] #recent-list .rc-thumb, :root[data-theme="win95"] #recent-list .rc-tile,
+:root[data-theme="swiss"] #recent-list .rc-thumb, :root[data-theme="swiss"] #recent-list .rc-tile,
+:root[data-theme="editorial"] #recent-list .rc-thumb, :root[data-theme="editorial"] #recent-list .rc-tile { border-radius: 0; }
+:root[data-theme="zine"] #recent .view-toggle button, :root[data-theme="swiss"] #recent .view-toggle button,
+:root[data-theme="editorial"] #recent .view-toggle button { border-radius: 2px; }
+:root[data-theme="win95"] #recent .view-toggle button { border-radius: 0; }
+:root[data-theme="win95"] #recent .view-toggle button[aria-pressed="true"] { box-shadow: var(--in); background: #c0c0c0; color: #000; border-color: transparent; }
+:root[data-theme="clay"] #recent-list .rc-tile, :root[data-theme="nordic"] #recent-list .rc-tile { border: 0; border-radius: 18px; }
+:root[data-theme="comic"] #recent-list .rc-tile { border-width: 3px; box-shadow: 4px 4px 0 var(--shadow); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-item { border-top: 1px solid var(--edge); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-item:first-child { border-top: 0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-thumb, :root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-tile { border-width: 1px; border-radius: var(--r-in); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-buttons button.chip { border-width: 1px; border-radius: var(--r-btn); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-tile-send { border: 0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent .view-toggle button { border-width: 1px; border-radius: var(--r-btn); }
+:root[data-theme="nordic"] #recent-list .rc-tile, :root[data-theme="studio"] #recent-list .rc-tile { border: 0; }
+#recent-list .rc-buttons > a { display: grid; place-items: center; white-space: nowrap; }
+#recent-list .rc-buttons > * { white-space: nowrap; }
+#recent-list .rc-badge { top: 34%; }

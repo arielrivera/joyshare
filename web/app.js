@@ -64,6 +64,86 @@ function fmtClock(seconds) {
 }
 const fmtRange = (clip) => `${fmtClock(clip[0])}–${fmtClock(clip[1])}`;
 
+// ---------- a timeline with two handles, for picking a clip ----------
+// rangeSlider(box, from, to, onChange) draws a track from `from` to `to` seconds with a start and an end handle.
+// Drag a handle, tap the track (the nearer handle jumps there), or use the arrow keys (Shift for bigger steps).
+// onChange(start, end, which) is called while dragging; which is "start" or "end".
+function rangeSlider(box, from, to, onChange) {
+  const span = Math.max(to - from, 0.1);
+  const state = { start: from, end: to };
+  box.replaceChildren();
+  box.hidden = false;
+  const track = document.createElement("div");
+  track.className = "range-track";
+  const fill = document.createElement("div");
+  fill.className = "range-fill";
+  const handles = {};
+  for (const which of ["start", "end"]) {
+    const h = document.createElement("button");
+    h.type = "button";
+    h.className = `range-handle ${which}`;
+    h.setAttribute("role", "slider");
+    h.setAttribute("aria-label", t(which === "start" ? "clip.start" : "clip.end"));
+    h.setAttribute("aria-valuemin", String(from));
+    h.setAttribute("aria-valuemax", String(to));
+    handles[which] = h;
+  }
+  track.append(fill, handles.start, handles.end);
+  box.append(track);
+
+  const at = (v) => `${((v - from) / span) * 100}%`;
+  const paint = () => {
+    handles.start.style.left = at(state.start);
+    handles.end.style.left = at(state.end);
+    fill.style.left = at(state.start);
+    fill.style.width = `${((state.end - state.start) / span) * 100}%`;
+    for (const which of ["start", "end"]) {
+      handles[which].setAttribute("aria-valuenow", String(state[which]));
+      handles[which].setAttribute("aria-valuetext", fmtClock(state[which]));
+    }
+  };
+  const move = (which, value) => {
+    value = Math.round(Math.min(Math.max(value, from), to) * 10) / 10;
+    if (which === "start") state.start = Math.min(value, state.end - 1);
+    else state.end = Math.max(value, state.start + 1);
+    state.start = Math.max(state.start, from);
+    state.end = Math.min(state.end, to);
+    paint();
+    onChange(state.start, state.end, which);
+  };
+  const valueAt = (clientX) => {
+    const r = track.getBoundingClientRect();
+    return from + ((clientX - r.left) / Math.max(r.width, 1)) * span;
+  };
+  let dragging = null;
+  for (const which of ["start", "end"]) {
+    const h = handles[which];
+    h.addEventListener("pointerdown", (e) => { dragging = which; h.setPointerCapture(e.pointerId); e.preventDefault(); });
+    h.addEventListener("pointermove", (e) => { if (dragging === which) move(which, valueAt(e.clientX)); });
+    h.addEventListener("pointerup", () => { dragging = null; });
+    h.addEventListener("pointercancel", () => { dragging = null; });
+    h.addEventListener("keydown", (e) => {
+      const step = e.shiftKey ? 5 : 0.5;
+      const keys = { ArrowLeft: -step, ArrowDown: -step, ArrowRight: step, ArrowUp: step };
+      if (e.key in keys) { move(which, state[which] + keys[e.key]); e.preventDefault(); }
+      else if (e.key === "Home") { move(which, from); e.preventDefault(); }
+      else if (e.key === "End") { move(which, to); e.preventDefault(); }
+    });
+  }
+  track.addEventListener("pointerdown", (e) => {
+    if (e.target !== track && e.target !== fill) return;
+    const value = valueAt(e.clientX);
+    const which = Math.abs(value - state.start) <= Math.abs(value - state.end) ? "start" : "end";
+    move(which, value);
+    handles[which].focus();
+  });
+  paint();
+  return {
+    set(start, end) { state.start = start; state.end = end; paint(); },
+    get: () => ({ ...state }),
+  };
+}
+
 // ---------- the wait while a link is looked up ----------
 
 let lookingTimer = 0;
@@ -88,8 +168,11 @@ function stopLooking() {
 const EASY_SIZE = 25 * MB;   // small enough to send in a chat without a long wait
 
 // Returns { preset, target_mb? } or null when nothing can be made without asking.
+// The person's chosen size comes first; "easy" (or a chosen size this video doesn't offer) picks one that's quick to send.
 function autoPick({ presets }) {
   const usable = presets.filter((p) => p.allowed);
+  const chosen = prefs.size_pick !== "easy" && usable.find((p) => p.id === prefs.size_pick);
+  if (chosen) return { preset: chosen.id };
   const usual = usable.find((p) => p.recommended) || usable.find((p) => p.kind === "video");
   if (usual && usual.id !== "fit" && (!usual.est_bytes || usual.est_bytes <= EASY_SIZE)) return { preset: usual.id };
   // Too big to send comfortably: shrink it to fit.
@@ -124,6 +207,7 @@ async function lookUp() {
     $("clip-on").checked = false;
     $("clip-start").value = "";
     $("clip-end").value = "";
+    $("size-remember").checked = false;
     renderMedia();
     // One-tap mode: no size step. A sensible size is picked and the file is made straight away.
     // "Another size" on the finished screen still leads to the size step.
@@ -245,6 +329,8 @@ function readClip() {
 
 for (const id of ["clip-on", "clip-start", "clip-end"]) $(id).addEventListener("input", () => renderMedia());
 
+let pickSlider = null;   // the timeline on the size step, and which video it belongs to
+
 function renderMedia() {
   if (!current) return;
   const { media, presets } = current;
@@ -256,7 +342,22 @@ function renderMedia() {
       : t(clip.problem, { len: fmtDuration(media.duration) || "?" });
     $("clip-end").placeholder = fmtDuration(media.duration) || "0:30";
   }
-  // A part is smaller than the whole: sizes shrink by the same share.
+  // The timeline under the boxes: dragging it fills the boxes in, typing in the boxes moves it.
+  if (clip.on && media.duration) {
+    if (!pickSlider || pickSlider.media !== media.id) {
+      const slider = rangeSlider($("clip-range-pick"), 0, media.duration, (start, end) => {
+        $("clip-start").value = fmtClock(start);
+        $("clip-end").value = fmtClock(end);
+        renderMedia();
+      });
+      pickSlider = { media: media.id, slider };
+    }
+    if (clip.ok) pickSlider.slider.set(clip.start, clip.end);
+  } else {
+    $("clip-range-pick").hidden = true;
+    if (!clip.on) pickSlider = null;
+  }
+  // A clip is smaller than the whole: sizes shrink by the same share.
   const share = clip.on && clip.ok && media.duration ? (clip.end - clip.start) / media.duration : null;
   $("title").textContent = media.title || t("media.untitled");
   $("meta").textContent = [media.uploader, media.platform_label, fmtDuration(media.duration)].filter(Boolean).join(" · ");
@@ -343,6 +444,11 @@ $("make").addEventListener("submit", async (e) => {
     if (!clip.ok) { showError($("make-error"), t(clip.problem, { len: fmtDuration(current.media.duration) || "?" })); return; }
     body.clip_start = clip.start;
     body.clip_end = clip.end;
+  }
+  if ($("size-remember").checked) {
+    // From now on links are made straight away at this size. Changed back in the pencil panel, under Sizes.
+    setPrefs({ sizes: "auto", size_pick: ["best", "720", "480", "audio"].includes(picked.value) ? picked.value : "easy" });
+    $("size-remember").checked = false;
   }
   try {
     const job = await api("/api/jobs", { method: "POST", body: JSON.stringify(body) });
@@ -494,25 +600,63 @@ function renderResult(job, fresh) {
 }
 
 // "Start here" and "End here" under the player: watch, tap, tap, and that part becomes its own file.
+// Under the finished video: drag the two handles (or tap Start here / End here while it plays), check it with
+// "Play the clip", then make it. The clip is cut from this very file, so nothing is fetched from the platform again.
 function setUpClipTools(job, player) {
   const tools = $("clip-tools");
-  tools.hidden = !job.media;
-  if (!job.media) return;
-  const offset = job.clip ? job.clip[0] : 0;   // a clip of a clip still counts from the start of the whole video
-  const picked = { start: null, end: null };
-  const paint = () => {
-    const has = (v) => v !== null;
-    $("clip-picked").textContent = has(picked.start) && has(picked.end) ? fmtRange([picked.start, picked.end])
-      : has(picked.start) ? t("clip.from", { time: fmtClock(picked.start) })
-      : has(picked.end) ? t("clip.to", { time: fmtClock(picked.end) }) : "";
-    $("clip-make").disabled = !(has(picked.start) && has(picked.end) && picked.end - picked.start >= 1);
-    showError($("clip-error"), has(picked.start) && has(picked.end) && picked.end - picked.start < 1 ? t("clip.tooShort") : "");
+  const file = job.file;
+  tools.hidden = !job.media || !file || !file.duration;
+  if (tools.hidden) return;
+  // Times count from the start of the whole video, even when this file is itself a clip.
+  const from = job.clip ? job.clip[0] : 0;
+  const to = Math.round((from + file.duration) * 10) / 10;
+  let playing = false;
+  const stopPlaying = () => {
+    playing = false;
+    player.removeEventListener("timeupdate", watchEnd);
+    $("clip-play").textContent = t("clip.play");
   };
-  const now = () => Math.round((offset + (player.currentTime || 0)) * 10) / 10;
-  $("clip-here-start").onclick = () => { picked.start = now(); paint(); };
-  $("clip-here-end").onclick = () => { picked.end = now(); paint(); };
+  const watchEnd = () => {
+    if (player.currentTime >= slider.get().end - from - 0.05) { player.pause(); stopPlaying(); }
+  };
+  const paint = (start, end) => {
+    const whole = start <= from + 0.3 && end >= to - 0.3;
+    $("clip-picked").textContent = t("clip.picked", { range: fmtRange([start, end]), len: fmtClock(end - start) });
+    $("clip-make").disabled = whole || end - start < 1;
+    showError($("clip-error"), "");
+  };
+  const slider = rangeSlider($("clip-range"), from, to, (start, end, which) => {
+    if (playing) { player.pause(); stopPlaying(); }
+    // Show the frame where the handle is.
+    try { player.currentTime = (which === "start" ? start : end) - from; } catch { /* not loaded yet */ }
+    paint(start, end);
+  });
+  const now = () => Math.round((from + (player.currentTime || 0)) * 10) / 10;
+  $("clip-here-start").onclick = () => {
+    const { end } = slider.get();
+    const start = Math.min(now(), end - 1);
+    slider.set(Math.max(start, from), end);
+    paint(slider.get().start, end);
+  };
+  $("clip-here-end").onclick = () => {
+    const { start } = slider.get();
+    const end = Math.max(now(), start + 1);
+    slider.set(start, Math.min(end, to));
+    paint(start, slider.get().end);
+  };
+  $("clip-play").onclick = () => {
+    if (playing) { player.pause(); stopPlaying(); return; }
+    const { start } = slider.get();
+    try { player.currentTime = start - from; } catch { /* not loaded yet */ }
+    playing = true;
+    $("clip-play").textContent = t("clip.stop");
+    player.addEventListener("timeupdate", watchEnd);
+    player.play().catch(stopPlaying);
+  };
+  player.addEventListener("pause", () => { if (playing) stopPlaying(); });
   $("clip-make").onclick = async () => {
-    const body = { media_id: job.media.id, preset: job.preset, clip_start: picked.start, clip_end: picked.end };
+    const { start, end } = slider.get();
+    const body = { media_id: job.media.id, preset: job.preset, clip_start: start, clip_end: end, from_file: file.id };
     if (job.preset === "fit") body.target_mb = job.target_mb;
     try {
       const made = await api("/api/jobs", { method: "POST", body: JSON.stringify(body) });
@@ -522,7 +666,7 @@ function setUpClipTools(job, player) {
       showError($("clip-error"), err.message);
     }
   };
-  paint();
+  paint(from, to);
 }
 
 // The phone's share sheet needs the whole file in memory and a fresh tap,
@@ -664,107 +808,253 @@ async function makeAgain(job, note) {
   }
 }
 
-async function loadRecent() {
-  let jobs = [];
-  try { jobs = await api("/api/jobs?limit=10"); } catch { return; }
-  const list = $("recent-list");
-  list.replaceChildren();
-  for (const job of jobs) {
-    const li = document.createElement("li");
-    const name = document.createElement("span");
-    name.className = "row-main";
-    const preset = job.preset === "fit" ? t("recent.fit", { mb: job.target_mb }) : t(`short.${job.preset}`);
-    const words = document.createElement("span");
-    words.textContent = [(job.media && job.media.title) || t("media.untitled"), preset, job.clip ? fmtRange(job.clip) : ""]
-      .filter(Boolean).join(" · ");
-    if (job.media && job.media.thumb_url) {
-      const picture = document.createElement("img");
-      picture.className = "row-thumb";
-      picture.alt = "";
-      picture.onerror = () => picture.remove();
-      picture.src = job.media.thumb_url;
-      name.append(picture);
-    }
-    name.append(words);
-    const state = document.createElement("span");
-    state.className = "row-actions";
-    const note = document.createElement("span");
+// Two ways to see Recent, switched with the icons beside its heading and saved to the account:
+//   "list": short rows (picture, title, details). Tap one and its buttons open right under it.
+//   "grid": pictures, like the Photos app. ↗ sends; tapping a picture opens it on the finished screen.
+let openRecentId = null;   // the row that is open in the list, kept when the list is redrawn
+
+// Shows an earlier video on the finished screen: player, Send or save, link, and the clip timeline.
+function openFinished(job, toClip) {
+  if (events) { events.close(); events = null; }
+  stopScene();
+  current = null;   // no size step behind it
+  lastJob = job;
+  renderResult(job, true);
+  showStep("result");
+  if (toClip) setTimeout(() => $("clip-tools").scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+}
+
+const recentDetails = (job) => {
+  const preset = job.preset === "fit" ? t("recent.fit", { mb: job.target_mb }) : t(`short.${job.preset}`);
+  const state = job.status === "done" && job.file ? fmtSize(job.file.size)
+    : job.status === "done" ? t("recent.expired")
+    : job.status === "failed" ? t("recent.failed")
+    : job.status === "canceled" ? t("recent.canceled") : t("recent.progress");
+  return [preset, state, job.clip ? `✂️ ${fmtRange(job.clip)}` : ""].filter(Boolean).join(" · ");
+};
+const recentTitle = (job) => (job.media && job.media.title) || t("media.untitled");
+const canSendFile = (job) => Boolean(job.status === "done" && job.file && navigator.canShare && job.file.size <= SHARE_SHEET_MAX);
+
+function picture(job, className) {
+  if (!job.media || !job.media.thumb_url) return null;
+  const img = document.createElement("img");
+  img.className = className;
+  img.alt = "";
+  img.onerror = () => img.remove();
+  img.src = job.media.thumb_url;
+  return img;
+}
+
+// The share sheet for one finished file. The file is fetched first; if the phone then says the tap is too old,
+// the button asks for one more tap. When it can't be shared this way, onFail() decides what happens instead.
+function sendButton(job, label, className, onFail) {
+  let ready = null;
+  const send = document.createElement("button");
+  send.type = "button";
+  send.className = className;
+  send.innerHTML = label;
+  send.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const offer = async () => {
+      try { await navigator.share({ files: [ready] }); send.innerHTML = label; }
+      catch (err) { if (err && err.name === "NotAllowedError") send.textContent = t("recent.tapToSend"); else send.innerHTML = label; }
+    };
+    if (ready) { await offer(); return; }
+    send.disabled = true;
+    send.textContent = t("res.preparing");
+    ready = await fetchShareFile(job, job.file);
+    send.disabled = false;
+    send.innerHTML = label;
+    if (!ready) { onFail(); return; }
+    await offer();
+  });
+  return send;
+}
+
+// Copy link, saying clearly that it worked (the button flips, and a line stays under the row).
+function copyLinkButton(job, note) {
+  const copy = chip(t("recent.link"), async () => {
+    copy.disabled = true;
     note.className = "row-note";
-    note.setAttribute("role", "status");
-    note.hidden = true;
-    const again = () => (job.media ? chip(t("recent.again"), () => makeAgain(job, note)) : "");
-    if (job.status === "done" && job.file) {
-      const a = document.createElement("a");
-      a.href = job.file.download_url;
-      a.textContent = t("recent.download", { size: fmtSize(job.file.size) });
-      // The link again: the same one while it lasts, a new one if it ran out or is about to.
-      const copy = chip(t("recent.link"), async () => {
-        copy.disabled = true;
-        note.className = "row-note";
-        try {
-          const { link, copied } = await linkToClipboard(job.file);
-          const when = t(link.ends_soon ? "recent.linkSoon" : "recent.linkUntil", { when: fmtWhen(link.expires_at) });
-          if (copied) {
-            // Say it twice, where the eye is: the button itself flips to "Copied", and a highlighted line stays below.
-            note.textContent = `${t("recent.linkCopied")} ${when}`;
-            note.classList.add("copied", "ok");
-            copy.textContent = `✓ ${t("copied")}`;
-            copy.classList.add("done");
-            setTimeout(() => { copy.textContent = t("recent.link"); copy.classList.remove("done"); }, 3000);
-          } else {
-            note.textContent = `${t("recent.copyByHand")} ${link.url} · ${when}`;
-            note.classList.add("copied");
-          }
-        } catch (err) {
-          note.textContent = err.message;
-          note.classList.add("bad");
-        }
-        note.hidden = false;
-        copy.disabled = false;
-      });
-      state.append(a, copy);
-      if (navigator.canShare && job.file.size <= SHARE_SHEET_MAX) {
-        // The phone's share sheet, straight from the list. The file has to be fetched first; if the phone
-        // then says the tap is too old, the button asks for one more tap.
-        let ready = null;
-        const send = chip(t("res.send"), async () => {
-          const offer = async () => {
-            try { await navigator.share({ files: [ready] }); send.textContent = t("res.send"); }
-            catch (err) { send.textContent = err && err.name === "NotAllowedError" ? t("recent.tapToSend") : t("res.send"); }
-          };
-          if (ready) { await offer(); return; }
-          send.disabled = true;
-          send.textContent = t("res.preparing");
-          ready = await fetchShareFile(job, job.file);
-          send.disabled = false;
-          if (!ready) {
-            send.textContent = t("res.send");
-            note.className = "row-note bad";
-            note.textContent = t("recent.cantSend");
-            note.hidden = false;
-            return;
-          }
-          await offer();
-        });
-        send.classList.add("strong");
-        state.prepend(send);
+    try {
+      const { link, copied } = await linkToClipboard(job.file);
+      const when = t(link.ends_soon ? "recent.linkSoon" : "recent.linkUntil", { when: fmtWhen(link.expires_at) });
+      if (copied) {
+        note.textContent = `${t("recent.linkCopied")} ${when}`;
+        note.classList.add("copied", "ok");
+        copy.textContent = `✓ ${t("copied")}`;
+        copy.classList.add("done");
+        setTimeout(() => { copy.textContent = t("recent.link"); copy.classList.remove("done"); }, 3000);
+      } else {
+        note.textContent = `${t("recent.copyByHand")} ${link.url} · ${when}`;
+        note.classList.add("copied");
       }
-    } else if (job.status === "done") {
-      state.append(t("recent.expired"), again());
-    } else if (job.status === "failed") {
-      const failed = document.createElement("span");
-      failed.textContent = t("recent.failed");
-      failed.title = job.error || "";
-      state.append(failed, again());
-    } else if (job.status === "canceled") {
-      state.append(t("recent.canceled"), again());
-    } else {
-      state.textContent = t("recent.progress");
+    } catch (err) {
+      note.textContent = err.message;
+      note.classList.add("bad");
     }
-    li.append(name, state, note);
-    list.append(li);
+    note.hidden = false;
+    copy.disabled = false;
+  });
+  return copy;
+}
+
+// What a row's panel holds, by the state of that video.
+function recentPanel(job) {
+  const panel = document.createElement("div");
+  panel.className = "rc-panel";
+  const note = document.createElement("p");
+  note.className = "row-note";
+  note.setAttribute("role", "status");
+  note.hidden = true;
+  if (job.status === "done" && job.file) {
+    if (canSendFile(job)) {
+      panel.append(sendButton(job, t("res.send"), "rc-send", () => {
+        note.className = "row-note bad";
+        note.textContent = t("recent.cantSend");
+        note.hidden = false;
+      }));
+    }
+    const buttons = document.createElement("div");
+    buttons.className = "rc-buttons";
+    const download = document.createElement("a");
+    download.className = "button secondary";
+    download.href = job.file.download_url;
+    download.textContent = t("recent.saveFile");
+    buttons.append(copyLinkButton(job, note));
+    if (job.media && job.file.duration) buttons.append(chip(t("recent.clip"), () => openFinished(job, true)));
+    buttons.append(download);
+    panel.append(buttons);
+  } else if (job.status === "queued" || job.status === "running") {
+    panel.append(chip(t("recent.showProgress"), () => watch(job.id, job.media)));
+  } else {
+    if (job.status === "failed" && job.error) {
+      const why = document.createElement("p");
+      why.className = "muted";
+      why.textContent = job.error;
+      panel.append(why);
+    }
+    if (job.media) panel.append(chip(t("recent.again"), () => makeAgain(job, note)));
   }
-  $("recent").hidden = jobs.length === 0;
+  panel.append(note);
+  return panel;
+}
+
+function recentRow(job) {
+  const li = document.createElement("li");
+  li.className = "rc-item";
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "rc-row";
+  row.setAttribute("aria-expanded", "false");
+  const words = document.createElement("span");
+  words.className = "rc-words";
+  const title = document.createElement("span");
+  title.className = "rc-title";
+  title.textContent = recentTitle(job);
+  const details = document.createElement("span");
+  details.className = "rc-details";
+  details.textContent = recentDetails(job);
+  words.append(title, details);
+  const chevron = document.createElement("span");
+  chevron.className = "rc-chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "›";
+  const img = picture(job, "rc-thumb");
+  if (img) row.append(img); else { const blank = document.createElement("span"); blank.className = "rc-thumb blank"; row.append(blank); }
+  row.append(words, chevron);
+  const panel = recentPanel(job);
+  const setOpen = (open) => {
+    li.classList.toggle("open", open);
+    row.setAttribute("aria-expanded", String(open));
+    panel.hidden = !open;
+  };
+  setOpen(openRecentId === job.id);
+  row.addEventListener("click", () => {
+    const opening = !li.classList.contains("open");
+    for (const other of $("recent-list").querySelectorAll(".rc-item.open")) {
+      other.classList.remove("open");
+      other.querySelector(".rc-row").setAttribute("aria-expanded", "false");
+      other.querySelector(".rc-panel").hidden = true;
+    }
+    openRecentId = opening ? job.id : null;
+    setOpen(opening);
+  });
+  li.append(row, panel);
+  return li;
+}
+
+function recentTile(job) {
+  const li = document.createElement("li");
+  li.className = "rc-tile-item";
+  const tile = document.createElement("button");
+  tile.type = "button";
+  tile.className = "rc-tile";
+  tile.setAttribute("aria-label", t("recent.openVideo", { title: recentTitle(job) }));
+  const img = picture(job, "rc-tile-img");
+  if (img) tile.append(img);
+  const shade = document.createElement("span");
+  shade.className = "rc-shade";
+  const words = document.createElement("span");
+  words.className = "rc-tile-words";
+  const title = document.createElement("span");
+  title.className = "rc-title";
+  title.textContent = recentTitle(job);
+  const details = document.createElement("span");
+  details.className = "rc-details";
+  details.textContent = recentDetails(job);
+  words.append(title, details);
+  tile.append(shade, words);
+  const finished = job.status === "done" && job.file;
+  if (!finished) {
+    li.classList.add("dim");
+    const badge = document.createElement("span");
+    badge.className = "rc-badge";
+    badge.textContent = job.status === "queued" || job.status === "running" ? t("recent.progress") : `↻ ${t("recent.again")}`;
+    tile.append(badge);
+  }
+  const note = document.createElement("p");
+  note.className = "row-note";
+  note.hidden = true;
+  tile.addEventListener("click", () => {
+    if (finished) openFinished(job, false);
+    else if (job.status === "queued" || job.status === "running") watch(job.id, job.media);
+    else if (job.media) makeAgain(job, note);
+  });
+  li.append(tile);
+  if (canSendFile(job)) li.append(sendButton(job, "↗", "rc-tile-send", () => openFinished(job, false)));
+  li.append(note);
+  return li;
+}
+
+function paintRecentToggle() {
+  for (const b of document.querySelectorAll("#recent .view-toggle [data-view]")) {
+    b.setAttribute("aria-pressed", String(b.dataset.view === prefs.recent));
+  }
+}
+
+let recentJobs = [];
+
+function drawRecent() {
+  const list = $("recent-list");
+  const grid = prefs.recent === "grid";
+  list.classList.toggle("grid", grid);
+  list.replaceChildren(...recentJobs.map((job) => (grid ? recentTile(job) : recentRow(job))));
+  $("recent").hidden = recentJobs.length === 0;
+  paintRecentToggle();
+}
+
+async function loadRecent() {
+  try { recentJobs = await api("/api/jobs?limit=12"); } catch { return; }
+  drawRecent();
+}
+
+for (const b of document.querySelectorAll("#recent .view-toggle [data-view]")) {
+  b.addEventListener("click", () => {
+    if (prefs.recent === b.dataset.view) return;
+    setPrefs({ recent: b.dataset.view });   // saved here and to the account
+    drawRecent();
+  });
 }
 
 // ---------- choosing a scene in the style panel, with a looping preview ----------
@@ -896,14 +1186,18 @@ $("open-help").addEventListener("click", () => { hideHint(); openHelp(); });
 $("close-help").addEventListener("click", () => showScreen("app"));
 $("shortcut-copy").addEventListener("click", () => copyFrom($("shortcut-address"), $("shortcut-copy")));
 
-// "Ask me which size every time" in the style panel.
-$("ask-size").addEventListener("change", () => setPrefs({ sizes: $("ask-size").checked ? "ask" : "auto" }));
-$("open-style").addEventListener("click", () => { $("ask-size").checked = prefs.sizes === "ask"; });
+// Sizes in the style panel: see the sizes every time (the default), or always make one size straight away.
+const sizeMode = () => (prefs.sizes === "auto" ? prefs.size_pick : "ask");
+$("size-mode").addEventListener("change", () => {
+  const value = $("size-mode").value;
+  setPrefs(value === "ask" ? { sizes: "ask" } : { sizes: "auto", size_pick: value });
+});
+$("open-style").addEventListener("click", () => { $("size-mode").value = sizeMode(); });
 
 // Runs each time someone signs in. A link like /#job=12 jumps to that job; /#url=… looks a link up.
 document.addEventListener("joyshare:signed-in", () => {
   loadRecent();
-  $("ask-size").checked = prefs.sizes === "ask";
+  $("size-mode").value = sizeMode();
   const match = location.hash.match(/^#job=(\d+)$/);
   if (match) {
     history.replaceState(null, "", location.pathname);

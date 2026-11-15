@@ -12,7 +12,7 @@ const THEME_FONT = { acid: "warp", zine: "mono", clay: "fredoka", win95: "win", 
 const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none"];
 // scene: which 3D progress scene to show ("random", one of them, or "none").
 // motion: "auto" follows the device's Reduce Motion setting, "full" always shows the full scenes.
-const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto", sizes: "auto" };
+const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto", sizes: "ask", size_pick: "easy", recent: "list" };
 let defaultName = "vidshare";
 let prefsSignedIn = false;
 
@@ -22,8 +22,11 @@ if (!FONT_CHOICES.includes(prefs.font)) prefs.font = "mono";
 if (!THEME_CHOICES.includes(prefs.theme)) prefs.theme = "zine";
 if (!SCENE_CHOICES.includes(prefs.scene)) prefs.scene = "random";
 if (prefs.motion !== "full") prefs.motion = "auto";
-// sizes: "auto" makes a pasted link straight away at a sensible size; "ask" shows the size step first.
-if (prefs.sizes !== "ask") prefs.sizes = "auto";
+// sizes: "ask" shows the size step (the default); "auto" makes a pasted link straight away at size_pick.
+if (prefs.sizes !== "auto") prefs.sizes = "ask";
+if (!["easy", "best", "720", "480", "audio"].includes(prefs.size_pick)) prefs.size_pick = "easy";
+// recent: how the Recent list is drawn, "list" (rows that open in place) or "grid" (pictures).
+if (prefs.recent !== "grid") prefs.recent = "list";
 
 function brandName() {
   return prefs.name || defaultName;
@@ -63,7 +66,7 @@ function setPrefs(changes) {
     fetch("/api/auth/prefs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion, sizes: prefs.sizes }),
+      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion, sizes: prefs.sizes, size_pick: prefs.size_pick, recent: prefs.recent }),
     }).catch(() => { /* saved locally; the account copy catches up next time */ });
   }, 500);
 }
@@ -79,7 +82,9 @@ function adoptAccountPrefs(status) {
     prefs.theme = saved.theme;
     prefs.scene = saved.scene || "random";
     prefs.motion = saved.motion || "auto";
-    prefs.sizes = saved.sizes || "auto";
+    prefs.sizes = saved.sizes || "ask";
+    prefs.size_pick = saved.size_pick || "easy";
+    prefs.recent = saved.recent || "list";
     if (saved.lang) prefs.lang = saved.lang;
     try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* private window */ }
   }

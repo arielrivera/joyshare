@@ -230,11 +230,13 @@ ES = {
     "Platform tests are limited to {count} every 3 hours. Try again in {minutes} minutes.":
         "Las pruebas de plataformas están limitadas a {count} cada 3 horas. Inténtalo de nuevo en {minutes} minutos.",
     "Backup failed": "Falló la copia de seguridad",
+    "That file belongs to another video.": "Ese archivo pertenece a otro video.",
+    "The file to cut from is gone. Make the video again first.": "El archivo para recortar ya no está. Vuelve a crear el video primero.",
     "Not found.": "No encontrado.",
-    "Give both a start and an end for the part.": "Indica el inicio y el final de la parte.",
-    "The part must be inside the video.": "La parte debe estar dentro del video.",
+    "Give both a start and an end for the clip.": "Indica el inicio y el final del clip.",
+    "The clip must be inside the video.": "El clip debe estar dentro del video.",
     "The end must be at least 1 second after the start.": "El final debe estar al menos 1 segundo después del inicio.",
-    "That part is outside the video.": "Esa parte está fuera del video.",
+    "That clip is outside the video.": "Ese clip está fuera del video.",
     "A second copy is running": "Hay una segunda copia funcionando",
     "Another copy of this app is answering at {url}. People will look signed out at random and "
     "videos will go missing. Stop the old one with: ./joyshare retire":

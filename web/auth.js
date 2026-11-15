@@ -219,7 +219,10 @@ $("join").addEventListener("submit", async (e) => {
     joining = false;
     await enter();
   } catch (err) {
-    showError($("auth-error"), passkeyProblem(err));
+    // Some browsers (Chrome on iPhone, for one) say "the prompt was closed" when the real reason is that this
+    // device already holds a passkey for the account. When registering, mention both and point at Sign in.
+    const closed = err && err.name === "NotAllowedError";
+    showError($("auth-error"), closed ? t("pk.closedOrExists") : passkeyProblem(err));
     // Already has a passkey here: the next step is signing in, so make that the main button again.
     if (err && err.name === "InvalidStateError") {
       joining = false;
@@ -227,6 +230,7 @@ $("join").addEventListener("submit", async (e) => {
       paintAuthText();
       $("sign-in").focus();
     }
+    if (closed) $("signin-box").hidden = false;   // keep "Sign in with a passkey" in reach
   }
 });
 
