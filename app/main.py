@@ -274,7 +274,9 @@ def health(conn=Depends(db.get_conn)):
     """Public on purpose (uptime monitors call it), so it says very little."""
     beat, _ = db.get_state(conn, "worker_heartbeat")
     # "instance" is a random id of this copy, so a copy can tell when another one answers at its address.
-    return {"ok": True, "worker_alive": bool(beat and db.now() - int(beat) < 90), "instance": twin.instance_id()}
+    # "version" changes with every update of the interface, so an open page can tell it is out of date.
+    return {"ok": True, "worker_alive": bool(beat and db.now() - int(beat) < 90), "instance": twin.instance_id(),
+            "version": ASSETS.rsplit("/", 1)[-1]}
 
 
 @app.get("/api/config")

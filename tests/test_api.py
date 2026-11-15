@@ -23,6 +23,7 @@ def fake_media(monkeypatch):
 def test_health_and_static(client):
     health = client.get("/api/health").json()
     assert health["ok"] is True and health["worker_alive"] is False and len(health["instance"]) == 12
+    assert health["version"] in client.get("/").text            # the same version the page's scripts are served under
     page = client.get("/")
     assert page.status_code == 200 and "vidshare" in page.text
     assert "default-src 'self'" in page.headers["content-security-policy"]

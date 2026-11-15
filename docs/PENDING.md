@@ -73,6 +73,7 @@ The first thing lost is the protection of having no open ports. R2 (or any S3-co
 | **New scenes and the look-up animation** | Confirmed to draw in every state by reading pixels. Nobody has watched them yet. |
 | **Recent list layouts** | List and Pictures were viewed in Zine, Midnight and Nordic at phone size, with a stand-in share sheet. Not yet on a real phone. |
 | **The clip timeline on a phone** | Dragging was checked with the keyboard in a desktop browser, not with a finger on a real phone. |
+| **Pull down to reload** | Checked with simulated touches in a desktop browser. Try it in the home-screen app on your iPhone. |
 | **The phone flow** | "Send or save", sharing from the Recent list and the link card were checked in a desktop browser at phone size with a stand-in share sheet. On a real iPhone: try Send or save, Save Video, a link pasted into WhatsApp, and building the Shortcut from the How it works page. |
 | **Second-copy warning** | Covered by automated tests, and the check reaches the real domain. Two real copies have never been run at once to watch it fire. |
 | **Alerts** | Never sent to the real ntfy service. No topic is set yet. |

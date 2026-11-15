@@ -217,6 +217,13 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] A clearer message when registering a device fails with "prompt closed" (Chrome on iPhone reports an existing passkey that way).
 - [x] Recent list: the owner picked layouts C (rows that open in place) and D (picture grid), switched with two icons beside the heading. The choice is the `recent` preference (`list` or `grid`), saved to the account. Clip in the list opens the finished screen with the timeline, which cuts from the saved file (`from_file`). Sketches of all four layouts stay in `docs/design/recent-options.html`.
 
+### Reloading the home-screen app — done 15 Nov 2026 (branch `pull-to-refresh`)
+- [x] Pull down to reload, only in the app added to the home screen (`display-mode: standalone`), where iOS offers none. Touch handlers in `web/app.js`; not while touching the timeline, a field or the player.
+- [x] `reloadPage()` keeps the video on screen: it reloads with `#job=ID`, and a finished video opens straight on the finished screen (`openFinished`).
+- [x] `/api/health` returns `version` (the interface fingerprint). When the app comes back to the screen after 30 s or more, it refreshes Recent and shows a "new version" bar with Reload if the fingerprint changed.
+- [x] The open row in the Recent list has a darker background.
+- [ ] Not yet tried with a finger on a real iPhone home-screen app (checked with simulated touches).
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

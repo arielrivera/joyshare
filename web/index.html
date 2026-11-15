@@ -119,6 +119,14 @@
       <button id="close-style" type="button" data-i18n="style.done"></button>
     </section>
 
+    <!-- Pull down to reload, in the app added to the home screen (Safari's own pull-to-reload isn't there). -->
+    <div id="pull" class="pull" aria-hidden="true"><span class="pull-arrow">↻</span></div>
+    <!-- Shown when the app was updated on the server while this page stayed open. -->
+    <div id="update-banner" class="update-banner" role="status" hidden>
+      <span data-i18n="upd.ready"></span>
+      <button id="update-reload" type="button" data-i18n="upd.reload"></button>
+    </div>
+
     <!-- Signed out -->
     <section id="auth" class="card" hidden>
       <div id="signin-box">

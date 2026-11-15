@@ -224,6 +224,12 @@ The app has a **How it works** page in the ☰ menu that explains all of this to
 - **Link cards.** A share link pasted into WhatsApp or iMessage shows the video's picture, title, who made it and how long it is. WhatsApp only plays videos inside the chat for a few partners such as YouTube; a link from here opens the page, where the video plays.
 - **The simple iPhone Shortcut.** Opening `https://your-domain/#url=` followed by a video's link looks that link up at once. The How it works page has the five steps to make a Shortcut that does this from any app's Share button. It needs no access token: it uses the Safari sign-in.
 
+## Reloading the app on a phone
+
+Safari pulls down to reload, but an app added to the home screen has no address bar and no pull-to-reload of its own. vidshare adds it: **pull down from the very top of the page and let go** when the round arrow turns solid. You come back to the video you were looking at.
+
+When the app was updated on the server while it stayed open on your phone, a bar at the bottom says **A new version of the app is ready** with a **Reload** button. It checks each time you come back to the app after half a minute or more away, and the Recent list refreshes then too.
+
 ## Access tokens and the iPhone Shortcut
 
 A token lets a script add videos as you without a passkey. It can't manage devices or people.

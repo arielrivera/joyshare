@@ -1194,14 +1194,83 @@ $("size-mode").addEventListener("change", () => {
 });
 $("open-style").addEventListener("click", () => { $("size-mode").value = sizeMode(); });
 
-// Runs each time someone signs in. A link like /#job=12 jumps to that job; /#url=… looks a link up.
-document.addEventListener("joyshare:signed-in", () => {
+// ---------- reloading ----------
+// A page added to the iPhone home screen has no address bar and no pull-to-reload, so this adds one:
+// pull down from the very top and let go. The video on screen (in progress or finished) comes back after the reload.
+
+const homeScreenApp = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+function reloadPage() {
+  const onScreen = lastJob && (!$("job").hidden || !$("result").hidden) ? lastJob.id : null;
+  if (onScreen) history.replaceState(null, "", `${location.pathname}#job=${onScreen}`);
+  location.reload();
+}
+
+(() => {
+  const pull = $("pull");
+  const READY = 80;           // how far to pull, in pixels, before letting go reloads
+  let startY = null, distance = 0;
+  const reset = () => {
+    startY = null;
+    distance = 0;
+    pull.classList.remove("ready", "show");
+    pull.style.removeProperty("--pull");
+  };
+  document.addEventListener("touchstart", (e) => {
+    if (!homeScreenApp() || window.scrollY > 0 || e.touches.length !== 1) return;
+    // Not while dragging something that moves on its own: the clip timeline, a slider, the video.
+    const el = e.target instanceof Element ? e.target : null;
+    if (el && el.closest(".range, input, textarea, select, video, audio, .menu-panel")) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    distance = e.touches[0].clientY - startY;
+    if (distance <= 0 || window.scrollY > 0) { pull.classList.remove("show"); return; }
+    const shown = Math.min(distance * 0.55, READY + 30);   // follows the finger, a little slower
+    pull.style.setProperty("--pull", `${shown}px`);
+    pull.classList.add("show");
+    pull.classList.toggle("ready", distance * 0.55 >= READY);
+  }, { passive: true });
+  document.addEventListener("touchend", () => {
+    if (startY === null) return;
+    if (pull.classList.contains("ready")) {
+      pull.classList.add("spinning");
+      setTimeout(reloadPage, 250);   // long enough to see the spinner start
+      return;
+    }
+    reset();
+  }, { passive: true });
+  document.addEventListener("touchcancel", reset, { passive: true });
+})();
+
+// Coming back to the app after a while: refresh the list, and offer a reload if the app was updated meanwhile.
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", async () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (!me || Date.now() - hiddenAt < 30_000) return;
+  loadRecent();
+  try {
+    const health = await (await fetch("/api/health", { cache: "no-store" })).json();
+    const mine = ASSET_BASE.split("/").filter(Boolean).pop();
+    if (health.version && mine && health.version !== mine) $("update-banner").hidden = false;
+  } catch { /* offline for now: nothing to say */ }
+});
+$("update-reload").addEventListener("click", reloadPage);
+
+// Runs each time someone signs in. A link like /#job=12 shows that video (also after a reload);
+// /#url=… looks a link up.
+document.addEventListener("joyshare:signed-in", async () => {
   loadRecent();
   $("size-mode").value = sizeMode();
   const match = location.hash.match(/^#job=(\d+)$/);
   if (match) {
     history.replaceState(null, "", location.pathname);
-    watch(Number(match[1]));
+    try {
+      const job = await api(`/api/jobs/${match[1]}`);
+      if (job.status === "done" && job.file) openFinished(job, false);   // finished: straight to it, no animation
+      else watch(job.id, job.media);
+    } catch { /* gone: just the main screen */ }
     return;
   }
   if (openAttachedLink()) return;

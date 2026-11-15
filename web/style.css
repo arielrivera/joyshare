@@ -852,3 +852,32 @@ button.range-handle::after { content: ""; position: absolute; left: 50%; top: 50
 #recent-list .rc-buttons > a { display: grid; place-items: center; white-space: nowrap; }
 #recent-list .rc-buttons > * { white-space: nowrap; }
 #recent-list .rc-badge { top: 34%; }
+
+/* The open row in the Recent list: a slightly darker band, so it's clear which video the buttons belong to */
+#recent-list .rc-item { margin-inline: -8px; padding-inline: 8px; border-radius: 12px; transition: background .15s ease; }
+#recent-list .rc-item.open { background: color-mix(in srgb, var(--ink) 7%, var(--card)); border-top-color: transparent; }
+#recent-list .rc-item.open + .rc-item { border-top-color: transparent; }
+#recent-list .rc-item.open .rc-row:hover { background: transparent; }
+:root[data-theme="zine"] #recent-list .rc-item, :root[data-theme="win95"] #recent-list .rc-item,
+:root[data-theme="swiss"] #recent-list .rc-item, :root[data-theme="editorial"] #recent-list .rc-item { border-radius: 0; }
+:root[data-theme="midnight"] #recent-list .rc-item.open { background: color-mix(in srgb, #000 30%, var(--card)); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) #recent-list .rc-item { border-radius: var(--r-in); }
+
+/* Pull down to reload (home-screen app only) */
+.pull { --pull: 0px; position: fixed; left: 50%; top: calc(env(safe-area-inset-top) - 46px); z-index: 60; width: 40px; height: 40px;
+  margin-left: -20px; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--ink);
+  border: 2px solid var(--edge); box-shadow: 0 4px 14px rgba(0, 0, 0, .25); font-size: 22px; font-weight: 700;
+  transform: translateY(var(--pull)); opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+.pull.show { opacity: 1; }
+.pull .pull-arrow { display: block; transform: rotate(calc(var(--pull) * 3)); transition: color .15s ease; }
+.pull.ready { background: var(--pop); color: var(--pop-ink); }
+.pull.spinning { --pull: 90px; opacity: 1; }
+.pull.spinning .pull-arrow { animation: pull-spin .7s linear infinite; }
+@keyframes pull-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* A new version is out */
+.update-banner { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 60; transform: translateX(-50%);
+  width: min(440px, calc(100vw - 24px)); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 10px 10px 16px; background: var(--card); color: var(--ink); border: 2px solid var(--edge); border-radius: 14px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .3); font-weight: 700; }
+.update-banner button { flex: none; }
