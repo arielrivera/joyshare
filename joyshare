@@ -284,9 +284,9 @@ PLIST
         elif command -v systemctl >/dev/null; then
           mkdir -p "$AUTO_UNITS"
           printf '%s\n' "[Unit]" "Description=joyshare: put new code from GitHub live" "" "[Service]" "Type=oneshot" \
-            "WorkingDirectory=$real" "Environment=PATH=$PATH" "ExecStart=/bin/bash $me self-update" \
+            "WorkingDirectory=$real" "Environment=\"PATH=$PATH\"" "ExecStart=/bin/bash \"$me\" self-update" \
             "StandardOutput=append:$real/$AUTO_LOG" "StandardError=append:$real/$AUTO_LOG" > "$AUTO_UNITS/joyshare-autoupdate.service"
-          printf '%s\n' "[Unit]" "Description=joyshare: check GitHub every $minutes minutes" "" "[Timer]" "OnBootSec=2min" \
+          printf '%s\n' "[Unit]" "Description=joyshare: check GitHub every $minutes minutes" "" "[Timer]" "OnActiveSec=1min" "OnBootSec=2min" \
             "OnUnitActiveSec=${minutes}min" "" "[Install]" "WantedBy=timers.target" > "$AUTO_UNITS/joyshare-autoupdate.timer"
           systemctl --user daemon-reload
           systemctl --user enable --now joyshare-autoupdate.timer >/dev/null
