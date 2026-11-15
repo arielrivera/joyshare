@@ -305,6 +305,13 @@ Good to know:
 
 - **Whatever reaches `main` goes live within minutes**, without anyone looking at it first. Keep work on branches until it's ready to merge. The tests catch a lot, not everything.
 - **On a Mac** it's a background job (a launchd agent in `~/Library/LaunchAgents/com.joyshare.autoupdate.plist`) that runs only while you're signed in, like Docker Desktop. After a power cut both start again when you sign in. **On Linux** it's a systemd user timer; to keep it running while nobody is signed in, run `sudo loginctl enable-linger $USER` once.
+- **On a Mac, joyshare can't be in Documents, Desktop, Downloads or iCloud Drive** for this: macOS doesn't let background jobs open those folders (launchd reports "Operation not permitted", exit code 78), so `autoupdate on` refuses there. Move the folder out and leave a shortcut where it was, so it still opens from there. Keep the name `joyshare`, so Docker finds the videos and database again:
+  ```bash
+  ./joyshare stop
+  mv ~/Documents/GitHub/joyshare ~/joyshare && ln -s ~/joyshare ~/Documents/GitHub/joyshare
+  cd ~/joyshare && ./joyshare start && ./joyshare autoupdate on
+  ```
+  Through a shortcut the job is always set up with the real folder.
 - It uses the `PATH` you had when you turned it on, so turn it on from a terminal where `docker` and `git` work. If you clone over SSH and your key needs a passphrase, the background job can't unlock it: use the https address for the clone.
 - A retired computer refuses to run it, like every other command that starts joyshare.
 

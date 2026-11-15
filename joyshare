@@ -238,8 +238,29 @@ except Exception as exc:
         [[ "$minutes" =~ ^[0-9]+$ ]] && (( minutes >= 1 && minutes <= 1440 )) || die "Give the minutes between checks as a number from 1 to 1440, for example: ./joyshare autoupdate on 5"
         not_retired
         [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || die "This copy is not on main. Run git switch main first."
+        # The real folder, even when this was run through a shortcut (symlink): the job is set up with it.
+        real="$(pwd -P)"
+        if [[ "$(uname)" == "Darwin" ]]; then
+          case "$real/" in
+            "$HOME/Documents/"*|"$HOME/Desktop/"*|"$HOME/Downloads/"*|"$HOME/Library/Mobile Documents/"*)
+              die "joyshare is in $real.
+macOS doesn't let background jobs open anything in Documents, Desktop, Downloads or iCloud Drive,
+so the job would be added but could never run (launchd reports \"Operation not permitted\", exit code 78).
+
+Your options:
+  1. Move the folder out and leave a shortcut where it was, so it still opens from there:
+       ./joyshare stop
+       mv \"$real\" ~/joyshare && ln -s ~/joyshare \"$real\"
+       cd ~/joyshare && ./joyshare start && ./joyshare autoupdate on
+     (The folder keeps the name joyshare, so Docker finds the videos and database again.)
+  2. Keep this copy for editing and clone a second one outside these folders that only runs the server.
+  3. Give /bin/bash Full Disk Access in System Settings -> Privacy & Security. Not recommended:
+     every bash script on this Mac would then be able to read all your files.
+  Or keep updating by hand: git pull && ./joyshare update" ;;
+          esac
+        fi
         mkdir -p logs
-        me="$PWD/joyshare"
+        me="$real/joyshare"
         if [[ "$(uname)" == "Darwin" ]]; then
           mkdir -p "$(dirname "$AUTO_PLIST")"
           cat > "$AUTO_PLIST" <<PLIST
@@ -249,12 +270,12 @@ except Exception as exc:
 <dict>
   <key>Label</key><string>$AUTO_LABEL</string>
   <key>ProgramArguments</key><array><string>/bin/bash</string><string>$me</string><string>self-update</string></array>
-  <key>WorkingDirectory</key><string>$PWD</string>
+  <key>WorkingDirectory</key><string>$real</string>
   <key>EnvironmentVariables</key><dict><key>PATH</key><string>$PATH</string></dict>
   <key>StartInterval</key><integer>$(( minutes * 60 ))</integer>
   <key>RunAtLoad</key><true/>
-  <key>StandardOutPath</key><string>$PWD/$AUTO_LOG</string>
-  <key>StandardErrorPath</key><string>$PWD/$AUTO_LOG</string>
+  <key>StandardOutPath</key><string>$real/$AUTO_LOG</string>
+  <key>StandardErrorPath</key><string>$real/$AUTO_LOG</string>
 </dict>
 </plist>
 PLIST
@@ -263,8 +284,8 @@ PLIST
         elif command -v systemctl >/dev/null; then
           mkdir -p "$AUTO_UNITS"
           printf '%s\n' "[Unit]" "Description=joyshare: put new code from GitHub live" "" "[Service]" "Type=oneshot" \
-            "WorkingDirectory=$PWD" "Environment=PATH=$PATH" "ExecStart=/bin/bash $me self-update" \
-            "StandardOutput=append:$PWD/$AUTO_LOG" "StandardError=append:$PWD/$AUTO_LOG" > "$AUTO_UNITS/joyshare-autoupdate.service"
+            "WorkingDirectory=$real" "Environment=PATH=$PATH" "ExecStart=/bin/bash $me self-update" \
+            "StandardOutput=append:$real/$AUTO_LOG" "StandardError=append:$real/$AUTO_LOG" > "$AUTO_UNITS/joyshare-autoupdate.service"
           printf '%s\n' "[Unit]" "Description=joyshare: check GitHub every $minutes minutes" "" "[Timer]" "OnBootSec=2min" \
             "OnUnitActiveSec=${minutes}min" "" "[Install]" "WantedBy=timers.target" > "$AUTO_UNITS/joyshare-autoupdate.timer"
           systemctl --user daemon-reload
