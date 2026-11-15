@@ -14,6 +14,10 @@
 #   ./joyshare restore-db FILE [--yes]  Put back just the database from a nightly snapshot (.db.gz)
 #   ./joyshare setup-code               Print a one-time code to register a device (first run or lockout)
 #
+#   ./joyshare autoupdate on [MINUTES]  Put new code from GitHub (main) live by itself, checking every 5 minutes
+#   ./joyshare autoupdate off|status    Stop doing that, or show whether it is on and what it did last
+#   ./joyshare self-update              One check now: if main moved, test the new code, wait for running videos, update
+#
 #   ./joyshare retire                   This computer no longer runs joyshare (it moved): stop and stay stopped
 #   ./joyshare unretire                 Allow this computer to run joyshare again
 #
@@ -80,6 +84,31 @@ stray_tunnel() {
   done <<<"$others"
 }
 
+# ---------- updating by itself (see "autoupdate" and "self-update" below) ----------
+AUTO_LOG="logs/autoupdate.log"
+AUTO_MARK=".autoupdate-stopped"   # the commit (or problem) already reported, so it is reported once
+AUTO_LOCK=".autoupdate.lock"
+AUTO_LABEL="com.joyshare.autoupdate"
+AUTO_PLIST="$HOME/Library/LaunchAgents/$AUTO_LABEL.plist"
+AUTO_UNITS="$HOME/.config/systemd/user"
+stamp() { date "+%Y-%m-%d %H:%M:%S"; }
+note() { say "$(stamp)  $*"; }
+
+# Tell the admin's phone (ntfy, set up in the admin panel) that new code was not put live.
+alert_update_failed() {
+  $COMPOSE exec -T web python -m app.cli update-failed "$*" 2>&1 || say "(No alert sent: joyshare is not running.)"
+}
+
+# Report a problem once (in the log and as an alert), then stay quiet until it changes.
+stop_once() { # stop_once KEY MESSAGE
+  [[ -f "$AUTO_MARK" && "$(cat "$AUTO_MARK")" == "$1" ]] && exit 0
+  printf '%s\n' "$1" > "$AUTO_MARK"
+  mkdir -p logs
+  note "Not updating: $2" >> "$AUTO_LOG"
+  alert_update_failed "$2" >> "$AUTO_LOG"
+  exit 1
+}
+
 summary() {
   say "Address:        $(setting JOYSHARE_PUBLIC_URL || true)"
   say "On this machine: http://localhost:$(v="$(setting JOYSHARE_PORT)"; echo "${v:-8080}")"
@@ -138,6 +167,142 @@ except Exception as exc:
   test)
     $COMPOSE build -q web
     $COMPOSE run --rm --no-deps -T web python -m pytest -q tests
+    ;;
+
+  self-update)
+    not_retired
+    # One run at a time. A lock left by a crash is cleared after two hours.
+    [[ -d "$AUTO_LOCK" && -n "$(find "$AUTO_LOCK" -maxdepth 0 -mmin +120 2>/dev/null)" ]] && rmdir "$AUTO_LOCK"
+    mkdir "$AUTO_LOCK" 2>/dev/null || exit 0
+    trap 'rmdir "$AUTO_LOCK" 2>/dev/null || true' EXIT
+
+    # Nothing is written while nothing changes, so the log only holds real updates.
+    git fetch --quiet origin main 2>/dev/null || exit 0   # offline for now: try again next time
+    here="$(git rev-parse HEAD)"; there="$(git rev-parse FETCH_HEAD)"
+    [[ "$here" == "$there" ]] && exit 0
+    [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] \
+      || stop_once "branch:$(git rev-parse --abbrev-ref HEAD)" "this copy is on branch $(git rev-parse --abbrev-ref HEAD), not main. Run: git switch main"
+    git merge-base --is-ancestor HEAD "$there" \
+      || stop_once "diverged:$there" "this copy has commits that are not on GitHub's main, so it can't simply move forward."
+    [[ -z "$(git status --porcelain --untracked-files=no)" ]] \
+      || stop_once "changed:$there" "files were changed by hand in $PWD (see: git status)."
+    [[ -f "$AUTO_MARK" && "$(cat "$AUTO_MARK")" == "$there" ]] && exit 0   # these tests already failed
+
+    mkdir -p logs
+    [[ -f "$AUTO_LOG" && "$(wc -c < "$AUTO_LOG")" -gt 1000000 ]] && mv -f "$AUTO_LOG" "$AUTO_LOG.old"
+    exec >> "$AUTO_LOG" 2>&1
+    short="$(git rev-parse --short "$there")"; subject="$(git log -1 --format=%s "$there")"
+    note "New code on main: $short $subject"
+
+    # Test the new code in its own folder and image, so the running version is not touched.
+    engine="${COMPOSE%% *}"
+    trial="$(mktemp -d)"
+    trap 'git worktree remove --force "$trial/code" >/dev/null 2>&1 || true; rm -rf "$trial"; rmdir "$AUTO_LOCK" 2>/dev/null || true' EXIT
+    git worktree prune
+    git worktree add --quiet --detach "$trial/code" "$there"
+    note "Testing $short…"
+    if ! { $engine build -q -t joyshare:candidate "$trial/code" >/dev/null && $engine run --rm joyshare:candidate python -m pytest -q tests; }; then
+      printf '%s\n' "$there" > "$AUTO_MARK"
+      note "The tests failed. Staying on $(git rev-parse --short HEAD)."
+      alert_update_failed "the tests failed on $short ($subject). Details in $AUTO_LOG on $(hostname -s)."
+      exit 1
+    fi
+    $engine image rm joyshare:candidate >/dev/null 2>&1 || true
+
+    # Wait up to 30 minutes while a video is being made, so nobody's video is cut off.
+    for i in $(seq 60); do
+      $COMPOSE exec -T web python -m app.cli busy >/dev/null 2>&1 || break
+      [[ "$i" == 1 ]] && note "A video is being made. Waiting for it to finish…"
+      sleep 30
+    done
+    if $COMPOSE exec -T web python -m app.cli busy >/dev/null 2>&1; then
+      note "Videos are still being made after 30 minutes. Trying again next time."
+      exit 0
+    fi
+
+    git merge --ff-only --quiet "$there"
+    rm -f "$AUTO_MARK"
+    if ./joyshare update; then   # a fresh run, so it uses the new script too
+      note "Updated to $short. Live now."
+    else
+      note "The update to $short failed while starting."
+      alert_update_failed "the update to $short failed while starting. Details in $AUTO_LOG on $(hostname -s)."
+      exit 1
+    fi
+    ;;
+
+  autoupdate)
+    case "${2:-status}" in
+      on)
+        minutes="${3:-5}"
+        [[ "$minutes" =~ ^[0-9]+$ ]] && (( minutes >= 1 && minutes <= 1440 )) || die "Give the minutes between checks as a number from 1 to 1440, for example: ./joyshare autoupdate on 5"
+        not_retired
+        [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || die "This copy is not on main. Run git switch main first."
+        mkdir -p logs
+        me="$PWD/joyshare"
+        if [[ "$(uname)" == "Darwin" ]]; then
+          mkdir -p "$(dirname "$AUTO_PLIST")"
+          cat > "$AUTO_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$AUTO_LABEL</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>$me</string><string>self-update</string></array>
+  <key>WorkingDirectory</key><string>$PWD</string>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$PATH</string></dict>
+  <key>StartInterval</key><integer>$(( minutes * 60 ))</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>$PWD/$AUTO_LOG</string>
+  <key>StandardErrorPath</key><string>$PWD/$AUTO_LOG</string>
+</dict>
+</plist>
+PLIST
+          launchctl bootout "gui/$(id -u)/$AUTO_LABEL" 2>/dev/null || true
+          launchctl bootstrap "gui/$(id -u)" "$AUTO_PLIST"
+        elif command -v systemctl >/dev/null; then
+          mkdir -p "$AUTO_UNITS"
+          printf '%s\n' "[Unit]" "Description=joyshare: put new code from GitHub live" "" "[Service]" "Type=oneshot" \
+            "WorkingDirectory=$PWD" "Environment=PATH=$PATH" "ExecStart=/bin/bash $me self-update" \
+            "StandardOutput=append:$PWD/$AUTO_LOG" "StandardError=append:$PWD/$AUTO_LOG" > "$AUTO_UNITS/joyshare-autoupdate.service"
+          printf '%s\n' "[Unit]" "Description=joyshare: check GitHub every $minutes minutes" "" "[Timer]" "OnBootSec=2min" \
+            "OnUnitActiveSec=${minutes}min" "" "[Install]" "WantedBy=timers.target" > "$AUTO_UNITS/joyshare-autoupdate.timer"
+          systemctl --user daemon-reload
+          systemctl --user enable --now joyshare-autoupdate.timer >/dev/null
+          say "To keep checking while nobody is signed in to this computer, run once: sudo loginctl enable-linger $(id -un)"
+        else
+          die "This computer has neither launchd (macOS) nor systemd, so this can't be turned on here."
+        fi
+        note "Automatic updates on: every $minutes minutes." >> "$AUTO_LOG"
+        say "Automatic updates are on. Every $minutes minutes this computer checks GitHub's main and puts new code live."
+        say "What it did is written to $AUTO_LOG. Turn it off with: ./joyshare autoupdate off"
+        ;;
+      off)
+        if [[ "$(uname)" == "Darwin" ]]; then
+          launchctl bootout "gui/$(id -u)/$AUTO_LABEL" 2>/dev/null || true
+          rm -f "$AUTO_PLIST"
+        elif command -v systemctl >/dev/null; then
+          systemctl --user disable --now joyshare-autoupdate.timer >/dev/null 2>&1 || true
+          rm -f "$AUTO_UNITS/joyshare-autoupdate.timer" "$AUTO_UNITS/joyshare-autoupdate.service"
+          systemctl --user daemon-reload 2>/dev/null || true
+        fi
+        mkdir -p logs; note "Automatic updates off." >> "$AUTO_LOG"
+        say "Automatic updates are off. Update by hand with: git pull && ./joyshare update"
+        ;;
+      status)
+        if [[ -f "$AUTO_PLIST" || -f "$AUTO_UNITS/joyshare-autoupdate.timer" ]]; then
+          every="$(grep -o '<integer>[0-9]*' "$AUTO_PLIST" 2>/dev/null | tr -dc 0-9)"
+          [[ -n "$every" ]] && every="$(( every / 60 ))" || every="$(grep -o 'OnUnitActiveSec=[0-9]*' "$AUTO_UNITS/joyshare-autoupdate.timer" 2>/dev/null | tr -dc 0-9)"
+          say "Automatic updates: on, every ${every:-?} minutes."
+        else
+          say "Automatic updates: off. Turn on with: ./joyshare autoupdate on"
+        fi
+        say "Running version: $(git log -1 --format='%h %s')"
+        [[ -f "$AUTO_MARK" ]] && say "Waiting on: $(cat "$AUTO_MARK") (reported once; fix it or push a new commit)"
+        if [[ -f "$AUTO_LOG" ]]; then say ""; say "Last entries in $AUTO_LOG:"; grep -E '^[0-9]{4}-' "$AUTO_LOG" | tail -n 8; fi
+        ;;
+      *) die "Use: ./joyshare autoupdate on [MINUTES] | off | status" ;;
+    esac
     ;;
 
   retire)
@@ -200,7 +365,7 @@ except Exception as exc:
     ;;
 
   *)
-    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,/^set -euo/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

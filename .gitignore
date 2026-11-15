@@ -10,3 +10,6 @@ backups/
 cloudfare_tunnel_docker_notes.txt
 *_notes.txt
 .retired
+logs/
+.autoupdate-stopped
+.autoupdate.lock/

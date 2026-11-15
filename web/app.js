@@ -825,10 +825,9 @@ async function makeAgain(job, note) {
 //   "list": short rows (picture, title, details). Tap one and its buttons open right under it.
 //   "grid": pictures, like the Photos app. ↗ sends; tapping a picture opens it on the finished screen.
 let openRecentId = null;   // the row that is open in the list, kept when the list is redrawn
+let resultFrom = null;     // "recent" when the finished screen was opened from the Recent list
 
 // Shows an earlier video on the finished screen: player, Send or save, link, and the clip timeline.
-let resultFrom = null;   // "recent" when the finished screen was opened from the Recent list
-
 function openFinished(job, toClip) {
   resultFrom = "recent";
   if (events) { events.close(); events = null; }

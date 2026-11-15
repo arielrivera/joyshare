@@ -178,3 +178,22 @@ def test_search_videos_and_see_their_pictures(client, conn, member, monkeypatch,
     assert picture.status_code == 200 and picture.headers["content-type"] == "image/jpeg"
     assert member.get(first["media"]["thumb_url"]).status_code == 403     # admins only
     assert member.get("/api/admin/jobs", params={"q": "cat"}).status_code == 403
+
+
+def test_cli_busy_and_update_failed_alert(conn, sent, capsys):
+    """What ./joyshare self-update asks the app: is a video being made, and tell the admin the update stopped."""
+    from app import cli
+    assert cli.main(["cli", "busy"]) == 1 and capsys.readouterr().out.strip() == "0"
+    media_id = conn.execute("INSERT INTO media (url, webpage_url, platform, title, user_id, source_id, created_at) "
+                            "VALUES ('u', 'u', 'x', 'Clip', 1, 'u', ?)", (db.now(),)).lastrowid
+    for status in ("done", "running", "queued", "failed"):
+        conn.execute("INSERT INTO jobs (user_id, media_id, preset, status, created_at) VALUES (1, ?, '720', ?, ?)",
+                     (media_id, status, db.now()))
+    assert cli.main(["cli", "busy"]) == 0 and capsys.readouterr().out.strip() == "2"
+
+    assert cli.main(["cli", "update-failed"]) == 2   # needs a reason
+    assert cli.main(["cli", "update-failed", "tests", "failed", "on", "abc123"]) == 0 and not sent   # alerts are off
+    settings.put(conn, "ntfy_topic", "my-topic")
+    assert cli.main(["cli", "update-failed", "tests failed on abc123"]) == 0
+    assert sent[-1]["priority"] == 4 and sent[-1]["tags"] == ["construction"]
+    assert sent[-1]["message"] == "joyshare stayed on the running version: tests failed on abc123"

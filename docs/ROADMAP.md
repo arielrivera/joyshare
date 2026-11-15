@@ -231,6 +231,12 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] The finished screen has **✕ Close** at the right of New link: it puts the video away and goes back to the Recent list (or the link box).
 - Preview pictures are kept in `/data/thumbs` after the video files expire; nothing removes them yet. At about 50 KB each that's small, but a clean-up of pictures for very old videos may be worth adding later.
 
+### Updating by itself — done 15 Nov 2026 (branch `claude/bold-mccarthy-8ta124`)
+- [x] `./joyshare autoupdate on [MINUTES] | off | status`: a launchd agent on macOS, a systemd user timer on Linux, running `./joyshare self-update` (every 5 minutes by default).
+- [x] `self-update`: stops quietly when `main` hasn't moved; tests the new commit in a git worktree and its own image (`joyshare:candidate`); waits up to 30 minutes while videos are queued or being made (`python -m app.cli busy`); then fast-forwards and runs `./joyshare update`. Logs to `logs/autoupdate.log`.
+- [x] A failed test run, a failed start, or a copy that is off `main`, ahead of it or edited by hand sends one **Update not put live** alert (`update_failed`, `python -m app.cli update-failed`) and isn't retried until something changes.
+- [ ] Not yet run on the Mac mini (checked here with a stand-in for Docker and launchd).
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

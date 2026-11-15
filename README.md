@@ -26,6 +26,7 @@ joyshare is a small private web app you run on your own computer. Paste a link, 
 | **Share links** | Expire after 48 hours. |
 | **Clips** | Share just a part of a video: give a start and an end, or tap while watching. |
 | **Files** | Deleted automatically. Nothing piles up. |
+| **Updates** | Optional: the computer checks GitHub every few minutes, tests new code and puts it live by itself. |
 | **Size limit** | 200 MB per video by default. You can change it. |
 | **Output** | MP4 that plays in iMessage, WhatsApp and every browser. M4A for audio. |
 | **Alerts** | Push notifications to your phone when a video is ready or something breaks. |

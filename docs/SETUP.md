@@ -268,6 +268,7 @@ It registers a new device for the admin, works once and lasts 30 minutes. Only s
 | Stop it (data is kept) | `./joyshare stop` |
 | Stop and start again | `./joyshare restart` |
 | Update after getting new code | `git pull` then `./joyshare update` |
+| Update by itself when GitHub's main changes | `./joyshare autoupdate on` (see [Updating by itself](#updating-by-itself)) |
 | See what is running and whether it's healthy | `./joyshare status` |
 | See what it's doing | `./joyshare logs` |
 | See only the downloads and converting | `./joyshare logs worker` |
@@ -280,6 +281,32 @@ Everything joyshare runs is defined in one file, `docker-compose.yml`: the app (
 - **`caddy`**, a web server with automatic https for a server without Cloudflare, when `JOYSHARE_DOMAIN` is set. See [MOVING-LINUX.md](MOVING-LINUX.md).
 
 Plain `docker compose` commands still work for the app itself, but they don't know about the optional containers unless you add `--profile tunnel` or `--profile caddy`. The script is the simpler way.
+
+## Updating by itself
+
+The computer that runs joyshare can put new code live by itself: every few minutes it asks GitHub whether `main` has moved, and if it has, it tests the new code and updates. Nothing reaches in from outside: the computer reaches out to GitHub, and the Cloudflare Tunnel stays the only way in.
+
+```bash
+./joyshare autoupdate on
+```
+
+That checks every 5 minutes. Give another number of minutes to change it, for example `./joyshare autoupdate on 35`. `./joyshare autoupdate status` shows whether it's on, the running version and the last things it did; `./joyshare autoupdate off` stops it.
+
+Each check (`./joyshare self-update`, which you can also run by hand):
+
+1. Fetches `main` from GitHub. If nothing changed, it stops there and writes nothing.
+2. Builds the new code in a separate folder and image, and runs the tests there. The running version is not touched. If a test fails, joyshare stays on the running version and sends an **Update not put live** alert (switch it off in **Admin panel → Alerts**). That commit isn't tried again; the next push is.
+3. Waits while a video is being made, up to 30 minutes, so nobody's video is cut off. If one is still going after that, it tries again at the next check.
+4. Moves to the new code (`git merge --ff-only`) and runs `./joyshare update`.
+
+What it did goes to `logs/autoupdate.log`. It also stops and alerts you once if this copy is on a branch other than `main`, has commits of its own, or has files changed by hand.
+
+Good to know:
+
+- **Whatever reaches `main` goes live within minutes**, without anyone looking at it first. Keep work on branches until it's ready to merge. The tests catch a lot, not everything.
+- **On a Mac** it's a background job (a launchd agent in `~/Library/LaunchAgents/com.joyshare.autoupdate.plist`) that runs only while you're signed in, like Docker Desktop. After a power cut both start again when you sign in. **On Linux** it's a systemd user timer; to keep it running while nobody is signed in, run `sudo loginctl enable-linger $USER` once.
+- It uses the `PATH` you had when you turned it on, so turn it on from a terminal where `docker` and `git` work. If you clone over SSH and your key needs a passphrase, the background job can't unlock it: use the https address for the clone.
+- A retired computer refuses to run it, like every other command that starts joyshare.
 
 ## Settings
 

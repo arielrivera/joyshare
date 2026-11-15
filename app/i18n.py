@@ -230,6 +230,8 @@ ES = {
     "Platform tests are limited to {count} every 3 hours. Try again in {minutes} minutes.":
         "Las pruebas de plataformas están limitadas a {count} cada 3 horas. Inténtalo de nuevo en {minutes} minutos.",
     "Backup failed": "Falló la copia de seguridad",
+    "Update not put live": "La actualización no se puso en marcha",
+    "joyshare stayed on the running version: {reason}": "joyshare se quedó con la versión que ya funcionaba: {reason}",
     "That file belongs to another video.": "Ese archivo pertenece a otro video.",
     "The file to cut from is gone. Make the video again first.": "El archivo para recortar ya no está. Vuelve a crear el video primero.",
     "Not found.": "No encontrado.",

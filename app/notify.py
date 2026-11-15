@@ -27,6 +27,7 @@ EVENTS = {
     "storage_failed": ("high", "cloud"),
     "backup_failed": ("high", "file_cabinet"),
     "second_copy": ("urgent", "busts_in_silhouette"),
+    "update_failed": ("high", "construction"),
     "test": ("default", "wave"),
 }
 PRIORITY = {"low": 2, "default": 3, "high": 4, "urgent": 5}
