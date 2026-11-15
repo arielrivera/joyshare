@@ -124,26 +124,104 @@ $("adm-refresh").addEventListener("click", () => adminAct(loadOverview));
 
 // ---------- Videos ----------
 
+// Each video is a <details>: picture, title and one line of facts; open it for the original link and the rest.
+function detail(list, label, value, link) {
+  if (value === undefined || value === null || value === "") return;
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  if (link) {
+    const a = document.createElement("a");
+    a.href = value;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = value;
+    dd.append(a);
+  } else {
+    dd.textContent = value;
+  }
+  list.append(dt, dd);
+}
+
+function adminVideo(job) {
+  const media = job.media || {};
+  const d = job.details || {};
+  const item = document.createElement("li");
+  const box = document.createElement("details");
+  const head = document.createElement("summary");
+  if (media.thumb_url) {
+    const img = document.createElement("img");
+    img.className = "adm-thumb";
+    img.alt = "";
+    img.loading = "lazy";
+    img.onerror = () => img.replaceWith(Object.assign(document.createElement("span"), { className: "adm-thumb blank" }));
+    img.src = media.thumb_url;
+    head.append(img);
+  } else {
+    head.append(Object.assign(document.createElement("span"), { className: "adm-thumb blank" }));
+  }
+  const words = document.createElement("span");
+  words.className = "adm-words";
+  const title = document.createElement("span");
+  title.className = "adm-title";
+  title.textContent = media.title || t("media.untitled");
+  const preset = job.preset === "fit" ? t("recent.fit", { mb: job.target_mb }) : t(`short.${job.preset}`);
+  const facts = document.createElement("span");
+  facts.className = "adm-facts";
+  facts.textContent = [job.person, preset, t(`adm.status.${job.status}`), fmtWhen(job.created_at)].join(" · ");
+  words.append(title, facts);
+  if (job.status === "failed" && job.error) {
+    const why = document.createElement("span");
+    why.className = "bad";
+    why.textContent = job.error;
+    words.append(why);
+  }
+  head.append(words);
+
+  const list = document.createElement("dl");
+  list.className = "adm-details";
+  detail(list, t("adm.d.link"), d.link, true);
+  detail(list, t("adm.d.by"), [media.uploader, d.channel && d.channel !== media.uploader ? d.channel : ""].filter(Boolean).join(" · "));
+  detail(list, t("adm.d.platform"), d.platform_label);
+  detail(list, t("adm.d.length"), media.duration ? fmtDuration(media.duration) : "");
+  if (d.upload_date && /^\d{8}$/.test(d.upload_date)) {
+    detail(list, t("adm.d.posted"), `${d.upload_date.slice(0, 4)}-${d.upload_date.slice(4, 6)}-${d.upload_date.slice(6)}`);
+  }
+  detail(list, t("adm.d.person"), job.person);
+  detail(list, t("adm.d.size"), preset + (job.clip ? ` · ✂️ ${fmtClock(job.clip[0])}–${fmtClock(job.clip[1])}` : ""));
+  if (job.file) {
+    detail(list, t("adm.d.file"), [fmtSize(job.file.size), job.file.height ? `${job.file.height}p` : "", job.file.duration ? fmtDuration(job.file.duration) : ""].filter(Boolean).join(" · "));
+    detail(list, t("adm.d.kept"), fmtWhen(job.file.expires_at));
+  } else if (job.status === "done") {
+    detail(list, t("adm.d.kept"), t("recent.expired"));
+  }
+  detail(list, t("adm.d.asked"), fmtWhen(job.created_at));
+  if (job.finished_at) detail(list, t("adm.d.finished"), fmtWhen(job.finished_at));
+  if (job.status === "failed") detail(list, t("adm.d.why"), job.error);
+  detail(list, t("adm.d.description"), d.description);
+  box.append(head, list);
+  item.append(box);
+  return item;
+}
+
 async function loadAdminJobs() {
-  const status = $("adm-job-filter").value;
-  const jobs = await api(`/api/admin/jobs?limit=60${status ? `&status=${status}` : ""}`);
-  $("adm-jobs").replaceChildren(...jobs.map((job) => {
-    const preset = job.preset === "fit" ? t("recent.fit", { mb: job.target_mb }) : t(`short.${job.preset}`);
-    const bits = [job.person, preset, t(`adm.status.${job.status}`), fmtWhen(job.created_at)];
-    if (job.file) bits.splice(3, 0, fmtSize(job.file.size));
-    const li = row((job.media && job.media.title) || t("media.untitled"), bits.join(" · "));
-    if (job.status === "failed" && job.error) {
-      const why = document.createElement("span");
-      why.className = "bad";
-      why.textContent = job.error;
-      li.firstChild.append(document.createElement("br"), why);
-    }
-    return li;
-  }));
+  const status = $("adm-job-filter").value, q = $("adm-job-search").value.trim();
+  const params = new URLSearchParams({ limit: "80" });
+  if (status) params.set("status", status);
+  if (q) params.set("q", q);
+  const jobs = await api(`/api/admin/jobs?${params}`);
+  $("adm-jobs").replaceChildren(...jobs.map(adminVideo));
   $("adm-jobs-empty").hidden = jobs.length > 0;
+  $("adm-jobs-empty").textContent = q ? t("adm.noMatch", { q }) : t("adm.none");
+  $("adm-jobs-count").textContent = q ? t("adm.found", { n: jobs.length }) : "";
 }
 
 $("adm-job-filter").addEventListener("change", () => adminAct(loadAdminJobs));
+let searchTimer = 0;
+$("adm-job-search").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => adminAct(loadAdminJobs), 300);   // wait for a pause in typing
+});
 
 // ---------- Share links ----------
 
@@ -461,6 +539,7 @@ async function loadSystem() {
   $("sys-message").hidden = !message;
   $("sys-auto").checked = y.auto_update;
   $("sys-update").disabled = busy;
+  $("sys-busy").hidden = !busy;   // the little animation next to the button, while the check runs
   $("sys-rollback").hidden = !y.can_roll_back || busy;
   $("sys-rollback").textContent = t("sys.rollback", { version: y.previous_version || "" });
 
@@ -521,7 +600,10 @@ async function systemAction(action) {
   await loadSystem();
 }
 
-$("sys-update").addEventListener("click", () => adminAct(() => systemAction("update")));
+$("sys-update").addEventListener("click", () => {
+  $("sys-busy").hidden = false;   // straight away: the worker picks the request up within half a minute
+  adminAct(() => systemAction("update")).finally(() => { if ($("sys-update").disabled === false) $("sys-busy").hidden = true; });
+});
 $("sys-rollback").addEventListener("click", () => adminAct(() => systemAction("rollback")));
 $("sys-test-platforms").addEventListener("click", () => adminAct(() => systemAction("platforms")));
 $("bak-now").addEventListener("click", () => adminAct(() => systemAction("backup")));

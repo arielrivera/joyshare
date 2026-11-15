@@ -142,3 +142,39 @@ def test_admin_sees_and_revokes_any_share_link(client, conn):
     assert client.delete(f"/api/admin/share-links/{token}").status_code == 200
     assert client.get("/api/admin/share-links").json() == []
     assert client.get(f"/v/{token}").status_code == 410
+
+
+def test_search_videos_and_see_their_pictures(client, conn, member, monkeypatch, tmp_path):
+    from app import thumbs
+    monkeypatch.setattr(thumbs, "FOLDER", tmp_path / "thumbs")
+    monkeypatch.setattr(thumbs, "_download", lambda url: (b"\xff\xd8\xff" + b"0" * 50, "image/jpeg"))
+    sofia = conn.execute("SELECT id FROM users WHERE name='Sofia'").fetchone()["id"]
+
+    def video(title, uploader, url, user_id, description=""):
+        media_id = conn.execute(
+            "INSERT INTO media (url, webpage_url, platform, title, uploader, description, thumbnail, user_id, source_id, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (url, url, "x", title, uploader, description, "https://example.com/t.jpg", user_id, url, db.now())).lastrowid
+        conn.execute("INSERT INTO jobs (user_id, media_id, preset, status, created_at) VALUES (?,?,?,?,?)",
+                     (user_id, media_id, "720", "done", db.now()))
+        return media_id
+    cat = video("A cat plays piano", "Keyboard Cat", "https://x.com/cat/status/1", 1)
+    video("Storm footage", "Max Olson", "https://x.com/max/status/2", sofia, "Hurricane over the gulf")
+
+    def titles(q):
+        return [job["media"]["title"] for job in client.get("/api/admin/jobs", params={"q": q}).json()]
+    assert set(titles("")) == {"A cat plays piano", "Storm footage"}
+    assert titles("piano") == ["A cat plays piano"]
+    assert titles("keyboard CAT") == ["A cat plays piano"]          # channel, any case, every word
+    assert titles("hurricane") == ["Storm footage"]                 # description
+    assert titles("sofia") == ["Storm footage"]                     # the person
+    assert titles("x.com/max") == ["Storm footage"]                 # the link
+    assert titles("cat storm") == []
+    assert titles("100%") == []
+    first = client.get("/api/admin/jobs", params={"q": "piano"}).json()[0]
+    assert first["details"]["link"] == "https://x.com/cat/status/1" and first["person"] == "owner"
+    assert first["media"]["thumb_url"] == f"/api/admin/media/{cat}/thumb"
+    picture = client.get(first["media"]["thumb_url"])
+    assert picture.status_code == 200 and picture.headers["content-type"] == "image/jpeg"
+    assert member.get(first["media"]["thumb_url"]).status_code == 403     # admins only
+    assert member.get("/api/admin/jobs", params={"q": "cat"}).status_code == 403

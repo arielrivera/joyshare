@@ -7,9 +7,10 @@ import json
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store, twin
+from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store, thumbs, twin
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -168,16 +169,49 @@ def read_settings(_admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.
 
 
 @router.get("/jobs")
-def all_jobs(request: Request, limit: int = 50, status: str | None = None,
+def all_jobs(request: Request, limit: int = 50, status: str | None = None, q: str | None = None,
              _admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.get_conn)):
+    """Everyone's videos, newest first. `q` searches the title, channel, description, link, platform and person."""
     lang = i18n.pick_lang(request)
-    sql = "SELECT j.id, u.name AS person FROM jobs j JOIN users u ON u.id=j.user_id"
-    args: list = []
+    sql = ("SELECT j.id, u.name AS person, m.url, m.webpage_url, m.channel, m.uploader_id, m.description, m.upload_date "
+           "FROM jobs j JOIN users u ON u.id=j.user_id JOIN media m ON m.id=j.media_id")
+    where, args = [], []
     if status:
-        sql += " WHERE j.status=?"
+        where.append("j.status=?")
         args.append(status)
+    words = (q or "").strip()[:100].split()
+    for word in words[:6]:   # every word must appear somewhere
+        like = f"%{word.replace('%', '').replace('_', '')}%"
+        where.append("(m.title LIKE ? OR m.uploader LIKE ? OR m.channel LIKE ? OR m.description LIKE ? "
+                     "OR m.url LIKE ? OR m.webpage_url LIKE ? OR m.platform LIKE ? OR u.name LIKE ?)")
+        args.extend([like] * 8)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
     rows = conn.execute(sql + " ORDER BY j.id DESC LIMIT ?", (*args, max(1, min(limit, 200)))).fetchall()
-    return [{**store.job_view(conn, row["id"], None, lang), "person": row["person"]} for row in rows]
+    found = []
+    for row in rows:
+        view = store.job_view(conn, row["id"], None, lang)
+        if view["media"] and view["media"]["thumbnail"]:
+            view["media"]["thumb_url"] = f"/api/admin/media/{view['media']['id']}/thumb"   # any person's, for the admin
+        found.append({**view, "person": row["person"], "details": {
+            "link": row["webpage_url"] or row["url"], "channel": row["channel"], "uploader_id": row["uploader_id"],
+            "description": (row["description"] or "")[:400], "upload_date": row["upload_date"],
+            "platform_label": platforms.PLATFORMS.get(view["media"]["platform"], {}).get("label") if view["media"] else None,
+        }})
+    return found
+
+
+@router.get("/media/{media_id}/thumb")
+def any_thumb(media_id: int, _admin: auth.Auth = Depends(auth.admin_auth), conn=Depends(db.get_conn)):
+    """The saved preview picture of anyone's video. Pictures are kept after the video files expire."""
+    item = conn.execute("SELECT thumbnail FROM media WHERE id=?", (media_id,)).fetchone()
+    if not item:
+        raise HTTPException(404, "Not found.")
+    path = thumbs.find(media_id) or thumbs.save(media_id, item["thumbnail"])
+    if not path:
+        raise HTTPException(404, "Not found.")
+    return FileResponse(path, media_type=thumbs.MIME[path.suffix],
+                        headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"})
 
 
 @router.get("/share-links")

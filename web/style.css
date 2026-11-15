@@ -881,3 +881,61 @@ button.range-handle::after { content: ""; position: absolute; left: 50%; top: 50
   padding: 10px 10px 10px 16px; background: var(--card); color: var(--ink); border: 2px solid var(--edge); border-radius: 14px;
   box-shadow: 0 8px 26px rgba(0, 0, 0, .3); font-weight: 700; }
 .update-banner button { flex: none; }
+
+/* ---------- Admin: People, with inviting in its own box above the list ---------- */
+.panel-box { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--field);
+  border: 2px dashed color-mix(in srgb, var(--edge) 55%, transparent); }
+.panel-box h3.section { margin: 0; }
+.person-form { display: grid; gap: 8px; }
+.person-form input { width: 100%; }
+.person-form .row select { flex: 1 1 150px; }
+.person-form .row button { flex: 0 0 auto; }
+.people-list { margin-top: 4px; }
+:root[data-theme="zine"] .panel-box, :root[data-theme="win95"] .panel-box { border-radius: 2px; }
+:root[data-theme="win95"] .panel-box { border: 0; box-shadow: var(--in); background: #fff; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) .panel-box { border: 1px solid var(--edge); border-radius: var(--r); }
+
+/* ---------- Admin: Videos, with pictures, search and details ---------- */
+.video-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; align-items: end; }
+.video-filters > div { display: grid; gap: 6px; min-width: 0; }
+.video-filters input, .video-filters select { width: 100%; }
+@media (max-width: 480px) { .video-filters { grid-template-columns: 1fr; } }
+input[type="search"] { font: inherit; color: var(--ink); background: var(--field); border: 2px solid var(--edge); border-radius: 12px; padding: 11px 13px; min-width: 0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) input[type="search"] { border: 1px solid var(--edge); border-radius: var(--r-in); }
+:root[data-theme="win95"] input[type="search"] { border: 0; border-radius: 0; box-shadow: var(--in); }
+.adm-videos { list-style: none; margin: 0; padding: 0; display: grid; }
+.adm-videos > li { border-top: 2px dashed color-mix(in srgb, var(--edge) 30%, transparent); }
+.adm-videos > li:first-child { border-top: 0; }
+.adm-videos summary { display: flex; align-items: center; gap: 10px; padding: 9px 4px; cursor: pointer; list-style: none; border-radius: 10px; }
+.adm-videos summary::-webkit-details-marker { display: none; }
+.adm-videos summary::after { content: "›"; flex: none; margin-left: auto; font-size: 22px; line-height: 1; color: var(--muted); transition: transform .15s ease; }
+.adm-videos details[open] > summary::after { transform: rotate(90deg); }
+.adm-videos details[open] { background: color-mix(in srgb, var(--ink) 6%, var(--card)); border-radius: 12px; margin-inline: -6px; padding-inline: 6px; }
+.adm-thumb { flex: none; width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 2px solid var(--edge); background: var(--field); }
+.adm-thumb.blank { display: block; }
+.adm-words { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.adm-title { font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.adm-facts { font-size: 13px; color: var(--muted); }
+.adm-words .bad { font-size: 13px; color: var(--bad); }
+dl.adm-details { margin: 0; padding: 4px 4px 14px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; font-size: 14px; }
+dl.adm-details dt { font-weight: 700; color: var(--muted); }
+dl.adm-details dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 420px) { dl.adm-details { grid-template-columns: 1fr; } dl.adm-details dd { margin-bottom: 6px; } }
+:root[data-theme="zine"] .adm-thumb, :root[data-theme="win95"] .adm-thumb, :root[data-theme="swiss"] .adm-thumb, :root[data-theme="editorial"] .adm-thumb { border-radius: 0; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) .adm-videos > li { border-top: 1px solid var(--edge); }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) .adm-thumb { border-width: 1px; border-radius: var(--r-in); }
+
+/* ---------- Admin: System, a little orbit while yt-dlp updates are being checked ---------- */
+.actions:has(#sys-busy) { align-items: center; }
+.busy-orbit { position: relative; width: 46px; height: 46px; flex: none; }
+.busy-orbit i { position: absolute; inset: 0; border-radius: 50%; border: 4px solid transparent; animation: orbit-spin 1.1s linear infinite; }
+.busy-orbit i:nth-child(1) { border-top-color: var(--hot); border-right-color: var(--hot); }
+.busy-orbit i:nth-child(2) { inset: 7px; border-bottom-color: var(--zap); border-left-color: var(--zap); animation-duration: .8s; animation-direction: reverse; }
+.busy-orbit i:nth-child(3) { inset: 14px; border-top-color: var(--third); animation-duration: .55s; }
+.busy-orbit b { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--ink);
+  animation: orbit-pulse .9s ease-in-out infinite alternate; }
+.busy-orbit b::after { content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--hot);
+  top: -18px; left: 0; transform-origin: 4px 22px; animation: orbit-spin .7s linear infinite; }
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+@keyframes orbit-pulse { from { transform: scale(.6); } to { transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .busy-orbit i, .busy-orbit b, .busy-orbit b::after { animation-duration: 3s; } }

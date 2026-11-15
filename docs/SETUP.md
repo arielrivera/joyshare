@@ -154,9 +154,9 @@ Admins see **Admin panel** in the ☰ menu. Changing anything there asks for you
 | Tab | What it's for |
 |---|---|
 | Overview | A red warning if a second copy of the app is answering at your address. Videos in the last day and week, what's in progress, files kept, active links, disk use, whether the worker is running, the yt-dlp version. The **Pause new videos** button is here. |
-| Videos | Everyone's videos, newest first, with a filter. Failed ones show the reason. |
+| Videos | Everyone's videos, newest first, with their pictures. Search by title, channel, description, person or link, and filter by state. Open a video for its original link, who posted it, its length, the size asked for, the finished file and why it failed. |
 | Share links | Every link that still works, with its views. **Revoke** makes one stop working right away. |
-| People | Invite a person, or turn a person off and on. |
+| People | Invite a person (at the top, in its own box), then the list of everyone with access: turn a person off and on, or change their role. |
 | Limits | Biggest file, longest video, how long things are kept, disk alert levels, which platforms are allowed. Changes apply right away. |
 | Alerts | Where alerts go and which ones you want. |
 | Storage | Serve finished videos from this server or from Cloudflare R2, with the setup steps and a connection test. |

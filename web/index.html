@@ -449,15 +449,24 @@
 
       <section class="card" data-pane="videos" hidden>
         <h2 data-i18n="adm.tab.videos"></h2>
-        <label for="adm-job-filter" data-i18n="adm.show"></label>
-        <select id="adm-job-filter">
-          <option value="" data-i18n="adm.filter.all"></option>
-          <option value="failed" data-i18n="adm.status.failed"></option>
-          <option value="done" data-i18n="adm.status.done"></option>
-          <option value="running" data-i18n="adm.status.running"></option>
-          <option value="queued" data-i18n="adm.status.queued"></option>
-        </select>
-        <ul id="adm-jobs" class="rows"></ul>
+        <div class="video-filters">
+          <div>
+            <label for="adm-job-search" data-i18n="adm.search"></label>
+            <input id="adm-job-search" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" data-i18n-ph="adm.searchPh">
+          </div>
+          <div>
+            <label for="adm-job-filter" data-i18n="adm.show"></label>
+            <select id="adm-job-filter">
+              <option value="" data-i18n="adm.filter.all"></option>
+              <option value="failed" data-i18n="adm.status.failed"></option>
+              <option value="done" data-i18n="adm.status.done"></option>
+              <option value="running" data-i18n="adm.status.running"></option>
+              <option value="queued" data-i18n="adm.status.queued"></option>
+            </select>
+          </div>
+        </div>
+        <p id="adm-jobs-count" class="muted" role="status"></p>
+        <ul id="adm-jobs" class="adm-videos"></ul>
         <p id="adm-jobs-empty" class="muted" data-i18n="adm.none" hidden></p>
       </section>
 
@@ -471,26 +480,36 @@
       <section class="card" data-pane="people" hidden>
         <h2 data-i18n="ppl.title"></h2>
         <p class="muted" data-i18n="ppl.help"></p>
-        <p class="muted" data-i18n="ppl.adminHelp"></p>
-        <ul id="people-list" class="rows"></ul>
-        <form id="person-form" class="row" autocomplete="off">
-          <label for="person-name" class="sr" data-i18n="ppl.nameLabel"></label>
-          <input id="person-name" type="text" required maxlength="40" data-i18n-ph="ppl.placeholder">
-          <label for="person-role" class="sr" data-i18n="ppl.roleLabel"></label>
-          <select id="person-role">
-            <option value="member" data-i18n="ppl.asMember"></option>
-            <option value="admin" data-i18n="ppl.asAdmin"></option>
-          </select>
-          <button type="submit" class="secondary" data-i18n="ppl.invite"></button>
-        </form>
-        <div id="pinvite-box" class="invite" hidden>
-          <p id="pinvite-help"></p>
-          <img id="pinvite-qr" class="qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
-          <p><span data-i18n="dev.orType"></span> <strong id="pinvite-code" class="code"></strong></p>
-          <p><span data-i18n="dev.orLink"></span> <a id="pinvite-link" target="_blank" rel="noopener"></a></p>
-          <button id="pinvite-copy" type="button" class="quiet" data-i18n="dev.copyLink"></button>
-          <p id="pinvite-expiry" class="muted"></p>
+
+        <!-- First: inviting someone, in its own box. -->
+        <div class="panel-box">
+          <h3 class="section first" data-i18n="ppl.inviteTitle"></h3>
+          <form id="person-form" class="person-form" autocomplete="off">
+            <label for="person-name" data-i18n="ppl.nameLabel"></label>
+            <input id="person-name" type="text" required maxlength="40" data-i18n-ph="ppl.placeholder">
+            <div class="row">
+              <label for="person-role" class="sr" data-i18n="ppl.roleLabel"></label>
+              <select id="person-role">
+                <option value="member" data-i18n="ppl.asMember"></option>
+                <option value="admin" data-i18n="ppl.asAdmin"></option>
+              </select>
+              <button type="submit" data-i18n="ppl.invite"></button>
+            </div>
+          </form>
+          <div id="pinvite-box" class="invite" hidden>
+            <p id="pinvite-help"></p>
+            <img id="pinvite-qr" class="qr" data-i18n-alt="dev.qrAlt" alt="" width="220" height="220">
+            <p><span data-i18n="dev.orType"></span> <strong id="pinvite-code" class="code"></strong></p>
+            <p><span data-i18n="dev.orLink"></span> <a id="pinvite-link" target="_blank" rel="noopener"></a></p>
+            <button id="pinvite-copy" type="button" class="quiet" data-i18n="dev.copyLink"></button>
+            <p id="pinvite-expiry" class="muted"></p>
+          </div>
         </div>
+
+        <!-- Then: everyone who has access. -->
+        <h3 class="section" data-i18n="ppl.listTitle"></h3>
+        <p class="muted" data-i18n="ppl.adminHelp"></p>
+        <ul id="people-list" class="rows people-list"></ul>
       </section>
 
       <section class="card" data-pane="limits" hidden>
@@ -588,6 +607,7 @@
         </div>
         <div class="actions">
           <button id="sys-update" type="button" data-i18n="sys.updateNow"></button>
+          <span id="sys-busy" class="busy-orbit" role="status" hidden><i></i><i></i><i></i><b></b><span class="sr" data-i18n="sys.working"></span></span>
           <button id="sys-rollback" type="button" class="quiet" hidden></button>
         </div>
         <p class="label" data-i18n="sys.platformChecks"></p>
