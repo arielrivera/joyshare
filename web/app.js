@@ -1164,7 +1164,16 @@ function paintSource(job) {
   const arrow = document.createElement("span");
   arrow.setAttribute("aria-hidden", "true");
   arrow.textContent = "↗";
-  chipEl.replaceChildren(mark, words, arrow);
+  // A small two-line legend at the right, so it fits without making the chip taller
+  const legend = document.createElement("span");
+  legend.className = "source-legend";
+  legend.setAttribute("aria-hidden", "true");
+  for (const key of ["orig.legend1", "orig.legend2"]) {
+    const line = document.createElement("span");
+    line.textContent = t(key);
+    legend.append(line);
+  }
+  chipEl.replaceChildren(mark, words, arrow, legend);
   chipEl.setAttribute("aria-label", `${t("orig.title")}: ${words.textContent}`);
   chipEl.onclick = () => originalLink(job);
 }

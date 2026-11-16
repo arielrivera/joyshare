@@ -970,7 +970,10 @@ dl.adm-details dd { margin: 0; overflow-wrap: anywhere; }
 .source-chip[hidden] { display: none; }
 .source-mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
   background: var(--ink); color: var(--card); font-size: 12px; font-weight: 900; line-height: 1; }
-.source-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-words { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#result-source:not([hidden]) { display: flex; width: 100%; }
+.source-legend { flex: none; display: grid; margin-left: 2px; font-size: 10.5px; line-height: 1.05; font-weight: 700; color: var(--muted);
+  text-align: right; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
 .more-button { font-weight: 900; letter-spacing: .05em; }
 #result-more { min-width: 0; width: 52px; padding-left: 0; padding-right: 0; }
 #recent-list .rc-buttons .more-button { font-size: 18px; }
