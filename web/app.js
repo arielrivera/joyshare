@@ -580,6 +580,7 @@ function renderResult(job, fresh) {
   if (job.clip) bits.push(t("clip.part", { range: fmtRange(job.clip) }));
   bits.push(t("res.kept", { when: fmtWhen(file.expires_at) }));
   $("result-meta").textContent = bits.join(" · ");
+  paintSource(job);
   $("again").hidden = !current; // no size picker to go back to when opened from a shortcut link
   if (!fresh) return; // language change: only the words above needed repainting
 
@@ -784,7 +785,10 @@ $("again").addEventListener("click", () => showStep("media"));
 $("new-link").addEventListener("click", startOver);
 
 // Close: put the finished video away and go back to where you came from (the Recent list, or the link box).
-$("close-result").addEventListener("click", () => {
+$("close-result").addEventListener("click", () => closeResult());
+$("result-more").addEventListener("click", (e) => { if (lastJob) moreMenu(e.currentTarget, lastJob); });
+
+function closeResult() {
   const player = $("player").querySelector("video, audio");
   if (player) player.pause();
   if (events) { events.close(); events = null; }
@@ -793,7 +797,7 @@ $("close-result").addEventListener("click", () => {
   const back = resultFrom === "recent" && !$("recent").hidden ? $("recent") : $("lookup");
   resultFrom = null;
   back.scrollIntoView({ block: "start", behavior: "smooth" });
-});
+}
 
 // ---------- recent ----------
 
@@ -938,10 +942,13 @@ function recentPanel(job) {
     download.textContent = t("recent.saveFile");
     buttons.append(copyLinkButton(job, note));
     if (job.media && job.file.duration) buttons.append(chip(t("recent.clip"), () => openFinished(job, true)));
-    buttons.append(download);
+    buttons.append(download, moreButton(job, "chip"));
     panel.append(buttons);
   } else if (job.status === "queued" || job.status === "running") {
-    panel.append(chip(t("recent.showProgress"), () => watch(job.id, job.media)));
+    const buttons = document.createElement("div");
+    buttons.className = "rc-buttons";
+    buttons.append(chip(t("recent.showProgress"), () => watch(job.id, job.media)), moreButton(job, "chip"));
+    panel.append(buttons);
   } else {
     if (job.status === "failed" && job.error) {
       const why = document.createElement("p");
@@ -949,7 +956,11 @@ function recentPanel(job) {
       why.textContent = job.error;
       panel.append(why);
     }
-    if (job.media) panel.append(chip(t("recent.again"), () => makeAgain(job, note)));
+    const buttons = document.createElement("div");
+    buttons.className = "rc-buttons";
+    if (job.media) buttons.append(chip(t("recent.again"), () => makeAgain(job, note)));
+    buttons.append(moreButton(job, "chip"));
+    panel.append(buttons);
   }
   panel.append(note);
   return panel;
@@ -1048,8 +1059,190 @@ function recentTile(job) {
   });
   li.append(tile);
   if (canSendFile(job)) li.append(sendButton(job, "↗", "rc-tile-send", () => openFinished(job, false)));
+  li.append(moreButton(job, "rc-tile-more"));
   li.append(note);
   return li;
+}
+
+// ---------- "…": original link and delete ----------
+
+const PLATFORM_MARK = { x: "𝕏", youtube: "▶", tiktok: "♪", instagram: "◎", facebook: "f" };
+
+// The line under the title on the finished screen: where the video came from. Tapping it offers Open or Copy.
+function paintSource(job) {
+  const chipEl = $("result-source");
+  const url = job.media && job.media.original_url;
+  chipEl.hidden = !url;
+  if (!url) return;
+  let host = "";
+  try { host = new URL(url).hostname.replace(/^(www|m|mobile)\./, ""); } catch { /* shown without the site */ }
+  const mark = document.createElement("span");
+  mark.className = "source-mark";
+  mark.setAttribute("aria-hidden", "true");
+  mark.textContent = PLATFORM_MARK[job.media.platform] || "🔗";
+  const words = document.createElement("span");
+  words.className = "source-words";
+  words.textContent = [host, job.media.uploader].filter(Boolean).join(" · ");
+  const arrow = document.createElement("span");
+  arrow.setAttribute("aria-hidden", "true");
+  arrow.textContent = "↗";
+  chipEl.replaceChildren(mark, words, arrow);
+  chipEl.setAttribute("aria-label", `${t("orig.title")}: ${words.textContent}`);
+  chipEl.onclick = () => originalLink(job);
+}
+
+// A small dialog at the bottom of the screen with a few choices. Resolves with the chosen value, or null.
+function sheet({ title, text, choices }) {
+  return new Promise((resolve) => {
+    const box = document.createElement("dialog");
+    box.className = "sheet";
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    box.append(heading);
+    if (text) {
+      const p = document.createElement("p");
+      p.className = "sheet-text";
+      p.textContent = text;
+      box.append(p);
+    }
+    let answer = null;
+    for (const choice of choices) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = choice.kind || "secondary";
+      b.textContent = choice.label;
+      b.addEventListener("click", () => { answer = choice.value; box.close(); });
+      box.append(b);
+    }
+    box.addEventListener("click", (e) => { if (e.target === box) box.close(); });   // a tap outside the box
+    box.addEventListener("close", () => { box.remove(); resolve(answer); });
+    document.body.append(box);
+    box.showModal();
+  });
+}
+
+async function originalLink(job) {
+  const url = job.media && job.media.original_url;
+  if (!url) return;
+  const pick = await sheet({ title: t("orig.title"), text: url, choices: [
+    { label: t("orig.open"), value: "open", kind: "big" },
+    { label: t("orig.copy"), value: "copy" },
+    { label: t("cancel"), value: null, kind: "quiet" },
+  ] });
+  if (pick === "open") window.open(url, "_blank", "noopener");
+  if (pick === "copy") {
+    try { await navigator.clipboard.writeText(url); toast(`✓ ${t("orig.copied")}`); }
+    catch { toast(t("orig.cantCopy")); }
+  }
+}
+
+// Short notes at the bottom of the screen, with an optional button such as Undo.
+let toastTimer = 0;
+function toast(text, action, onAction, ms = 4000) {
+  const box = $("toast");
+  $("toast-text").textContent = text;
+  const button = $("toast-action");
+  button.hidden = !action;
+  button.textContent = action || "";
+  button.onclick = () => { hideToast(); if (onAction) onAction(); };
+  box.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast() { clearTimeout(toastTimer); $("toast").hidden = true; }
+
+function moreButton(job, cls) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `${cls} more-button`;
+  b.textContent = "…";
+  b.setAttribute("aria-haspopup", "menu");
+  b.setAttribute("aria-label", t("more.label"));
+  b.title = t("more.label");
+  b.addEventListener("click", (e) => { e.stopPropagation(); moreMenu(b, job); });
+  return b;
+}
+
+// The little menu under "…". It sits next to the button, and above it when there's no room below.
+let openMenu = null;
+function closeMenu() {
+  if (!openMenu) return;
+  openMenu.remove();
+  openMenu = null;
+  document.removeEventListener("pointerdown", menuOutside, true);
+  document.removeEventListener("keydown", menuKeys, true);
+  window.removeEventListener("scroll", menuScrolled, true);
+}
+// A small scroll (a finger resting on the screen, the page settling) keeps it open; scrolling away closes it.
+function menuScrolled() {
+  if (openMenu && Math.abs(openMenu.anchor.getBoundingClientRect().top - openMenu.anchorTop) > 40) closeMenu();
+}
+function menuOutside(e) { if (openMenu && !openMenu.contains(e.target)) closeMenu(); }
+function menuKeys(e) {
+  if (!openMenu) return;
+  const items = [...openMenu.querySelectorAll("button")];
+  const at = items.indexOf(document.activeElement);
+  if (e.key === "Escape") { const back = openMenu.anchor; closeMenu(); back.focus(); e.preventDefault(); }
+  else if (e.key === "ArrowDown") { items[(at + 1) % items.length].focus(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { items[(at - 1 + items.length) % items.length].focus(); e.preventDefault(); }
+}
+function moreMenu(anchor, job) {
+  const again = openMenu && openMenu.anchor === anchor;
+  closeMenu();
+  if (again) return;   // a second tap on "…" just closes it
+  const menu = document.createElement("div");
+  menu.className = "more-menu";
+  menu.setAttribute("role", "menu");
+  menu.anchor = anchor;
+  const item = (label, cls, act) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("role", "menuitem");
+    if (cls) b.className = cls;
+    b.textContent = label;
+    b.addEventListener("click", () => { closeMenu(); act(); });
+    menu.append(b);
+  };
+  if (job.media && job.media.original_url) item(t("more.original"), "", () => originalLink(job));
+  item(t("more.delete"), "danger", () => deleteVideo(job));
+  document.body.append(menu);
+  const spot = anchor.getBoundingClientRect();
+  const width = menu.offsetWidth, height = menu.offsetHeight;
+  const below = spot.bottom + 6 + height <= window.innerHeight;
+  menu.style.top = `${below ? spot.bottom + 6 : Math.max(8, spot.top - 6 - height)}px`;
+  menu.style.left = `${Math.min(Math.max(8, spot.right - width), window.innerWidth - width - 8)}px`;
+  menu.anchorTop = spot.top;
+  openMenu = menu;
+  document.addEventListener("pointerdown", menuOutside, true);
+  document.addEventListener("keydown", menuKeys, true);
+  window.addEventListener("scroll", menuScrolled, true);
+  menu.querySelector("button").focus({ preventScroll: true });
+}
+
+// Delete takes the video out of the history at once and offers Undo. When a share link for it still works,
+// it asks first, because that link stops working for whoever has it.
+async function deleteVideo(job) {
+  const title = recentTitle(job);
+  if (job.shared) {
+    const sure = await sheet({ title: t("del.ask", { title }), text: t("del.shared"), choices: [
+      { label: t("del.yes"), value: true, kind: "danger" },
+      { label: t("cancel"), value: null, kind: "quiet" },
+    ] });
+    if (!sure) return;
+  }
+  try { await api(`/api/jobs/${job.id}/delete`, { method: "POST" }); }
+  catch (err) { toast(err.message); return; }
+  if (lastJob && lastJob.id === job.id && !$("result").hidden) closeResult();
+  if (openRecentId === job.id) openRecentId = null;
+  recentJobs = recentJobs.filter((j) => j.id !== job.id);
+  drawRecent();
+  toast(t("del.done", { title }), t("del.undo"), async () => {
+    try {
+      await api(`/api/jobs/${job.id}/restore`, { method: "POST" });
+      await loadRecent();
+      toast(t("del.back"));
+    } catch (err) { toast(err.message); }
+  }, 7000);
 }
 
 function paintRecentToggle() {

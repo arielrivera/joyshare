@@ -168,7 +168,7 @@ function adminVideo(job) {
   const preset = job.preset === "fit" ? t("recent.fit", { mb: job.target_mb }) : t(`short.${job.preset}`);
   const facts = document.createElement("span");
   facts.className = "adm-facts";
-  facts.textContent = [job.person, preset, t(`adm.status.${job.status}`), fmtWhen(job.created_at)].join(" · ");
+  facts.textContent = [job.person, preset, job.deleted ? `🗑 ${t("adm.deleted")}` : t(`adm.status.${job.status}`), fmtWhen(job.created_at)].join(" · ");
   words.append(title, facts);
   if (job.status === "failed" && job.error) {
     const why = document.createElement("span");

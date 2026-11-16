@@ -223,7 +223,8 @@ def owned_file(conn, file_id: int, user_id: int):
     row = conn.execute("SELECT * FROM files WHERE id=? AND kind='output'", (file_id,)).fetchone()
     if not row or row["user_id"] != user_id:
         raise HTTPException(404, "File not found.")
-    if row["deleted_at"] is not None or row["expires_at"] <= db.now() or not file_exists(row):
+    if row["deleted_at"] is not None or row["expires_at"] <= db.now() or not file_exists(row) \
+            or store.withdrawn(conn, file_id):
         raise HTTPException(410, "This file has expired.")
     return row
 
@@ -452,7 +453,8 @@ def quick(body: QuickBody, conn=Depends(db.get_conn), user_id: int = Depends(aut
 def list_jobs(limit: int = 20, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
               lang: str = Depends(get_lang)):
     rows = conn.execute(
-        "SELECT id FROM jobs WHERE user_id=? ORDER BY id DESC LIMIT ?", (user_id, max(1, min(limit, 100)))
+        "SELECT id FROM jobs WHERE user_id=? AND deleted_at IS NULL ORDER BY id DESC LIMIT ?",
+        (user_id, max(1, min(limit, 100)))
     ).fetchall()
     return [store.job_view(conn, row["id"], user_id, lang) for row in rows]
 
@@ -461,9 +463,37 @@ def list_jobs(limit: int = 20, conn=Depends(db.get_conn), user_id: int = Depends
 def get_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
             lang: str = Depends(get_lang)):
     view = store.job_view(conn, job_id, user_id, lang)
-    if not view:
+    if not view or view["deleted"]:
         raise HTTPException(404, "Job not found.")
     return view
+
+
+@app.post("/api/jobs/{job_id}/delete")
+def delete_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user)):
+    """Takes a video out of the person's history. Its share links stop working at once; the file itself is
+    removed a few minutes later (see cleanup.purge_deleted), so the delete can still be undone until then."""
+    view = store.job_view(conn, job_id, user_id)
+    if not view or view["deleted"]:
+        raise HTTPException(404, "Job not found.")
+    conn.execute("UPDATE jobs SET deleted_at=? WHERE id=?", (db.now(), job_id))
+    conn.execute("UPDATE jobs SET status='canceled', finished_at=? WHERE id=? AND status='queued'", (db.now(), job_id))
+    conn.execute("UPDATE jobs SET cancel_requested=1 WHERE id=? AND status='running'", (job_id,))
+    db.audit(conn, user_id, "job.delete", json.dumps({"job_id": job_id}))
+    return {"ok": True, "undo_seconds": store.UNDO_SECONDS}
+
+
+@app.post("/api/jobs/{job_id}/restore")
+def restore_job(job_id: int, conn=Depends(db.get_conn), user_id: int = Depends(auth.current_user),
+                lang: str = Depends(get_lang)):
+    """Undo a delete, while the file is still there."""
+    row = conn.execute("SELECT deleted_at FROM jobs WHERE id=? AND user_id=?", (job_id, user_id)).fetchone()
+    if not row or row["deleted_at"] is None:
+        raise HTTPException(404, "Job not found.")
+    if db.now() - row["deleted_at"] > store.UNDO_SECONDS:
+        raise HTTPException(410, "It's too late to bring this video back.")
+    conn.execute("UPDATE jobs SET deleted_at=NULL WHERE id=?", (job_id,))
+    db.audit(conn, user_id, "job.restore", json.dumps({"job_id": job_id}))
+    return store.job_view(conn, job_id, user_id, lang)
 
 
 @app.delete("/api/jobs/{job_id}")
@@ -602,8 +632,8 @@ def live_share(conn, token: str):
     if not link or link["revoked_at"] is not None or link["expires_at"] <= db.now():
         return None, None
     row = conn.execute("SELECT * FROM files WHERE id=?", (link["file_id"],)).fetchone()
-    if not row or row["deleted_at"] is not None or not file_exists(row):
-        return None, None
+    if not row or row["deleted_at"] is not None or not file_exists(row) or store.withdrawn(conn, row["id"]):
+        return None, None   # also when the sender deleted the video
     return link, row
 
 

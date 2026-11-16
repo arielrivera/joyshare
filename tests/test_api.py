@@ -110,3 +110,69 @@ def test_expired_file_is_gone(client, fake_media, conn):
                              path=path, ttl_seconds=-1)
     assert client.get(f"/api/files/{file_id}/download").status_code == 410
     assert client.post(f"/api/files/{file_id}/share").status_code == 410
+
+
+def test_delete_a_video_undo_and_purge(client, fake_media, conn, monkeypatch):
+    """Deleting hides the video and stops its share links at once; undo brings both back;
+    after the undo window the file is removed for good."""
+    from app import cleanup, db
+    media_id = client.post("/api/inspect", json={"url": "https://x.com/someone/status/1"}).json()["media"]["id"]
+    path = config.OUTPUTS_DIR / "mine.mp4"
+    path.write_bytes(b"0123456789")
+    file_id = store.add_file(conn, user_id=1, media_id=media_id, kind="output", key="720", path=path, ttl_seconds=3600)
+    job_id = conn.execute("INSERT INTO jobs (user_id, media_id, preset, status, file_id, created_at) "
+                          "VALUES (1, ?, '720', 'done', ?, ?)", (media_id, file_id, db.now())).lastrowid
+    view = client.get(f"/api/jobs/{job_id}").json()
+    assert view["media"]["original_url"] == "https://x.com/someone/status/1" and view["shared"] is False
+    token = client.post(f"/api/files/{file_id}/share").json()["url"].rsplit("/", 1)[1]
+    assert client.get(f"/api/jobs/{job_id}").json()["shared"] is True
+
+    assert client.post(f"/api/jobs/{job_id}/delete").json()["undo_seconds"] == store.UNDO_SECONDS
+    assert job_id not in [j["id"] for j in client.get("/api/jobs").json()]
+    assert client.get(f"/api/jobs/{job_id}").status_code == 404
+    assert client.get(f"/v/{token}").status_code == 410                         # the friend's link stops at once
+    assert client.get(f"/api/files/{file_id}/stream").status_code == 410
+    assert client.post(f"/api/jobs/{job_id}/delete").status_code == 404         # already deleted
+
+    assert client.post(f"/api/jobs/{job_id}/restore").json()["id"] == job_id    # undo
+    assert client.get(f"/v/{token}").status_code == 200
+    assert job_id in [j["id"] for j in client.get("/api/jobs").json()]
+
+    client.post(f"/api/jobs/{job_id}/delete")
+    cleanup.run(conn)                                                            # still inside the undo window
+    assert path.is_file()
+    later = db.now() + store.UNDO_SECONDS + 5
+    monkeypatch.setattr(db, "now", lambda: later)
+    assert client.post(f"/api/jobs/{job_id}/restore").status_code == 410        # too late to undo
+    cleanup.run(conn)
+    assert not path.is_file()
+    assert conn.execute("SELECT revoked_at FROM share_links WHERE token=?", (token,)).fetchone()["revoked_at"]
+
+
+def test_delete_keeps_a_file_another_video_still_uses(client, fake_media, conn, monkeypatch):
+    from app import cleanup, db
+    media_id = client.post("/api/inspect", json={"url": "https://x.com/someone/status/1"}).json()["media"]["id"]
+    path = config.OUTPUTS_DIR / "twice.mp4"
+    path.write_bytes(b"x")
+    file_id = store.add_file(conn, user_id=1, media_id=media_id, kind="output", key="720", path=path, ttl_seconds=3600)
+    first, second = (conn.execute("INSERT INTO jobs (user_id, media_id, preset, status, file_id, created_at) "
+                                  "VALUES (1, ?, '720', 'done', ?, ?)", (media_id, file_id, db.now())).lastrowid
+                     for _ in range(2))
+    client.post(f"/api/jobs/{first}/delete")
+    later = db.now() + store.UNDO_SECONDS + 5
+    monkeypatch.setattr(db, "now", lambda: later)
+    cleanup.run(conn)
+    assert path.is_file() and client.get(f"/api/jobs/{second}").json()["file"]
+
+
+def test_someone_else_cannot_delete_my_video(client, fake_media, conn):
+    from app import auth, db
+    from conftest import browser
+    media_id = client.post("/api/inspect", json={"url": "https://x.com/someone/status/1"}).json()["media"]["id"]
+    job_id = conn.execute("INSERT INTO jobs (user_id, media_id, preset, status, created_at) VALUES (1, ?, '720', 'failed', ?)",
+                          (media_id, db.now())).lastrowid
+    other = conn.execute("INSERT INTO users (name, role, created_at) VALUES ('Sofia', 'member', ?)", (db.now(),)).lastrowid
+    with browser(auth.create_session(conn, other)) as sofia:
+        assert sofia.post(f"/api/jobs/{job_id}/delete").status_code == 404
+        assert sofia.post(f"/api/jobs/{job_id}/restore").status_code == 404
+    assert client.get(f"/api/jobs/{job_id}").status_code == 200

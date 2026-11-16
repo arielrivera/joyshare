@@ -239,6 +239,8 @@
           <h2 id="result-title" tabindex="-1"></h2>
           <p id="result-name"></p>
           <p id="result-meta" class="muted"></p>
+          <!-- Where the video came from: tapping it offers Open link / Copy link. -->
+          <button id="result-source" type="button" class="source-chip" hidden></button>
           <div id="player"></div>
           <!-- On a phone the one big button comes first: it opens the phone's own sheet, which sends the video or saves it to Photos. -->
           <button id="share" type="button" class="big" data-i18n="res.send" hidden></button>
@@ -275,7 +277,10 @@
           <div class="actions next">
             <button id="again" type="button" class="quiet" data-i18n="res.another"></button>
             <button id="new-link" type="button" class="spark" data-i18n="res.new"></button>
-            <button id="close-result" type="button" class="quiet" data-i18n="res.close"></button>
+            <span class="next-end">
+              <button id="result-more" type="button" class="quiet more-button" aria-haspopup="menu" data-i18n-aria="more.label" data-i18n-title="more.label">…</button>
+              <button id="close-result" type="button" class="quiet" data-i18n="res.close"></button>
+            </span>
           </div>
         </section>
       </div>
@@ -641,7 +646,9 @@
         <ul id="adm-log" class="rows"></ul>
       </section>
     </div>
-  </main>
+    <!-- "Deleted · Undo" and other short notes at the bottom of the screen -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button id="toast-action" type="button" hidden></button></div>
+</main>
   <script src="/auth.js"></script>
   <script src="/app.js"></script>
   <script src="/admin.js"></script>

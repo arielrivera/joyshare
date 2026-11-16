@@ -958,4 +958,55 @@ dl.adm-details dd { margin: 0; overflow-wrap: anywhere; }
 
 /* Finished screen: Another size, New link, and Close at the far right */
 .actions.next { align-items: center; }
-#close-result { margin-left: auto; }
+/* "…" and Close stay together at the right; on a narrow phone they move to the next line as a pair */
+.actions.next .next-end { display: flex; gap: 10px; margin-left: auto; }
+
+/* ---------- "…" menus, the original link and deleting ---------- */
+/* Where the video came from, under the details on the finished screen */
+.source-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin: 0 0 12px; padding: 4px 12px 4px 5px;
+  border-radius: 999px; background: var(--field); color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 700;
+  box-shadow: none; transform: none; text-align: left; }
+.source-chip:hover:not(:disabled), .source-chip:active:not(:disabled) { transform: none; box-shadow: none; }
+.source-chip[hidden] { display: none; }
+.source-mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--ink); color: var(--card); font-size: 12px; font-weight: 900; line-height: 1; }
+.source-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-button { font-weight: 900; letter-spacing: .05em; }
+#result-more { min-width: 0; width: 52px; padding-left: 0; padding-right: 0; }
+#recent-list .rc-buttons .more-button { font-size: 18px; }
+
+/* "…" on a picture in the grid: top right, opposite the ↗ send button */
+#recent-list .rc-tile-more { position: absolute; top: 6px; right: 6px; z-index: 2; width: 36px; height: 36px; min-width: 0; margin: 0; padding: 0;
+  border-radius: 50%; display: grid; place-items: center; font-size: 17px; line-height: 1; background: rgba(0, 0, 0, .55); color: #fff;
+  border: 0; box-shadow: none; transform: none; }
+#recent-list .rc-tile-more:hover, #recent-list .rc-tile-more:active { transform: none; box-shadow: none; background: rgba(0, 0, 0, .75); }
+
+/* The menu that opens from "…" */
+.more-menu { position: fixed; z-index: 60; min-width: 200px; display: grid; padding: 6px; background: var(--card); color: var(--ink);
+  border: 2px solid var(--edge); border-radius: 14px; box-shadow: 0 10px 28px rgba(0, 0, 0, .3); }
+.more-menu button { margin: 0; padding: 12px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); text-align: left;
+  font-family: inherit; font-size: 15px; font-weight: 700; box-shadow: none; transform: none; min-height: 44px; }
+.more-menu button + button { border-top: 1px solid color-mix(in srgb, var(--edge) 25%, transparent); border-radius: 0 0 9px 9px; }
+.more-menu button:hover, .more-menu button:focus-visible { background: color-mix(in srgb, var(--ink) 8%, transparent); transform: none; box-shadow: none; }
+.more-menu button.danger { color: #d92d20; background: transparent; }
+.more-menu button.danger:hover, .more-menu button.danger:focus-visible { background: color-mix(in srgb, #d92d20 10%, transparent); }
+
+/* A small dialog at the bottom of the screen (Open or Copy the original link; delete a shared video) */
+dialog.sheet { width: min(420px, calc(100% - 24px)); max-width: none; margin: auto auto 16px; padding: 18px; display: grid; gap: 10px;
+  background: var(--card); color: var(--ink); border: 2px solid var(--edge); border-radius: 18px; box-shadow: 0 12px 34px rgba(0, 0, 0, .35); }
+dialog.sheet:not([open]) { display: none; }
+dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
+dialog.sheet h3 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+dialog.sheet .sheet-text { margin: 0 0 4px; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
+dialog.sheet button { width: 100%; margin: 0; }
+button.danger { background: #d92d20; color: #fff; }
+
+/* "Deleted · Undo" and other short notes */
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 70; transform: translateX(-50%);
+  width: min(420px, calc(100% - 24px)); box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 12px 12px 16px; border-radius: 14px; background: #1b1b1b; color: #fff; font-size: 15px; box-shadow: 0 10px 28px rgba(0, 0, 0, .35); }
+.toast[hidden] { display: none; }
+.toast span { min-width: 0; overflow-wrap: anywhere; }
+.toast button { flex: none; margin: 0; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: #ffd84d;
+  font-family: inherit; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; box-shadow: none; transform: none; }
+:root[data-theme="win95"] .more-menu, :root[data-theme="win95"] dialog.sheet, :root[data-theme="win95"] .toast { border-radius: 0; }

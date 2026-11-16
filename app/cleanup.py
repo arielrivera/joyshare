@@ -40,6 +40,24 @@ def delete_expired(conn: sqlite3.Connection, in_use: set[int] = frozenset()) -> 
     return removed
 
 
+def purge_deleted(conn: sqlite3.Connection) -> int:
+    """Files of videos their owners deleted (and didn't undo): expire them now, end their share links,
+    so delete_expired removes them. A file another of the person's videos still uses is kept."""
+    rows = conn.execute(
+        "SELECT DISTINCT j.file_id FROM jobs j JOIN files f ON f.id=j.file_id "
+        "WHERE j.deleted_at IS NOT NULL AND j.deleted_at<=? AND f.deleted_at IS NULL",
+        (db.now() - store.UNDO_SECONDS,),
+    ).fetchall()
+    purged = 0
+    for row in rows:
+        if not store.withdrawn(conn, row["file_id"]):
+            continue
+        conn.execute("UPDATE files SET expires_at=MIN(expires_at, ?) WHERE id=?", (db.now(), row["file_id"]))
+        conn.execute("UPDATE share_links SET revoked_at=? WHERE file_id=? AND revoked_at IS NULL", (db.now(), row["file_id"]))
+        purged += 1
+    return purged
+
+
 def delete_stale_tmp() -> None:
     cutoff = time.time() - STALE_TMP_SECONDS
     if not config.TMP_DIR.is_dir():
@@ -91,6 +109,7 @@ def delete_expired_auth(conn: sqlite3.Connection) -> None:
 
 
 def run(conn: sqlite3.Connection, in_use: set[int] = frozenset()) -> dict:
+    purge_deleted(conn)
     removed = delete_expired(conn, in_use)
     delete_expired_auth(conn)
     delete_stale_tmp()

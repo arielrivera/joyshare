@@ -180,6 +180,10 @@ MIGRATIONS = [
     """
     ALTER TABLE jobs ADD COLUMN from_file_id INTEGER REFERENCES files(id)
     """,
+    # 7: a person can delete a video from their history (undo is possible for a few minutes)
+    """
+    ALTER TABLE jobs ADD COLUMN deleted_at INTEGER
+    """,
 ]
 
 

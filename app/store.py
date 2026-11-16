@@ -40,6 +40,17 @@ def add_file(conn: sqlite3.Connection, *, user_id: int, media_id: int, kind: str
     return cur.lastrowid
 
 
+UNDO_SECONDS = 600   # how long a deleted video can be brought back before its file is removed
+
+
+def withdrawn(conn: sqlite3.Connection, file_id: int) -> bool:
+    """True when every video that uses this file was deleted by its owner: nobody may reach it any more."""
+    row = conn.execute(
+        "SELECT COUNT(*) AS jobs, SUM(deleted_at IS NOT NULL) AS deleted FROM jobs WHERE file_id=?", (file_id,)
+    ).fetchone()
+    return bool(row["jobs"]) and row["jobs"] == row["deleted"]
+
+
 def file_view(row) -> dict:
     return {
         "id": row["id"],
@@ -61,12 +72,16 @@ def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None,
     if not job or (user_id is not None and job["user_id"] != user_id):
         return None
     media = conn.execute(
-        "SELECT id, title, uploader, platform, thumbnail, duration FROM media WHERE id=?",
+        "SELECT id, title, uploader, platform, thumbnail, duration, url, webpage_url FROM media WHERE id=?",
         (job["media_id"],),
     ).fetchone()
     media = dict(media) if media else None
     if media:
         media["thumb_url"] = f"/api/media/{media['id']}/thumb" if media["thumbnail"] else None
+        # The page the video came from, for "Original link". Only web addresses are passed on.
+        original = media.pop("webpage_url") or media.pop("url", None)
+        media.pop("url", None)
+        media["original_url"] = original if (original or "").startswith(("https://", "http://")) else None
     view = {
         "id": job["id"],
         "media": media,
@@ -80,12 +95,17 @@ def job_view(conn: sqlite3.Connection, job_id: int, user_id: int | None = None,
         "reused": bool(job["reused"]),
         "created_at": job["created_at"],
         "finished_at": job["finished_at"],
+        "deleted": job["deleted_at"] is not None,
         "file": None,
+        "shared": False,   # a share link for the file still works: deleting it stops that link
     }
     if job["file_id"]:
         row = conn.execute("SELECT * FROM files WHERE id=?", (job["file_id"],)).fetchone()
         if row and row["deleted_at"] is None and row["expires_at"] > db.now():
             view["file"] = file_view(row)
+            view["shared"] = conn.execute(
+                "SELECT 1 FROM share_links WHERE file_id=? AND revoked_at IS NULL AND expires_at>? LIMIT 1",
+                (row["id"], db.now())).fetchone() is not None
         elif row:
             view["file_expired"] = True
     return view
