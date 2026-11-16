@@ -226,7 +226,7 @@ const STRINGS = {
     "res.linkLabel": "Share link",
     "res.another": "Another size", "res.new": "New link",
 
-    "recent.title": "Recent", "recent.expired": "Expired", "recent.failed": "Failed",
+    "recent.title": "Recent", "recent.expired": "Expired", "recent.stamp": "EXPIRED", "recent.failed": "Failed",
     "recent.canceled": "Canceled", "recent.progress": "In progress",
     "recent.download": "Download ({size})", "recent.fit": "Fit {mb} MB",
     "short.best": "Best", "short.720": "720p", "short.480": "480p", "short.audio": "Audio",
@@ -626,7 +626,7 @@ const STRINGS = {
     "res.linkLabel": "Enlace para compartir",
     "res.another": "Otro tamaño", "res.new": "Nuevo enlace",
 
-    "recent.title": "Recientes", "recent.expired": "Caducado", "recent.failed": "Falló",
+    "recent.title": "Recientes", "recent.expired": "Caducado", "recent.stamp": "EXPIRÓ", "recent.failed": "Falló",
     "recent.canceled": "Cancelado", "recent.progress": "En proceso",
     "recent.download": "Descargar ({size})", "recent.fit": "Ajustado a {mb} MB",
     "short.best": "Mejor", "short.720": "720p", "short.480": "480p", "short.audio": "Audio",

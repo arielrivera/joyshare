@@ -853,6 +853,22 @@ button.range-handle::after { content: ""; position: absolute; left: 50%; top: 50
 #recent-list .rc-buttons > * { white-space: nowrap; }
 #recent-list .rc-badge { top: 34%; }
 
+/* Expired videos in the grid: a red rubber stamp across the grayed picture, with "Make again" below it.
+   The worn ink is a mask of SVG noise; the double frame is the border plus an outline drawn inside it. */
+#recent-list .rc-tile { container-type: inline-size; }
+#recent-list .rc-stamp { position: absolute; left: 50%; top: 27%; z-index: 1; pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-14deg); padding: .32em .5em .26em; color: #e3262f;
+  border: .17em solid currentColor; border-radius: .22em; outline: .06em solid currentColor; outline-offset: -.3em;
+  font-family: "Rubik Mono One", "Arial Black", sans-serif; font-size: clamp(14px, 11cqi, 30px); line-height: 1;
+  letter-spacing: .03em; white-space: nowrap; text-shadow: 0 0 1px rgba(255, 255, 255, .15);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 3.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 3.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 140px; mask-size: 140px; }
+#recent-list .rc-tile-item.expired .rc-badge { top: 51%; z-index: 2; }
+/* The plain looks get a flat, clean stamp */
+:root[data-theme="win95"] #recent-list .rc-stamp, :root[data-theme="swiss"] #recent-list .rc-stamp {
+  -webkit-mask-image: none; mask-image: none; border-radius: 0; text-shadow: none; }
+
 /* The open row in the Recent list: a slightly darker band, so it's clear which video the buttons belong to */
 #recent-list .rc-item { margin-inline: -8px; padding-inline: 8px; border-radius: 12px; transition: background .15s ease; }
 #recent-list .rc-item.open { background: color-mix(in srgb, var(--ink) 7%, var(--card)); border-top-color: transparent; }

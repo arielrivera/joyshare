@@ -237,6 +237,9 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] A failed test run, a failed start, or a copy that is off `main`, ahead of it or edited by hand sends one **Update not put live** alert (`update_failed`, `python -m app.cli update-failed`) and isn't retried until something changes.
 - [ ] Not yet run on the Mac mini (checked here with a stand-in for Docker and launchd), nor on a real Linux machine (the systemd files were generated and read, not run).
 
+### Expired stamp — done 16 Nov 2026
+- [x] Grid view: a video whose file expired (finished, file gone) gets a red rubber stamp across its grayed picture, EXPIRED / EXPIRÓ (`recent.stamp`), drawn in CSS (Rubik Mono One, double frame, a worn-ink mask of SVG noise). The Windows 95 and Swiss looks get a flat one. "Make again" sits below it. Failed and in-progress videos stay grayed without the stamp; the list view has no stamp (its pictures are too small).
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

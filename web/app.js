@@ -1005,7 +1005,8 @@ function recentTile(job) {
   const tile = document.createElement("button");
   tile.type = "button";
   tile.className = "rc-tile";
-  tile.setAttribute("aria-label", t("recent.openVideo", { title: recentTitle(job) }));
+  const expired = job.status === "done" && !job.file;   // finished once, but the file has been deleted
+  tile.setAttribute("aria-label", t("recent.openVideo", { title: recentTitle(job) }) + (expired ? `, ${t("recent.expired")}` : ""));
   const img = picture(job, "rc-tile-img");
   if (img) tile.append(img);
   const shade = document.createElement("span");
@@ -1020,6 +1021,15 @@ function recentTile(job) {
   details.textContent = recentDetails(job);
   words.append(title, details);
   tile.append(shade, words);
+  if (expired) {
+    // A rubber stamp across the grayed picture, drawn in CSS so it follows the language
+    const stamp = document.createElement("span");
+    stamp.className = "rc-stamp";
+    stamp.setAttribute("aria-hidden", "true");
+    stamp.textContent = t("recent.stamp");
+    tile.append(stamp);
+    li.classList.add("expired");
+  }
   const finished = job.status === "done" && job.file;
   if (!finished) {
     li.classList.add("dim");
