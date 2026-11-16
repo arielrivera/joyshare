@@ -245,6 +245,8 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] Original link: `media.original_url` in the job view (the page address, `webpage_url` or the pasted link; only http/https). The finished screen shows it as a chip under the details. Dialog: Open link / Copy link / Cancel.
 - [x] Delete: `POST /api/jobs/{id}/delete` sets `jobs.deleted_at` (migration 7). The job leaves `/api/jobs` and `/api/jobs/{id}`; its file and share links stop answering at once (`store.withdrawn`). `POST /api/jobs/{id}/restore` undoes it for 10 minutes (`store.UNDO_SECONDS`); after that `cleanup.purge_deleted` expires the file and revokes its links. A file another of the person's videos still uses is kept. Asks first when `shared` (a working share link exists).
 - [x] Admin: deleted videos stay listed, marked "Deleted by the person".
+- [x] List view: swipe a row left to show Delete; a swipe past 60% of the row deletes at once. Only a mostly sideways drag moves the row (`touch-action: pan-y`), so scrolling still works; a tap elsewhere closes it.
+- [x] The source chip leaves out ".com" (x · Keyboard Cat), and a long name ends in "…" instead of overflowing.
 - Not done: selecting several videos to delete at once (the "Select" idea).
 
 ## Phase 5: remaining

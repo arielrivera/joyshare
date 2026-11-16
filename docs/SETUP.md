@@ -102,7 +102,7 @@ A clip starts and ends exactly where you asked, and must be at least 1 second lo
 
 The **Recent** list on the main screen comes in two layouts, switched with the two icons beside its heading. The choice is saved to your account, so it follows you to other devices.
 
-- **List:** short rows with the picture, title and details. Tap a row to open it in place: **Send or save**, **Copy link**, **✂️ Clip** (opens the video with the clip timeline) and **⬇️ Download**.
+- **List:** short rows with the picture, title and details. Tap a row to open it in place: **Send or save**, **Copy link**, **✂️ Clip** (opens the video with the clip timeline) and **⬇️ Download**. Swipe a row to the left to show **Delete** (a long swipe deletes straight away), with the same Undo as below.
 - **Pictures:** a grid like the Photos app. **↗** on a picture sends it; tapping the picture opens the video with every option. A video whose file has expired is grayed out with a red **EXPIRED** stamp (**EXPIRÓ** in Spanish); tapping it makes the file again.
 
 **…** (on each picture in the grid, at the end of an open row in the list, and next to **✕ Close** on the finished screen) opens two choices:

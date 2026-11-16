@@ -990,6 +990,10 @@ function recentRow(job) {
   if (img) row.append(img); else { const blank = document.createElement("span"); blank.className = "rc-thumb blank"; row.append(blank); }
   row.append(words, chevron);
   const panel = recentPanel(job);
+  const slide = document.createElement("div");
+  slide.className = "rc-swipe";
+  slide.append(row);
+  swipeToDelete(slide, row, job);
   const setOpen = (open) => {
     li.classList.toggle("open", open);
     row.setAttribute("aria-expanded", String(open));
@@ -997,6 +1001,7 @@ function recentRow(job) {
   };
   setOpen(openRecentId === job.id);
   row.addEventListener("click", () => {
+    if (row.swallowClick) { row.swallowClick = false; return; }   // the end of a swipe, not a tap
     const opening = !li.classList.contains("open");
     for (const other of $("recent-list").querySelectorAll(".rc-item.open")) {
       other.classList.remove("open");
@@ -1006,8 +1011,81 @@ function recentRow(job) {
     openRecentId = opening ? job.id : null;
     setOpen(opening);
   });
-  li.append(row, panel);
+  li.append(slide, panel);
   return li;
+}
+
+// Swipe a row to the left to show Delete, like Mail on the iPhone. A long swipe deletes straight away.
+// Up and down still scroll the page: only a mostly sideways drag moves the row.
+const SWIPE_BUTTON = 88;
+let swipedOpen = null;   // the row whose Delete button is showing
+function closeSwipe(slide) {
+  const target = slide || swipedOpen;
+  if (!target) return;
+  const row = target.querySelector(".rc-row");
+  row.style.transition = "";
+  row.style.transform = "";
+  target.classList.remove("swiped");
+  setTimeout(() => { if (!target.classList.contains("swiped")) target.classList.remove("swiping"); }, 220);
+  if (swipedOpen === target) swipedOpen = null;
+}
+document.addEventListener("pointerdown", (e) => { if (swipedOpen && !swipedOpen.contains(e.target)) closeSwipe(); }, true);
+
+function swipeToDelete(slide, row, job) {
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "rc-swipe-del";
+  del.tabIndex = -1;   // keyboards and screen readers use "…" → Delete instead
+  del.setAttribute("aria-hidden", "true");
+  del.textContent = t("del.yes");
+  del.addEventListener("click", async () => { if (!(await deleteVideo(job))) closeSwipe(slide); });
+  slide.prepend(del);
+
+  let start = null, sideways = null, moved = 0, from = 0;
+  const place = (x, animate) => {
+    row.style.transition = animate ? "" : "none";
+    row.style.transform = x ? `translateX(${x}px)` : "";
+  };
+  row.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    start = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    sideways = null;
+    moved = 0;
+    from = slide.classList.contains("swiped") ? -SWIPE_BUTTON : 0;
+  });
+  row.addEventListener("pointermove", (e) => {
+    if (!start || e.pointerId !== start.id) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if (sideways === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      sideways = Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (!sideways) { start = null; return; }
+      if (swipedOpen && swipedOpen !== slide) closeSwipe();
+      slide.classList.add("swiping");
+      try { row.setPointerCapture(e.pointerId); } catch { /* fine without */ }
+    }
+    moved = Math.min(0, Math.max(from + dx, -slide.clientWidth));
+    place(moved, false);
+  });
+  const finish = async (e) => {
+    if (!start || e.pointerId !== start.id) return;
+    start = null;
+    if (!sideways) return;
+    row.swallowClick = true;
+    setTimeout(() => { row.swallowClick = false; }, 400);
+    if (moved < -slide.clientWidth * 0.6) {           // a long swipe: delete without the extra tap
+      place(-slide.clientWidth, true);
+      if (!(await deleteVideo(job))) closeSwipe(slide);
+    } else if (moved < -SWIPE_BUTTON / 2) {           // far enough: leave Delete showing
+      place(-SWIPE_BUTTON, true);
+      slide.classList.add("swiped");
+      swipedOpen = slide;
+    } else {
+      closeSwipe(slide);
+    }
+  };
+  row.addEventListener("pointerup", finish);
+  row.addEventListener("pointercancel", finish);
 }
 
 function recentTile(job) {
@@ -1075,7 +1153,7 @@ function paintSource(job) {
   chipEl.hidden = !url;
   if (!url) return;
   let host = "";
-  try { host = new URL(url).hostname.replace(/^(www|m|mobile)\./, ""); } catch { /* shown without the site */ }
+  try { host = new URL(url).hostname.replace(/^(www|m|mobile)\./, "").replace(/\.com$/, ""); } catch { /* shown without the site */ }
   const mark = document.createElement("span");
   mark.className = "source-mark";
   mark.setAttribute("aria-hidden", "true");
@@ -1228,10 +1306,10 @@ async function deleteVideo(job) {
       { label: t("del.yes"), value: true, kind: "danger" },
       { label: t("cancel"), value: null, kind: "quiet" },
     ] });
-    if (!sure) return;
+    if (!sure) return false;
   }
   try { await api(`/api/jobs/${job.id}/delete`, { method: "POST" }); }
-  catch (err) { toast(err.message); return; }
+  catch (err) { toast(err.message); return false; }
   if (lastJob && lastJob.id === job.id && !$("result").hidden) closeResult();
   if (openRecentId === job.id) openRecentId = null;
   recentJobs = recentJobs.filter((j) => j.id !== job.id);
@@ -1243,6 +1321,7 @@ async function deleteVideo(job) {
       toast(t("del.back"));
     } catch (err) { toast(err.message); }
   }, 7000);
+  return true;
 }
 
 function paintRecentToggle() {

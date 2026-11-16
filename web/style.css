@@ -963,7 +963,7 @@ dl.adm-details dd { margin: 0; overflow-wrap: anywhere; }
 
 /* ---------- "…" menus, the original link and deleting ---------- */
 /* Where the video came from, under the details on the finished screen */
-.source-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin: 0 0 12px; padding: 4px 12px 4px 5px;
+.source-chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; box-sizing: border-box; overflow: hidden; margin: 0 0 12px; padding: 4px 12px 4px 5px;
   border-radius: 999px; background: var(--field); color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 700;
   box-shadow: none; transform: none; text-align: left; }
 .source-chip:hover:not(:disabled), .source-chip:active:not(:disabled) { transform: none; box-shadow: none; }
@@ -1010,3 +1010,14 @@ button.danger { background: #d92d20; color: #fff; }
 .toast button { flex: none; margin: 0; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: #ffd84d;
   font-family: inherit; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; box-shadow: none; transform: none; }
 :root[data-theme="win95"] .more-menu, :root[data-theme="win95"] dialog.sheet, :root[data-theme="win95"] .toast { border-radius: 0; }
+
+/* Swipe left on a list row to show Delete */
+#recent-list .rc-swipe { position: relative; overflow: hidden; border-radius: inherit; }
+#recent-list .rc-swipe .rc-row { position: relative; z-index: 1; touch-action: pan-y; transition: transform .2s ease; }
+#recent-list .rc-swipe.swiping .rc-row { background: var(--card); border-radius: 0; }
+#recent-list .rc-item.open .rc-swipe.swiping .rc-row { background: color-mix(in srgb, var(--ink) 7%, var(--card)); }
+#recent-list .rc-swipe-del { position: absolute; top: 0; right: 0; bottom: 0; width: 100%; margin: 0; padding: 0 22px; display: none;
+  justify-content: flex-end; align-items: center; border: 0; border-radius: 0; background: #d92d20; color: #fff;
+  font-family: inherit; font-size: 15px; font-weight: 800; box-shadow: none; transform: none; }
+#recent-list .rc-swipe.swiping .rc-swipe-del { display: flex; }
+#recent-list .rc-swipe-del:hover, #recent-list .rc-swipe-del:active { transform: none; box-shadow: none; }
