@@ -604,6 +604,15 @@
 
       <section class="card" data-pane="system" hidden>
         <h2 data-i18n="adm.tab.system"></h2>
+        <p class="label" data-i18n="code.title"></p>
+        <p class="muted" data-i18n="code.help"></p>
+        <div id="code-tiles" class="tiles"></div>
+        <p id="code-message" class="note" hidden></p>
+        <div class="actions">
+          <button id="code-update" type="button" data-i18n="code.now"></button>
+          <span id="code-busy" class="busy-orbit" role="status" hidden><i></i><i></i><i></i><b></b><span class="sr" data-i18n="sys.working"></span></span>
+        </div>
+        <hr class="section-rule">
         <p class="label">yt-dlp</p>
         <p class="muted" data-i18n="sys.help"></p>
         <div id="sys-tiles" class="tiles"></div>

@@ -254,6 +254,13 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] System: solid lines between the yt-dlp part, Platform checks and Backups.
 - [x] Platform checks run at a random time: after each check the next is planned 12 to 36 hours later (`engine.PLATFORM_GAP`, state `canary_next`). The System tab shows "Next automatic check".
 
+### Update from the admin panel — done 17 Nov 2026
+- [x] **System → App updates**: running version, update helper connected or not, last update; **Update now** (asks first; admin with a fresh passkey; `POST /api/admin/code-update`, refused while no helper has checked in).
+- [x] The web app only stores a request (`app/codeupdate.py`, state `code_request`). The helper (`./joyshare self-update`, launchd or systemd every minute, outside Docker) checks in with `app.cli update-check` and reports steps with `app.cli update-status`.
+- [x] `./joyshare autoupdate on-request`: updates only when asked. `autoupdate on [MINUTES]` keeps updating by itself and also answers the button. Mode in `.autoupdate-mode`.
+- [x] Alerts: New code found, Updating now, Update finished (`code_update`), or Update not put live (`update_failed`).
+- [ ] On the Mac mini the helper can't run while joyshare is inside Documents (macOS blocks background jobs there); move the folder first (see Updating by itself).
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

@@ -15,6 +15,7 @@
 #   ./joyshare setup-code               Print a one-time code to register a device (first run or lockout)
 #
 #   ./joyshare autoupdate on [MINUTES]  Put new code from GitHub (main) live by itself, checking every 5 minutes
+#   ./joyshare autoupdate on-request    Only when the admin asks from the admin panel (System, App updates)
 #   ./joyshare autoupdate off|status    Stop doing that, or show whether it is on and what it did last
 #   ./joyshare self-update              One check now: if main moved, test the new code, wait for running videos, update
 #
@@ -88,24 +89,34 @@ stray_tunnel() {
 AUTO_LOG="logs/autoupdate.log"
 AUTO_MARK=".autoupdate-stopped"   # the commit (or problem) already reported, so it is reported once
 AUTO_LOCK=".autoupdate.lock"
+AUTO_MODE=".autoupdate-mode"      # "auto MINUTES" or "request 0", written by "autoupdate on"
+AUTO_FETCHED=".autoupdate-fetched"   # when GitHub was last asked, so automatic mode keeps to its minutes
 AUTO_LABEL="com.joyshare.autoupdate"
 AUTO_PLIST="$HOME/Library/LaunchAgents/$AUTO_LABEL.plist"
 AUTO_UNITS="$HOME/.config/systemd/user"
 stamp() { date "+%Y-%m-%d %H:%M:%S"; }
 note() { say "$(stamp)  $*"; }
 
-# Tell the admin's phone (ntfy, set up in the admin panel) that new code was not put live.
-alert_update_failed() {
-  $COMPOSE exec -T web python -m app.cli update-failed "$*" 2>&1 || say "(No alert sent: joyshare is not running.)"
+# Tell the app how an update is going: it shows in the admin panel and goes to the admin's phone through ntfy.
+# found / started / finished send an alert, failed sends "Update not put live". See app/codeupdate.py.
+report() { # report STATUS [VERSION] [DETAIL]
+  $COMPOSE exec -T web python -m app.cli update-status "$@" >/dev/null 2>&1 || say "(Not reported: joyshare is not running.)"
 }
 
-# Report a problem once (in the log and as an alert), then stay quiet until it changes.
+# A problem that stops the update. Asked from the admin panel: answer it every time. Otherwise report it once
+# (in the log and as an alert), then stay quiet until it changes.
 stop_once() { # stop_once KEY MESSAGE
+  mkdir -p logs
+  if [[ "${wanted:-0}" == 1 ]]; then
+    printf '%s\n' "$1" > "$AUTO_MARK"   # answered now, so the next automatic check doesn't alert about it again
+    note "Not updating: $2" >> "$AUTO_LOG"
+    report blocked "" "$2"
+    exit 1
+  fi
   [[ -f "$AUTO_MARK" && "$(cat "$AUTO_MARK")" == "$1" ]] && exit 0
   printf '%s\n' "$1" > "$AUTO_MARK"
-  mkdir -p logs
   note "Not updating: $2" >> "$AUTO_LOG"
-  alert_update_failed "$2" >> "$AUTO_LOG"
+  report failed "" "$2"
   exit 1
 }
 
@@ -176,23 +187,48 @@ except Exception as exc:
     mkdir "$AUTO_LOCK" 2>/dev/null || exit 0
     trap 'rmdir "$AUTO_LOCK" 2>/dev/null || true' EXIT
 
+    # Check in with the app every run: it learns the helper is alive and which version runs,
+    # and says whether the admin asked for an update from the admin panel.
+    mode=auto; every=0
+    [[ -f "$AUTO_MODE" ]] && read -r mode every < "$AUTO_MODE"
+    [[ "$every" =~ ^[0-9]+$ ]] || every=0
+    wanted=0
+    $COMPOSE exec -T web python -m app.cli update-check "$(git rev-parse --short HEAD)" "$(git log -1 --format=%s)" "$mode" "$every" \
+      >/dev/null 2>&1 && wanted=1
+    if [[ "$wanted" == 0 ]]; then
+      [[ "$mode" == "request" ]] && exit 0
+      # Automatic: ask GitHub only every so many minutes, although the helper itself runs every minute.
+      if (( every > 0 )) && [[ -f "$AUTO_FETCHED" ]] && (( $(date +%s) - $(cat "$AUTO_FETCHED") < every * 60 )); then exit 0; fi
+    fi
+    date +%s > "$AUTO_FETCHED"
+
     # Nothing is written while nothing changes, so the log only holds real updates.
-    git fetch --quiet origin main 2>/dev/null || exit 0   # offline for now: try again next time
+    if ! git fetch --quiet origin main 2>/dev/null; then   # offline for now: try again next time
+      [[ "$wanted" == 1 ]] && report blocked "" "GitHub couldn't be reached. Try again in a few minutes."
+      exit 0
+    fi
     here="$(git rev-parse HEAD)"; there="$(git rev-parse FETCH_HEAD)"
-    [[ "$here" == "$there" ]] && exit 0
+    if [[ "$here" == "$there" ]]; then
+      [[ "$wanted" == 1 ]] && report current "$(git rev-parse --short HEAD)" "$(git log -1 --format=%s)"
+      exit 0
+    fi
     [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] \
       || stop_once "branch:$(git rev-parse --abbrev-ref HEAD)" "this copy is on branch $(git rev-parse --abbrev-ref HEAD), not main. Run: git switch main"
     git merge-base --is-ancestor HEAD "$there" \
       || stop_once "diverged:$there" "this copy has commits that are not on GitHub's main, so it can't simply move forward."
     [[ -z "$(git status --porcelain --untracked-files=no)" ]] \
       || stop_once "changed:$there" "files were changed by hand in $PWD (see: git status)."
-    [[ -f "$AUTO_MARK" && "$(cat "$AUTO_MARK")" == "$there" ]] && exit 0   # these tests already failed
+    if [[ -f "$AUTO_MARK" && "$(cat "$AUTO_MARK")" == "$there" ]]; then   # these tests already failed
+      [[ "$wanted" == 1 ]] && report blocked "$(git rev-parse --short "$there")" "The tests already failed on this version. Push a fix to main."
+      exit 0
+    fi
 
     mkdir -p logs
     [[ -f "$AUTO_LOG" && "$(wc -c < "$AUTO_LOG")" -gt 1000000 ]] && mv -f "$AUTO_LOG" "$AUTO_LOG.old"
     exec >> "$AUTO_LOG" 2>&1
     short="$(git rev-parse --short "$there")"; subject="$(git log -1 --format=%s "$there")"
-    note "New code on main: $short $subject"
+    note "New code on main: $short $subject$([[ "$wanted" == 1 ]] && echo " (asked from the admin panel)")"
+    report found "$short" "$subject"
 
     # Test the new code in its own folder and image, so the running version is not touched.
     engine="${COMPOSE%% *}"
@@ -204,7 +240,7 @@ except Exception as exc:
     if ! { $engine build -q -t joyshare:candidate "$trial/code" >/dev/null && $engine run --rm joyshare:candidate python -m pytest -q tests; }; then
       printf '%s\n' "$there" > "$AUTO_MARK"
       note "The tests failed. Staying on $(git rev-parse --short HEAD)."
-      alert_update_failed "the tests failed on $short ($subject). Details in $AUTO_LOG on $(hostname -s)."
+      report failed "$short" "the tests failed on $short ($subject). Details in $AUTO_LOG on $(hostname -s)."
       exit 1
     fi
     $engine image rm joyshare:candidate >/dev/null 2>&1 || true
@@ -212,30 +248,41 @@ except Exception as exc:
     # Wait up to 30 minutes while a video is being made, so nobody's video is cut off.
     for i in $(seq 60); do
       $COMPOSE exec -T web python -m app.cli busy >/dev/null 2>&1 || break
-      [[ "$i" == 1 ]] && note "A video is being made. Waiting for it to finish…"
+      [[ "$i" == 1 ]] && { note "A video is being made. Waiting for it to finish…"; report waiting "$short" "A video is being made."; }
       sleep 30
     done
     if $COMPOSE exec -T web python -m app.cli busy >/dev/null 2>&1; then
       note "Videos are still being made after 30 minutes. Trying again next time."
+      report blocked "$short" "Videos were still being made after 30 minutes. It tries again at the next check."
       exit 0
     fi
 
     git merge --ff-only --quiet "$there"
     rm -f "$AUTO_MARK"
+    report started "$short" "$subject"
     if ./joyshare update; then   # a fresh run, so it uses the new script too
       note "Updated to $short. Live now."
+      # The app has just restarted: give it a moment before reporting.
+      for _ in $(seq 20); do
+        $COMPOSE exec -T web python -m app.cli update-status finished "$short" "$subject" >/dev/null 2>&1 && break
+        sleep 3
+      done
     else
       note "The update to $short failed while starting."
-      alert_update_failed "the update to $short failed while starting. Details in $AUTO_LOG on $(hostname -s)."
+      report failed "$short" "the update to $short failed while starting. Details in $AUTO_LOG on $(hostname -s)."
       exit 1
     fi
     ;;
 
   autoupdate)
     case "${2:-status}" in
-      on)
-        minutes="${3:-5}"
-        [[ "$minutes" =~ ^[0-9]+$ ]] && (( minutes >= 1 && minutes <= 1440 )) || die "Give the minutes between checks as a number from 1 to 1440, for example: ./joyshare autoupdate on 5"
+      on|on-request)
+        if [[ "$2" == "on-request" ]]; then
+          minutes=0
+        else
+          minutes="${3:-5}"
+          [[ "$minutes" =~ ^[0-9]+$ ]] && (( minutes >= 1 && minutes <= 1440 )) || die "Give the minutes between checks as a number from 1 to 1440, for example: ./joyshare autoupdate on 5"
+        fi
         not_retired
         [[ "$(git rev-parse --abbrev-ref HEAD)" == "main" ]] || die "This copy is not on main. Run git switch main first."
         # The real folder, even when this was run through a shortcut (symlink): the job is set up with it.
@@ -272,7 +319,7 @@ Your options:
   <key>ProgramArguments</key><array><string>/bin/bash</string><string>$me</string><string>self-update</string></array>
   <key>WorkingDirectory</key><string>$real</string>
   <key>EnvironmentVariables</key><dict><key>PATH</key><string>$PATH</string></dict>
-  <key>StartInterval</key><integer>$(( minutes * 60 ))</integer>
+  <key>StartInterval</key><integer>60</integer>
   <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key><string>$real/$AUTO_LOG</string>
   <key>StandardErrorPath</key><string>$real/$AUTO_LOG</string>
@@ -286,16 +333,26 @@ PLIST
           printf '%s\n' "[Unit]" "Description=joyshare: put new code from GitHub live" "" "[Service]" "Type=oneshot" \
             "WorkingDirectory=$real" "Environment=\"PATH=$PATH\"" "ExecStart=/bin/bash \"$me\" self-update" \
             "StandardOutput=append:$real/$AUTO_LOG" "StandardError=append:$real/$AUTO_LOG" > "$AUTO_UNITS/joyshare-autoupdate.service"
-          printf '%s\n' "[Unit]" "Description=joyshare: check GitHub every $minutes minutes" "" "[Timer]" "OnActiveSec=1min" "OnBootSec=2min" \
-            "OnUnitActiveSec=${minutes}min" "" "[Install]" "WantedBy=timers.target" > "$AUTO_UNITS/joyshare-autoupdate.timer"
+          printf '%s\n' "[Unit]" "Description=joyshare: the update helper, every minute" "" "[Timer]" "OnActiveSec=1min" "OnBootSec=2min" \
+            "OnUnitActiveSec=1min" "" "[Install]" "WantedBy=timers.target" > "$AUTO_UNITS/joyshare-autoupdate.timer"
           systemctl --user daemon-reload
           systemctl --user enable --now joyshare-autoupdate.timer >/dev/null
           say "To keep checking while nobody is signed in to this computer, run once: sudo loginctl enable-linger $(id -un)"
         else
           die "This computer has neither launchd (macOS) nor systemd, so this can't be turned on here."
         fi
-        note "Automatic updates on: every $minutes minutes." >> "$AUTO_LOG"
-        say "Automatic updates are on. Every $minutes minutes this computer checks GitHub's main and puts new code live."
+        # The helper runs every minute, so a request from the admin panel is picked up quickly;
+        # in automatic mode it asks GitHub only every MINUTES.
+        if (( minutes == 0 )); then
+          printf 'request 0\n' > "$AUTO_MODE"
+          note "Updates on request from the admin panel." >> "$AUTO_LOG"
+          say "Updates on request are on. In the admin panel, System → App updates → Update now puts GitHub's main live."
+        else
+          printf 'auto %s\n' "$minutes" > "$AUTO_MODE"
+          note "Automatic updates on: every $minutes minutes." >> "$AUTO_LOG"
+          say "Automatic updates are on. Every $minutes minutes this computer checks GitHub's main and puts new code live."
+          say "Update now in the admin panel (System → App updates) also works."
+        fi
         say "What it did is written to $AUTO_LOG. Turn it off with: ./joyshare autoupdate off"
         ;;
       off)
@@ -307,14 +364,16 @@ PLIST
           rm -f "$AUTO_UNITS/joyshare-autoupdate.timer" "$AUTO_UNITS/joyshare-autoupdate.service"
           systemctl --user daemon-reload 2>/dev/null || true
         fi
+        rm -f "$AUTO_MODE" "$AUTO_FETCHED"
         mkdir -p logs; note "Automatic updates off." >> "$AUTO_LOG"
         say "Automatic updates are off. Update by hand with: git pull && ./joyshare update"
         ;;
       status)
         if [[ -f "$AUTO_PLIST" || -f "$AUTO_UNITS/joyshare-autoupdate.timer" ]]; then
-          every="$(grep -o '<integer>[0-9]*' "$AUTO_PLIST" 2>/dev/null | tr -dc 0-9)"
-          [[ -n "$every" ]] && every="$(( every / 60 ))" || every="$(grep -o 'OnUnitActiveSec=[0-9]*' "$AUTO_UNITS/joyshare-autoupdate.timer" 2>/dev/null | tr -dc 0-9)"
-          say "Automatic updates: on, every ${every:-?} minutes."
+          mode=auto; every=""
+          [[ -f "$AUTO_MODE" ]] && read -r mode every < "$AUTO_MODE"
+          if [[ "$mode" == "request" ]]; then say "Updates: on request from the admin panel (System → App updates)."
+          else say "Automatic updates: on, every ${every:-?} minutes. Update now in the admin panel also works."; fi
         else
           say "Automatic updates: off. Turn on with: ./joyshare autoupdate on"
         fi

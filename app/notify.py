@@ -28,6 +28,7 @@ EVENTS = {
     "backup_failed": ("high", "file_cabinet"),
     "second_copy": ("urgent", "busts_in_silhouette"),
     "update_failed": ("high", "construction"),
+    "code_update": ("default", "rocket"),
     "test": ("default", "wave"),
 }
 PRIORITY = {"low": 2, "default": 3, "high": 4, "urgent": 5}

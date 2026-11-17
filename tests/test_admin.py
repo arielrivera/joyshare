@@ -197,3 +197,40 @@ def test_cli_busy_and_update_failed_alert(conn, sent, capsys):
     assert cli.main(["cli", "update-failed", "tests failed on abc123"]) == 0
     assert sent[-1]["priority"] == 4 and sent[-1]["tags"] == ["construction"]
     assert sent[-1]["message"] == "joyshare stayed on the running version: tests failed on abc123"
+
+
+def test_update_from_the_admin_panel_is_only_a_note(client, member, conn, sent, capsys, monkeypatch):
+    """The admin can only ask; the update helper on the server checks in, picks the request up and reports each step."""
+    from app import cli, codeupdate
+    settings.put(conn, "ntfy_topic", "my-topic")
+    # No helper has checked in: the button is refused, so nobody waits for nothing.
+    assert client.post("/api/admin/code-update").status_code == 409
+    assert member.post("/api/admin/code-update").status_code == 403           # only the admin
+
+    assert cli.main(["cli", "update-check", "abc1234", "Old version", "request", "0"]) == 1   # alive, nothing asked
+    code = client.get("/api/admin/system").json()["code"]
+    assert code["helper_alive"] and code["version"] == "abc1234" and code["mode"] == "request" and not code["requested"]
+
+    assert client.post("/api/admin/code-update").json()["requested"]
+    assert client.post("/api/admin/code-update").status_code == 200           # asking twice changes nothing
+    assert conn.execute("SELECT COUNT(*) FROM audit_log WHERE action='code.update_request'").fetchone()[0] == 1
+    assert cli.main(["cli", "update-check", "abc1234", "Old version", "request", "0"]) == 0   # the helper sees it
+
+    assert cli.main(["cli", "update-status", "found", "def5678", "Add a feature"]) == 0
+    assert cli.main(["cli", "update-status", "started", "def5678", "Add a feature"]) == 0
+    assert client.get("/api/admin/system").json()["code"]["working"]
+    assert cli.main(["cli", "update-status", "finished", "def5678", "Add a feature"]) == 0
+    titles = [s["title"] for s in sent]
+    assert titles == ["New code found", "Updating now", "Update finished"]
+    assert sent[-1]["message"] == "def5678 is live now."
+    code = client.get("/api/admin/system").json()["code"]
+    assert code["status"] == "finished" and not code["requested"] and not code["working"]   # the request is answered
+
+    client.post("/api/admin/code-update")
+    assert cli.main(["cli", "update-status", "failed", "def5678", "the tests failed"]) == 0
+    assert sent[-1]["title"] == "Update not put live" and not client.get("/api/admin/system").json()["code"]["requested"]
+    assert cli.main(["cli", "update-status", "made-up"]) == 2                  # only known steps
+
+    later = db.now() + codeupdate.ALIVE_SECONDS + 5
+    monkeypatch.setattr(db, "now", lambda: later)
+    assert not client.get("/api/admin/system").json()["code"]["helper_alive"]  # stopped checking in

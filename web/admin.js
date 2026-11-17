@@ -581,6 +581,25 @@ async function loadSystem() {
   $("sys-next-check").hidden = !data.next_platform_check;
   if (data.next_platform_check) $("sys-next-check").textContent = t("sys.nextCheck", { when: fmtWhen(data.next_platform_check) });
 
+  // App updates: the update helper on the server does the work (see app/codeupdate.py)
+  const code = data.code;
+  $("code-tiles").replaceChildren(
+    tile(t("code.running"), code.version || "—", code.subject || ""),
+    tile(t("code.helper"), code.helper_alive ? t("code.helperOn") : t("code.helperOff"),
+      code.helper_alive ? (code.mode === "request" ? t("code.onRequest") : t("code.every", { n: code.every || "?" }))
+        : (code.helper_seen ? t("code.lastSeen", { when: fmtWhen(code.helper_seen) }) : t("code.howToStart")),
+      !code.helper_alive),
+    tile(t("code.last"), code.status ? t(`code.s.${code.status}`) : "—", code.status_at ? fmtWhen(code.status_at) : "",
+      code.status === "failed" || code.status === "blocked"),
+  );
+  const codeBusy = Boolean(code.requested || code.working);
+  const said = codeBusy && !code.working ? t("code.asked")
+    : code.status && code.status_detail && code.status !== "current" && code.status !== "finished" ? code.status_detail : "";
+  $("code-message").textContent = said;
+  $("code-message").hidden = !said;
+  $("code-update").disabled = codeBusy || !code.helper_alive;
+  $("code-busy").hidden = !codeBusy;
+
   // Backups
   const bak = data.backup;
   const where = bak.cloud ? t("bak.whereBoth") : t("bak.whereServer");
@@ -596,7 +615,7 @@ async function loadSystem() {
   $("bak-now").disabled = bak.running;
 
   // While the worker is busy, keep looking until it's done.
-  if (busy || data.checking_platforms || bak.running) {
+  if (busy || data.checking_platforms || bak.running || codeBusy) {
     systemTimer = setTimeout(() => {
       if (adminTab === "system" && !$("admin").hidden) loadSystem().catch(() => { systemTimer = setTimeout(loadSystem, 5000); });
     }, 4000);
@@ -613,6 +632,18 @@ $("sys-update").addEventListener("click", () => {
   adminAct(() => systemAction("update")).finally(() => { if ($("sys-update").disabled === false) $("sys-busy").hidden = true; });
 });
 $("sys-rollback").addEventListener("click", () => adminAct(() => systemAction("rollback")));
+$("code-update").addEventListener("click", async () => {
+  const sure = await sheet({ title: t("code.ask"), text: t("code.askWhat"), choices: [
+    { label: t("code.now"), value: true, kind: "big" },
+    { label: t("cancel"), value: null, kind: "quiet" },
+  ] });
+  if (!sure) return;
+  $("code-busy").hidden = false;
+  adminAct(async () => {
+    await api("/api/admin/code-update", { method: "POST" });
+    await loadSystem();
+  });
+});
 $("sys-test-platforms").addEventListener("click", () => adminAct(() => systemAction("platforms")));
 $("bak-now").addEventListener("click", () => adminAct(() => systemAction("backup")));
 $("bak-auto").addEventListener("change", () => adminAct(async () => {

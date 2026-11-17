@@ -295,9 +295,21 @@ The computer that runs joyshare can put new code live by itself: every few minut
 ./joyshare autoupdate on
 ```
 
-That checks every 5 minutes. Give another number of minutes to change it, for example `./joyshare autoupdate on 35`. `./joyshare autoupdate status` shows whether it's on, the running version and the last things it did; `./joyshare autoupdate off` stops it.
+That checks every 5 minutes. Give another number of minutes to change it, for example `./joyshare autoupdate on 35`.
 
-Each check (`./joyshare self-update`, which you can also run by hand):
+**Or only when you ask, from the admin panel:**
+
+```bash
+./joyshare autoupdate on-request
+```
+
+Then **Admin panel → System → App updates → Update now** puts GitHub's `main` live (it asks first, and asks for Face ID). The same section shows the running version, whether the update helper is connected, and how the last update went. In automatic mode the button works too.
+
+Every update sends these alerts to your phone (switch them in **Admin panel → Alerts**): **New code found** (with the version, while it's tested), **Updating now** (the tests passed, joyshare restarts for about a minute), **Update finished** (it's live), or **Update not put live** with the reason.
+
+How it stays safe: the web app never runs `git` or `docker` and can't reach the computer it runs on. **Update now** only leaves a note in the database. The helper on the Mac mini (the background job below, outside Docker) checks for that note every minute and does the work itself, always the same steps: fetch GitHub's `main`, move forward only (never another branch or address), run the tests, wait for videos, rebuild. So the most anyone with the admin account can do is put what is already on `main` live sooner. Only the admin can ask, with a fresh Face ID, and each request is written to the activity log. `./joyshare autoupdate status` shows whether it's on, the running version and the last things it did; `./joyshare autoupdate off` stops it.
+
+The helper runs every minute either way (in automatic mode it asks GitHub only every so many minutes, unless you pressed **Update now**). Each check (`./joyshare self-update`, which you can also run by hand):
 
 1. Fetches `main` from GitHub. If nothing changed, it stops there and writes nothing.
 2. Builds the new code in a separate folder and image, and runs the tests there. The running version is not touched. If a test fails, joyshare stays on the running version and sends an **Update not put live** alert (switch it off in **Admin panel → Alerts**). That commit isn't tried again; the next push is.

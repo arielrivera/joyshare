@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from . import auth, backup, config, db, engine, i18n, notify, platforms, settings, storage, store, thumbs, twin
+from . import auth, backup, codeupdate, config, db, engine, i18n, notify, platforms, settings, storage, store, thumbs, twin
 from .i18n import T
 
 router = APIRouter(prefix="/api/admin")
@@ -284,6 +284,7 @@ def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=
              "error": i18n.unpack(checks.get(name, {}).get("error"), lang)}
             for name, spec in platforms.PLATFORMS.items()
         ],
+        "code": codeupdate.view(conn),
         "checking_platforms": asked == "platforms",
         "next_platform_check": engine.next_platform_check(conn) if cfg["canary_platforms"] else None,
         "manual_tests_left": MANUAL_TESTS - len(recent),
@@ -320,6 +321,14 @@ def system_action(body: SystemAction, admin: auth.Auth = Depends(changing_admin)
     db.set_state(conn, "engine_request", body.action)
     db.audit(conn, admin.user_id, f"system.{body.action}", None)
     return {"ok": True}
+
+
+@router.post("/code-update")
+def code_update(admin: auth.Auth = Depends(changing_admin), conn=Depends(db.get_conn)):
+    """Ask the update helper on the server to put GitHub's main live now. Only a note: see app/codeupdate.py."""
+    if not codeupdate.view(conn)["helper_alive"]:
+        raise HTTPException(409, "The update helper isn't running on the server. Turn it on there with: ./joyshare autoupdate on-request")
+    return codeupdate.request(conn, admin.user_id)
 
 
 @router.get("/storage")

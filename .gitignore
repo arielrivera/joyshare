@@ -13,3 +13,5 @@ cloudfare_tunnel_docker_notes.txt
 logs/
 .autoupdate-stopped
 .autoupdate.lock/
+.autoupdate-mode
+.autoupdate-fetched
