@@ -211,7 +211,7 @@ ES = {
     "yt-dlp updated": "yt-dlp actualizado",
     "{old} → {new}": "{old} → {new}",
     "{platform} stopped working": "{platform} dejó de funcionar",
-    "The nightly test video failed: {reason}": "Falló el video de prueba nocturno: {reason}",
+    "The daily test video failed: {reason}": "Falló el video de prueba diario: {reason}",
     "Unknown action.": "Acción desconocida.",
 
     # ---- cloud storage ----

@@ -518,9 +518,15 @@ function switchStorage(mode, message) {
   }, message);
 }
 $("sto-use-r2").addEventListener("click", () => switchStorage("r2", t("sto.switchedR2")));
-$("sto-use-local").addEventListener("click", () => switchStorage("local", t("sto.switchedLocal")));
+$("sto-use-local").addEventListener("click", async () => {
+  const sure = await sheet({ title: t("sto.localAsk"), text: t("sto.localWhat"), choices: [
+    { label: t("sto.useLocal"), value: true, kind: "big" },
+    { label: t("cancel"), value: null, kind: "quiet" },
+  ] });
+  if (sure) switchStorage("local", t("sto.switchedLocal"));
+});
 
-// ---------- System: keeping yt-dlp current, nightly platform checks ----------
+// ---------- System: keeping yt-dlp current, daily platform checks ----------
 
 let systemTimer = null;
 
@@ -572,6 +578,8 @@ async function loadSystem() {
   $("sys-tests-left").textContent = data.manual_tests_left > 0
     ? t("sys.testsLeft", { n: data.manual_tests_left })
     : t("sys.testsNone", { when: fmtWhen(data.next_manual_test_at) });
+  $("sys-next-check").hidden = !data.next_platform_check;
+  if (data.next_platform_check) $("sys-next-check").textContent = t("sys.nextCheck", { when: fmtWhen(data.next_platform_check) });
 
   // Backups
   const bak = data.backup;

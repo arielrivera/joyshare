@@ -249,6 +249,11 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] The source chip leaves out ".com" (x · Keyboard Cat), a long name ends in "…" instead of overflowing, and a small two-line legend "LINK TO / ORIGINAL" sits at its right without making it taller.
 - Not done: selecting several videos to delete at once (the "Select" idea).
 
+### Admin polish — done 17 Nov 2026
+- [x] Storage: **Go back to this server** asks first (what changes, and that files already in R2 keep working).
+- [x] System: solid lines between the yt-dlp part, Platform checks and Backups.
+- [x] Platform checks run at a random time: after each check the next is planned 12 to 36 hours later (`engine.PLATFORM_GAP`, state `canary_next`). The System tab shows "Next automatic check".
+
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
 - [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.

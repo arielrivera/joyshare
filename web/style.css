@@ -1024,3 +1024,8 @@ button.danger { background: #d92d20; color: #fff; }
   font-family: inherit; font-size: 15px; font-weight: 800; box-shadow: none; transform: none; }
 #recent-list .rc-swipe.swiping .rc-swipe-del { display: flex; }
 #recent-list .rc-swipe-del:hover, #recent-list .rc-swipe-del:active { transform: none; box-shadow: none; }
+
+/* A clear line between the parts of one admin tab (System: yt-dlp, Platform checks, Backups) */
+hr.section-rule { height: 0; margin: 30px 0 20px; border: 0; border-top: 3px solid var(--edge); }
+:root[data-theme="win95"] hr.section-rule { border-top: 1px solid #808080; box-shadow: 0 1px 0 #fff; opacity: 1; }
+:root:is([data-theme="editorial"], [data-theme="swiss"], [data-theme="midnight"], [data-theme="nordic"], [data-theme="library"], [data-theme="studio"]) hr.section-rule { border-top-width: 1px; opacity: 1; }

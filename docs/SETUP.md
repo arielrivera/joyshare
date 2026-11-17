@@ -415,7 +415,7 @@ The post may have no video, or it was deleted. Open the link in a browser to che
 **A platform suddenly stops working**
 Platforms change often and yt-dlp releases fixes quickly. joyshare checks for a new yt-dlp once a day, tests it, and switches to it by itself. To check right away, open **Admin panel → System** and press **Check for updates now**. If an update made things worse, **Go back to version …** on the same tab undoes it.
 
-The System tab also shows the daily platform checks: one known video per platform is looked up every day, and you get an alert when one stops working.
+The System tab also shows the daily platform checks: one known video per platform is looked up about once a day, at a different time each day (12 to 36 hours after the last check), and you get an alert when one stops working. The tab shows when the next one is due.
 
 **A job sits at "Waiting in line"**
 The worker isn't running. Check `docker compose logs worker`.

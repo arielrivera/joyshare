@@ -139,3 +139,21 @@ def test_members_cannot_touch_the_system_tab(conn):
     member = browser(auth.create_session(conn, user_id))
     assert member.get("/api/admin/system").status_code == 403
     assert member.post("/api/admin/system", json={"action": "update"}).status_code == 403
+
+
+def test_platform_check_runs_at_a_different_time_each_day(conn, monkeypatch):
+    """After each check the next one is planned 12 to 36 hours later, so it doesn't land at the same time every day."""
+    from app import db, media
+    monkeypatch.setattr(media, "inspect", lambda url: {})
+    assert engine.platforms_due(conn)                      # never checked: right away
+    gaps = set()
+    for _ in range(20):
+        engine.check_platforms(conn)
+        assert not engine.platforms_due(conn)
+        gap = engine.next_platform_check(conn) - db.now()
+        assert engine.PLATFORM_GAP[0] <= gap <= engine.PLATFORM_GAP[1]
+        gaps.add(gap)
+    assert len(gaps) > 10                                   # really random, not one fixed time
+    planned = engine.next_platform_check(conn)
+    monkeypatch.setattr(db, "now", lambda: planned)
+    assert engine.platforms_due(conn)

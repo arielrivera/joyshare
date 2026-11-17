@@ -12,6 +12,7 @@ app/__init__.py puts the chosen folder first on the import path before anything 
 """
 import json
 import logging
+import random
 import shutil
 import subprocess
 import sys
@@ -25,6 +26,9 @@ log = logging.getLogger("joyshare.engine")
 BASE = config.DATA_DIR / "ytdlp"
 POINTER = BASE / "current"
 CHECK_EVERY = 24 * 3600
+# The platform check runs about once a day, but at a different time each day, so it looks like a person
+# watching a video now and then rather than a clock: the next one is 12 to 36 hours after the last.
+PLATFORM_GAP = (12 * 3600, 36 * 3600)
 PROBE = ("import sys, json\n"
          "path, url = sys.argv[1], sys.argv[2]\n"
          "if path: sys.path.insert(0, path)\n"
@@ -173,7 +177,7 @@ def due(conn) -> bool:
     return not checked or db.now() - checked >= CHECK_EVERY
 
 
-# ---------- nightly platform check ----------
+# ---------- daily platform check (at a random time) ----------
 
 def check_platforms(conn) -> dict:
     """Look up one known video per platform. Alert when a platform that worked stops working."""
@@ -194,12 +198,22 @@ def check_platforms(conn) -> dict:
             if before.get(platform, {}).get("ok", True):  # only alert when it newly breaks
                 label = platforms.PLATFORMS.get(platform, {}).get("label", platform)
                 notify.send(conn, "platform_check_failed", T("{platform} stopped working", platform=label),
-                            T("The nightly test video failed: {reason}", reason=i18n.render(message, notify.admin_lang(conn))))
+                            T("The daily test video failed: {reason}", reason=i18n.render(message, notify.admin_lang(conn))))
     db.set_state(conn, "canary", json.dumps(results))
     db.set_state(conn, "canary_at", str(db.now()))
+    db.set_state(conn, "canary_next", str(db.now() + random.randint(*PLATFORM_GAP)))
     return results
 
 
+def next_platform_check(conn) -> int | None:
+    """When the automatic platform check runs next (None: as soon as possible)."""
+    planned, _ = db.get_state(conn, "canary_next")
+    if planned:
+        return int(planned)
+    last, _ = db.get_state(conn, "canary_at")   # from before the times were random
+    return int(last) + CHECK_EVERY if last else None
+
+
 def platforms_due(conn) -> bool:
-    last, _ = db.get_state(conn, "canary_at")
-    return not last or db.now() - int(last) >= CHECK_EVERY
+    planned = next_platform_check(conn)
+    return planned is None or db.now() >= planned

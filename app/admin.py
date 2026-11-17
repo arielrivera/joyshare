@@ -285,6 +285,7 @@ def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=
             for name, spec in platforms.PLATFORMS.items()
         ],
         "checking_platforms": asked == "platforms",
+        "next_platform_check": engine.next_platform_check(conn) if cfg["canary_platforms"] else None,
         "manual_tests_left": MANUAL_TESTS - len(recent),
         "next_manual_test_at": (min(recent) + MANUAL_WINDOW) if len(recent) >= MANUAL_TESTS else None,
         "backup": {
