@@ -29,6 +29,7 @@ NUMBER_LIMITS = {
 }
 SECRET_KEYS = {"ntfy_token", "r2_secret_access_key"}
 MANUAL_TESTS, MANUAL_WINDOW = 2, 3 * 3600   # "Test platforms now": at most 2 in any 3 hours
+MAX_TEST_VIDEOS = 20                         # test videos kept per platform
 R2_TEXT = {"r2_account_id": r"[A-Za-z0-9]{0,64}", "r2_bucket": r"[a-z0-9][a-z0-9.\-]{1,62}|", "r2_access_key_id": r"[A-Za-z0-9]{0,128}",
            "r2_region": r"[a-z0-9\-]{1,32}", "r2_endpoint": r"(https?://[A-Za-z0-9.\-]+(:\d+)?)?"}
 
@@ -61,19 +62,28 @@ def check_setting(key: str, value, merged: dict):
             raise HTTPException(422, "Pick platforms from the list.")
         return [p for p in platforms.PLATFORMS if p in value]
     if key == "canary_urls":
-        if not isinstance(value, dict) or any(p not in platforms.PLATFORMS or not isinstance(u, str) for p, u in value.items()):
+        # Each platform takes a list of links (or one string with a link per line).
+        def as_list(u):
+            if isinstance(u, str):
+                return u.split()
+            if isinstance(u, list) and all(isinstance(x, str) for x in u):
+                return [x.strip() for x in u if x.strip()]
+            return None
+        if not isinstance(value, dict) or any(p not in platforms.PLATFORMS or as_list(u) is None for p, u in value.items()):
             raise HTTPException(422, "Pick platforms from the list.")
-        cleaned = dict(merged["canary_urls"])
-        for name, url in value.items():
-            url = url.strip()
-            if url:
+        cleaned = {name: settings.canary_links(merged, name) for name in merged["canary_urls"]}
+        for name, urls in value.items():
+            links = []
+            for url in as_list(urls)[:MAX_TEST_VIDEOS]:
                 try:
                     found, url = platforms.detect(url)
                 except platforms.LinkError as exc:
                     raise HTTPException(422, exc.args[0]) from exc
                 if found != name:
                     raise HTTPException(422, T("That link isn't a {platform} link.", platform=platforms.PLATFORMS[name]["label"]))
-            cleaned[name] = url
+                if url not in links:
+                    links.append(url)
+            cleaned[name] = links
         return cleaned
     if key in ("paused", "ytdlp_auto_update", "backup_auto"):
         if not isinstance(value, bool):
@@ -278,7 +288,8 @@ def system(request: Request, _admin: auth.Auth = Depends(auth.admin_auth), conn=
         },
         "platform_checks": [
             {"platform": name, "label": spec["label"],
-             "included": name in cfg["canary_platforms"], "url": cfg["canary_urls"].get(name, ""),
+             "included": name in cfg["canary_platforms"], "url": "\n".join(settings.canary_links(cfg, name)),
+             "tested_url": checks.get(name, {}).get("url"),
              "enabled": name in cfg["platforms"],
              "ok": checks.get(name, {}).get("ok"), "at": checks.get(name, {}).get("at"),
              "error": i18n.unpack(checks.get(name, {}).get("error"), lang)}

@@ -77,7 +77,7 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] `app/engine.py`: daily check in the worker's scheduler. A newer version is installed into the data volume (`/data/ytdlp/<version>`, no image rebuild), test-run on a known video, then `/data/ytdlp/current` is pointed at it. A version that fails its test (while the current one passes) is removed and an alert goes out.
 - [x] Both containers notice the change and restart themselves (`app/__init__.py` puts the chosen folder first on the import path). Proven for real: install, switch, restart, switch back.
 - [x] System tab: version in use, newest known, last checked, "Check for updates now", automatic on or off, "Go back to version X" after an update.
-- [x] Daily lookup of one known video per platform (`canary_urls` setting, YouTube and X for now); alert only when a platform newly breaks; "Test platforms now" button.
+- [x] Daily lookup of a known video per platform (`canary_urls` setting, YouTube and X for now); alert only when a platform newly breaks; "Test platforms now" button. Each platform holds a list of test videos (nine for YouTube, seven for X, nine for TikTok, three for Instagram; Facebook has none yet); each check picks one at random and tries a second before calling the platform broken.
 - [ ] Not yet seen: a real newer release arriving (the installed version was already the newest).
 
 ### 3c-bis. A second engine, in case yt-dlp itself stops working (not started, owner to decide)
@@ -118,7 +118,7 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 
 ### Platform checks — tightened
 - [x] "Test platforms now" is limited to 2 in any 3 hours (the daily automatic check doesn't count).
-- [x] The admin picks which platforms are checked and can set each one's test video. YouTube and X are on by default; TikTok has a test video but is off; Instagram and Facebook need a link first.
+- [x] The admin picks which platforms are checked and can set each one's test videos (one link per line). YouTube and X are on by default; TikTok and Instagram have test videos but are off; Facebook needs links first.
 
 ## Phase 4: look and feel — first part done
 - [x] 3D progress scenes with Three.js (`web/scenes/`, library in `web/vendor/`, loaded only when a video is being made). Each scene is a plug-in with the same inputs: progress, and whether it is running, done or failed.

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from app import db, engine, media, notify, settings
+from app import db, engine, media, notify, platforms, settings
 
 
 @pytest.fixture()
@@ -157,3 +157,55 @@ def test_platform_check_runs_at_a_different_time_each_day(conn, monkeypatch):
     planned = engine.next_platform_check(conn)
     monkeypatch.setattr(db, "now", lambda: planned)
     assert engine.platforms_due(conn)
+
+
+def test_platform_check_picks_a_random_test_video(conn, monkeypatch):
+    looked_up = []
+    monkeypatch.setattr(media, "inspect", lambda url: looked_up.append(url) or {})
+    for _ in range(30):
+        engine.check_platforms(conn)
+    youtube = {u for u in looked_up if "youtube" in u}
+    assert len(youtube) > 1 and youtube <= set(settings.DEFAULTS["canary_urls"]["youtube"])
+
+
+def test_platform_check_tries_a_second_video_before_calling_it_broken(conn, monkeypatch, sent):
+    settings.put(conn, "ntfy_topic", "t")
+    settings.put(conn, "canary_platforms", ["youtube"])
+    tried = []
+
+    def first_fails(url):
+        tried.append(url)
+        if len(tried) == 1:
+            raise media.MediaError("This video is private.")
+        return {}
+
+    monkeypatch.setattr(media, "inspect", first_fails)
+    result = engine.check_platforms(conn)["youtube"]
+    assert result["ok"] is True and len(set(tried)) == 2 and result["url"] == tried[1] and sent == []
+
+    def all_fail(url):
+        raise media.MediaError("Sign in to confirm you're not a bot.")
+
+    monkeypatch.setattr(media, "inspect", all_fail)
+    assert engine.check_platforms(conn)["youtube"]["ok"] is False and len(sent) == 1
+
+
+def test_old_single_link_settings_still_work(conn):
+    settings.put(conn, "canary_urls", {"youtube": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+                                       "tiktok": "https://www.tiktok.com/@pokemonlife22/video/7059698374567611694",
+                                       "x": "https://x.com/a/status/1", "instagram": "", "facebook": ""})
+    cfg = settings.get_all(conn)
+    for name in ("youtube", "tiktok", "instagram"):                                               # old defaults: new pools
+        assert settings.canary_links(cfg, name) == settings.DEFAULTS["canary_urls"][name]
+    assert settings.canary_links(cfg, "x") == ["https://x.com/a/status/1"]                         # their own pick stays
+    assert settings.canary_links(cfg, "facebook") == []
+
+    settings.put(conn, "canary_urls", {"instagram": []})                                         # cleared on purpose: stays empty
+    assert settings.canary_links(settings.get_all(conn), "instagram") == []
+
+
+def test_default_test_videos_are_valid_links():
+    for name, links in settings.DEFAULTS["canary_urls"].items():
+        assert len(set(links)) == len(links)
+        for url in links:
+            assert platforms.detect(url)[0] == name, url

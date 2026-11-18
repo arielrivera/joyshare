@@ -131,7 +131,8 @@ def check_and_update(conn) -> dict:
                          message=i18n.pack("You have the newest version."))
         log.info("yt-dlp %s is available (running %s), installing", latest, current)
         folder = install(latest)
-        test_url = settings.get(conn, "canary_urls").get("youtube") or "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        test_url = random.choice(settings.canary_links(settings.get_all(conn), "youtube")
+                                 or ["https://www.youtube.com/watch?v=jNQXAC9IVRw"])
         ok, detail = probe(folder, test_url)
         if not ok:
             still_works, _ = probe(None, test_url)
@@ -180,21 +181,29 @@ def due(conn) -> bool:
 # ---------- daily platform check (at a random time) ----------
 
 def check_platforms(conn) -> dict:
-    """Look up one known video per platform. Alert when a platform that worked stops working."""
+    """Look up a randomly picked known video per platform. Alert when a platform that worked stops working.
+
+    If the first pick fails and the platform has more test videos, a second one is tried, so one video
+    going away (or one unlucky lookup) doesn't count as the platform breaking."""
     raw, _ = db.get_state(conn, "canary")
     before = json.loads(raw) if raw else {}
     results = {}
     cfg = settings.get_all(conn)
     for platform in cfg["canary_platforms"]:
-        url = cfg["canary_urls"].get(platform)
-        if not url or platform not in cfg["platforms"]:
+        links = settings.canary_links(cfg, platform)
+        if not links or platform not in cfg["platforms"]:
             continue
-        try:
-            media.inspect(url)
-            results[platform] = {"ok": True, "at": db.now()}
-        except Exception as exc:
-            message = exc.args[0] if isinstance(exc, media.MediaError) and exc.args else str(exc)[:200]
-            results[platform] = {"ok": False, "at": db.now(), "error": i18n.pack(message)}
+        message = None
+        for url in random.sample(links, min(2, len(links))):
+            try:
+                media.inspect(url)
+                results[platform] = {"ok": True, "at": db.now(), "url": url}
+                break
+            except Exception as exc:
+                message = exc.args[0] if isinstance(exc, media.MediaError) and exc.args else str(exc)[:200]
+                log.warning("Platform check for %s failed on %s: %s", platform, url, message)
+        else:
+            results[platform] = {"ok": False, "at": db.now(), "url": url, "error": i18n.pack(message)}
             if before.get(platform, {}).get("ok", True):  # only alert when it newly breaks
                 label = platforms.PLATFORMS.get(platform, {}).get("label", platform)
                 notify.send(conn, "platform_check_failed", T("{platform} stopped working", platform=label),

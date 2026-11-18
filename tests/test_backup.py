@@ -151,14 +151,15 @@ def test_admin_chooses_which_platforms_are_checked(client, conn, monkeypatch):
     engine.check_platforms(conn)
     assert len(looked_up) == 2 and any("youtube" in u for u in looked_up) and any("x.com" in u for u in looked_up)
 
-    res = client.put("/api/admin/settings", json={"changes": {"canary_platforms": ["tiktok", "instagram"]}})
+    res = client.put("/api/admin/settings", json={"changes": {"canary_platforms": ["tiktok", "instagram"],
+                                                              "canary_urls": {"instagram": []}}})
     assert res.status_code == 200 and res.json()["settings"]["canary_platforms"] == ["tiktok", "instagram"]
     looked_up.clear()
     engine.check_platforms(conn)
-    assert len(looked_up) == 1 and "tiktok.com" in looked_up[0]             # Instagram has no test video yet, so it is skipped
+    assert len(looked_up) == 1 and "tiktok.com" in looked_up[0]             # Instagram has no test videos now, so it is skipped
 
     ok = client.put("/api/admin/settings", json={"changes": {"canary_urls": {"instagram": "https://www.instagram.com/reel/abc123/"}}})
-    assert ok.status_code == 200 and ok.json()["settings"]["canary_urls"]["youtube"].startswith("https://www.youtube.com")
+    assert ok.status_code == 200 and ok.json()["settings"]["canary_urls"]["youtube"][0].startswith("https://www.youtube.com")
     looked_up.clear()
     engine.check_platforms(conn)
     assert len(looked_up) == 2
@@ -166,7 +167,13 @@ def test_admin_chooses_which_platforms_are_checked(client, conn, monkeypatch):
     rows = {c["platform"]: c for c in client.get("/api/admin/system").json()["platform_checks"]}
     assert rows["tiktok"]["included"] and rows["tiktok"]["ok"] is True and not rows["youtube"]["included"]
 
-    for bad in ({"canary_platforms": ["myspace"]}, {"canary_urls": {"x": "https://www.youtube.com/watch?v=1"}},
+    many = client.put("/api/admin/settings", json={"changes": {"canary_urls": {"x": [
+        "https://x.com/a/status/1", "https://x.com/b/status/2", "https://x.com/a/status/1"]}}})
+    assert many.status_code == 200 and len(many.json()["settings"]["canary_urls"]["x"]) == 2   # duplicates dropped
+    rows = {c["platform"]: c for c in client.get("/api/admin/system").json()["platform_checks"]}
+    assert rows["x"]["url"].count("\n") == 1
+
+    for bad in ({"canary_platforms": ["myspace"]}, {"canary_urls": {"x": ["https://x.com/a/status/1", 5]}}, {"canary_urls": {"x": "https://www.youtube.com/watch?v=1"}},
                 {"canary_urls": {"x": "https://example.com/v"}}, {"canary_urls": {"myspace": ""}}):
         assert client.put("/api/admin/settings", json={"changes": bad}).status_code == 422, bad
 

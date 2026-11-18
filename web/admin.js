@@ -24,7 +24,7 @@ const store = {
 
 function rememberDraft(formId) {
   const draft = {};
-  for (const field of $(formId).querySelectorAll("input[id], select[id]")) {
+  for (const field of $(formId).querySelectorAll("input[id], select[id], textarea[id]")) {
     draft[field.id] = field.type === "checkbox" ? field.checked : field.value;
   }
   store.set(draftKey(formId), draft);
@@ -559,8 +559,9 @@ async function loadSystem() {
     state.textContent = check.at
       ? `${check.ok ? t("sys.works") : t("sys.broken")} · ${fmtWhen(check.at)}${check.error ? ` · ${check.error}` : ""}`
       : t("sys.notChecked");
-    const link = document.createElement("input");
-    link.type = "text";
+    // The test videos, one link per line. Each check picks one of them at random.
+    const link = document.createElement("textarea");
+    link.rows = Math.min(6, Math.max(2, check.url.split("\n").length));
     link.id = `sys-url-${check.platform}`;
     link.dataset.platform = check.platform;
     link.value = check.url;
@@ -654,7 +655,9 @@ $("sys-checks-form").addEventListener("submit", (e) => {
   adminAct(async () => {
     const included = [...document.querySelectorAll('#sys-checks input[data-role="include"]:checked')].map((b) => b.value);
     const urls = {};
-    for (const input of document.querySelectorAll("#sys-checks input[data-platform]")) urls[input.dataset.platform] = input.value.trim();
+    for (const input of document.querySelectorAll("#sys-checks [data-platform]")) {
+      urls[input.dataset.platform] = input.value.split(/\s+/).filter(Boolean);
+    }
     await api("/api/admin/settings", { method: "PUT", body: JSON.stringify({ changes: { canary_platforms: included, canary_urls: urls } }) });
     forgetDraft("sys-checks-form");
     await loadSystem();
