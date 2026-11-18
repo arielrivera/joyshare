@@ -25,7 +25,7 @@ def conn():
     for table in TABLES:
         connection.execute(f"DELETE FROM {table}")
     connection.execute("DELETE FROM users WHERE id!=1")
-    connection.execute("UPDATE users SET disabled=0, prefs=NULL WHERE id=1")
+    connection.execute("UPDATE users SET disabled=0, prefs=NULL, role='admin' WHERE id=1")
     auth._failures.clear()
     yield connection
     connection.close()

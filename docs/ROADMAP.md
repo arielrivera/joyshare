@@ -178,6 +178,7 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [x] The real visitor address is read from Cloudflare's header (only when the request comes from a private network), so the failed-attempt limit is per visitor, not shared by everyone behind the tunnel.
 - [x] `tunnel` service in `docker-compose.yml` (profile `tunnel`), reaching the app as `http://web:8080`. The owner still runs a separate `cloudflared` container and has to switch over.
 - [x] Admins can invite another admin and change a person's role (never removing the last admin).
+- [x] "View as member" (☰ menu, admins only): one signed-in device acts as a regular member everywhere, server-side (`sessions.member_view`; the server honors it only when the person's stored role is admin), with a bar and "Back to admin". Other devices stay admins; signing in again starts as admin.
 - [x] The app is called **vidshare** in the interface (`JOYSHARE_NAME`); the repository, script and settings keep the name joyshare. New people and devices start in the Zine look.
 - [x] Confirmed by the owner on 13 Nov 2026: a passkey registered on the domain from the iPhone, and sign-in on the Mac at the domain with that same passkey (it reached the Mac through iCloud Keychain).
 

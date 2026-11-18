@@ -123,6 +123,16 @@ class Auth:
     session_hash: str | None = None
     credential_pk: int | None = None
     authenticated_at: int = 0
+    # The role stored for the person. `role` above is what this request may do: an admin in
+    # "View as member" has role "member" here and real_role "admin". Only an admin can ever switch.
+    real_role: str = ""
+
+    def __post_init__(self):
+        self.real_role = self.real_role or self.role
+
+    @property
+    def member_view(self) -> bool:
+        return self.real_role == "admin" and self.role == "member"
 
 
 def _same_origin(request: Request) -> bool:
@@ -164,8 +174,10 @@ def authenticate(request: Request, conn) -> Auth | None:
             "UPDATE sessions SET last_seen_at=?, expires_at=? WHERE token_hash=?",
             (db.now(), db.now() + SESSION_SECONDS, token_hash),
         )
-    return Auth(row["user_id"], row["name"], row["role"], "session", token_hash,
-                row["credential_pk"], row["authenticated_at"])
+    # "View as member" counts only for an admin. For anyone else the flag means nothing, whatever it says.
+    role = "member" if row["role"] == "admin" and row["member_view"] else row["role"]
+    return Auth(row["user_id"], row["name"], role, "session", token_hash,
+                row["credential_pk"], row["authenticated_at"], real_role=row["role"])
 
 
 def current_auth(request: Request, conn=Depends(db.get_conn)) -> Auth:
@@ -395,7 +407,8 @@ def status(request: Request, conn=Depends(db.get_conn)):
         auth = None
     return {
         "signed_in": bool(auth),
-        "user": {"id": auth.user_id, "name": auth.name, "role": auth.role} if auth else None,
+        "user": {"id": auth.user_id, "name": auth.name, "role": auth.role,
+                 **({"member_view": True} if auth.member_view else {})} if auth else None,
         "first_run": not has_any_passkey(conn),
         "prefs": get_prefs(conn, auth.user_id) if auth else None,
         "app_name": config.APP_NAME,
@@ -557,6 +570,23 @@ def logout(response: Response, auth: Auth = Depends(session_auth), conn=Depends(
     conn.execute("DELETE FROM sessions WHERE token_hash=?", (auth.session_hash,))
     response.delete_cookie(SESSION_COOKIE, path="/")
     return {"ok": True}
+
+
+class MemberViewBody(BaseModel):
+    on: bool
+
+
+@router.post("/member-view")
+def member_view(body: MemberViewBody, auth: Auth = Depends(session_auth), conn=Depends(db.get_conn)):
+    """An admin uses this device as a regular member (on) or goes back to being an admin (off).
+
+    Only this signed-in device changes; the admin's other devices stay admins. The check is on the role
+    stored for the person, so a member can't turn it on, and turning it off never makes a member an admin."""
+    if auth.real_role != "admin":
+        raise HTTPException(403, "Only an admin can do that.")
+    conn.execute("UPDATE sessions SET member_view=? WHERE token_hash=?", (int(body.on), auth.session_hash))
+    db.audit(conn, auth.user_id, "auth.member_view_on" if body.on else "auth.member_view_off", None)
+    return {"ok": True, "member_view": body.on}
 
 
 @router.post("/logout-all")

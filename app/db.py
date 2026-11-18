@@ -184,6 +184,10 @@ MIGRATIONS = [
     """
     ALTER TABLE jobs ADD COLUMN deleted_at INTEGER
     """,
+    # 8: an admin can use one signed-in device as a regular member ("View as member"). See app/auth.py.
+    """
+    ALTER TABLE sessions ADD COLUMN member_view INTEGER NOT NULL DEFAULT 0
+    """,
 ]
 
 

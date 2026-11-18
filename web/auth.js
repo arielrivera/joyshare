@@ -160,7 +160,27 @@ function paintAuthText() {
   $("join-help").textContent = firstRun ? t("join.helpSetup") : (joining ? t("join.helpInvite") : t("join.helpNew"));
   if (me) $("who").textContent = me.role === "admin" ? `${me.name} · ${t("nav.admin")}` : me.name;
   $("open-admin").hidden = !me || me.role !== "admin";
+  // "View as member": the server says member_view only for an admin, so a member never sees either control.
+  const memberView = Boolean(me && me.member_view);
+  $("member-view-on").hidden = !me || me.role !== "admin";
+  $("member-view-off").hidden = !memberView;
+  $("member-view-bar").hidden = !memberView;
 }
+
+// Switches this device between admin and regular member, then starts the page over so every screen
+// (and everything already loaded for the admin) is rebuilt the way a member gets it.
+async function setMemberView(on) {
+  try {
+    await api("/api/auth/member-view", { method: "POST", body: JSON.stringify({ on }) });
+  } catch (err) {
+    toast(err.message || t("mv.failed"));
+    return;
+  }
+  location.reload();
+}
+$("member-view-on").addEventListener("click", () => setMemberView(true));
+$("member-view-off").addEventListener("click", () => setMemberView(false));
+$("member-view-back").addEventListener("click", () => setMemberView(false));
 
 // The signed-in screens: the main app, Devices, and the admin panel. Only one shows.
 function showScreen(name) {

@@ -43,12 +43,21 @@
             <button id="open-devices" type="button" class="quiet" data-i18n="nav.devices"></button>
             <button id="open-accounts" type="button" class="quiet" data-i18n="acc.title"></button>
             <button id="open-admin" type="button" class="quiet" data-i18n="nav.adminPanel" hidden></button>
+            <!-- Admins only (the server refuses everyone else): use this device as a regular member, and back. -->
+            <button id="member-view-on" type="button" class="quiet" data-i18n="mv.on" hidden></button>
+            <button id="member-view-off" type="button" class="quiet" data-i18n="mv.off" hidden></button>
             <button id="open-help" type="button" class="quiet" data-i18n="help.title"></button>
             <button id="sign-out" type="button" class="quiet" data-i18n="nav.signout"></button>
           </div>
         </nav>
       </div>
     </header>
+
+    <!-- Shown only to an admin who is using this device as a regular member. -->
+    <div id="member-view-bar" class="member-bar" role="status" hidden>
+      <span data-i18n="mv.bar"></span>
+      <button id="member-view-back" type="button" class="chip" data-i18n="mv.back"></button>
+    </div>
 
     <div class="ticker" aria-hidden="true"><div id="ticker" class="ticker-track"></div></div>
 

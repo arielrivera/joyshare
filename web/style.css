@@ -156,6 +156,11 @@ button.chip:hover:not(:disabled) { box-shadow: none; transform: none; background
 button.icon { width: 30px; height: 30px; padding: 0; border-radius: 50%; font-size: 15px; flex: none;
   background: var(--hot); color: #fff; border-color: var(--edge); box-shadow: 2px 2px 0 var(--edge); }
 
+/* "View as member": a slim bar so the admin always knows, with the way back right there */
+.member-bar { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 16px;
+  background: var(--ink); color: var(--bg); font-size: 14px; text-align: center; }
+.member-bar[hidden] { display: none; }
+.member-bar button.chip { background: var(--bg); color: var(--ink); border-color: var(--bg); box-shadow: none; }
 .ticker { overflow: hidden; border-block: 2px solid var(--edge); background: var(--pop); color: var(--pop-ink);
   margin-inline: calc(-1 * max(16px, env(safe-area-inset-left))); transform: rotate(-1deg) scale(1.02); }
 .ticker-track { display: inline-block; white-space: nowrap; padding: 3px 0; font-family: var(--display);
