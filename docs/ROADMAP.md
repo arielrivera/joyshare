@@ -12,8 +12,8 @@ Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reason
 | 2 | Access: passkeys, devices, people, tokens, Shortcut endpoint | **Done**, committed on `phase-2-access` |
 | — | Redesign: one-step flow, looks, fonts, English/Spanish, custom name, compact top bar | **Done**, on `main` |
 | 3 | Admin panel, alerts, updates, R2 storage, backups, connected accounts | **Done**, on `main` (a small Platforms tab is left) |
-| 4 | 3D progress scenes, app icon and home-screen install, share page look | **First part done**: three scenes, two calm ones, install, share look |
-| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | **Started**: domain and tunnel are up on the laptop |
+| 4 | 3D progress scenes, app icon and home-screen install, share page look | **Done**: seven scenes, two calm ones, install, share look (more scenes optional) |
+| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | **Live** on the Mac mini (domain, tunnel, R2, alerts, self-updates). Left: Uptime Kuma, troubleshooting guide |
 
 Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesign`. `main` on GitHub holds everything up to connected accounts (pushed 12 Nov 2026). Later work is on its own branch until the owner asks for a push.
 
@@ -104,7 +104,8 @@ Settings already live in the database (`app/settings.py`); phase 3 gives them a 
 - [x] The secret key is stored encrypted and never sent back. The page's security policy allows the bucket's address only when it is set up.
 - [x] If an upload fails, the file stays on the server and an alert goes out.
 - [x] Proven for real against an S3 emulator (moto): test, switch, a real job, fetch through the signed link, range request, download name, share link, clean-up.
-- [ ] **Not yet tried on real Cloudflare R2.** Needs the owner's bucket and keys. Check there: the signed download name, the CORS rule and the lifecycle rule are accepted, and the iPhone Share button works with files in R2.
+- [x] In use on real Cloudflare R2, and the iPhone Share button works with files there.
+- [ ] Still to confirm on R2: the signed download name, and that the CORS and lifecycle rules were accepted.
 - [ ] R2 must be on before the app is reachable through the Cloudflare Tunnel (Cloudflare's terms on video). Phase 5 should refuse to go live otherwise, or warn loudly.
 - [ ] boto3 adds about 100 MB to the image. A slimmer client is possible later.
 
@@ -264,12 +265,13 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 
 ## Phase 5: remaining
 - [ ] Owner: buy the domain, move its DNS to Cloudflare, install the ntfy app, create the R2 bucket and the DigitalOcean droplet.
-- [ ] Move to the Mac mini following `docs/MOVING-MAC.md`, and correct the guide where reality differs.
+- [x] Move to the Mac mini following `docs/MOVING-MAC.md` (done 14 Nov 2026).
 - [ ] Cloudflare Tunnel container in `docker-compose.yml`; set `JOYSHARE_PUBLIC_URL` to the https address; read the visitor's address from Cloudflare's header for the failed-attempt limit.
-- [ ] Every device registers its passkey again on the real domain (passkeys are tied to the address).
+- [x] Every device registers its passkey again on the real domain (passkeys are tied to the address).
 - [ ] Uptime Kuma in a container on the DigitalOcean droplet, watching `/api/health` and a worker heartbeat, alerting through ntfy.
 - [ ] `docs/TROUBLESHOOTING.md`. Mac mini notes: Docker starts only after login, and FileVault blocks automatic login after a power cut.
-- [ ] iPhone checks: passkey, Share button (find the size where it stops working), the Shortcut.
+- [x] iPhone checks: passkey and the Share button work.
+- [ ] iPhone checks still open: the size where the Share button stops working, and the Shortcut.
 
 ## Not yet tested
 - A passkey on a phone, the iPhone share sheet and the Shortcut (all need the https address).

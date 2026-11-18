@@ -2,17 +2,25 @@
 
 A short summary of everything left. The full checklist with technical detail is in [ROADMAP.md](ROADMAP.md).
 
-Last updated: 13 Nov 2026 (after the moving guides and the one-script controls).
+Last updated: 18 Nov 2026 (after random platform test videos, "View as member" and the iPhone popup fix).
+
+## Done since the last update
+
+- **Live on the Mac mini** at its own domain, with the Cloudflare Tunnel. The laptop is retired.
+- **Cloudflare R2** is set up, tested and serving videos. `JOYSHARE_SECRET` is set.
+- **The iPhone Share button** works with the real app.
+- **Alerts** reach your phone through ntfy (the daily platform check sent one on 18 Nov).
+- **Updating by itself**: the update helper runs on the Mac mini, and the admin panel's Update button puts new code live after the tests pass.
+- **Platform checks** run at a random time each day, on a randomly picked test video from a list per platform (YouTube, X, TikTok, Instagram), with a second try before an alert.
+- **View as member**: an admin can use one device as a regular member, and back. Members can never switch.
+- **Smaller things**: the "…" menu on every video (original link, delete with Undo), swipe left to delete in Recent, EXPIRED stamps in the grid, popups that keep their size on iPhone.
 
 ## 1. Things only you can do
 
 | What | Why | Where the steps are |
 |---|---|---|
-| **Move the tunnel into the app's network** | Your `cloudflared` runs as a separate container reaching the app through the host. Put `CLOUDFLARE_TUNNEL_TOKEN` in `.env`, set the tunnel's service to `http://web:8080`, run `./joyshare start`, and remove the separate container. Then the tunnel starts, stops and moves together with the app. | [SETUP.md](SETUP.md), "Going live", step 2 |
-| **Set up Cloudflare R2** (create a bucket and an access key) | So videos are served from Cloudflare's storage and never pass through the tunnel. Cloudflare's rules don't allow video through the tunnel itself. Also gives backups a safe place off the machine. | [R2.md](R2.md), a step-by-step guide |
-| **Install the ntfy app and choose a topic** | So alerts reach your phone. | [SETUP.md](SETUP.md), "Turn on alerts" |
-| **Set `JOYSHARE_SECRET` in `.env`** | Stronger protection for connected accounts and the R2 secret. Do it before anyone uploads a cookie file. Keep a copy of it somewhere safe. | [SETUP.md](SETUP.md), "Settings" |
-| **Connect your accounts** (cookie files, ideally from spare accounts) | Instagram, and some videos elsewhere, are only shown to signed-in accounts. | App: ☰ → Connected accounts |
+| **Find out why YouTube failed the daily check (18 Nov)** | The alert's text says why. If it's "sign in to confirm you're not a bot", YouTube is refusing the Mac mini's address without a signed-in account: connect a spare YouTube account. | Admin → System, platform checks; app: ☰ → Connected accounts |
+| **Connect your accounts** (cookie files, ideally from spare accounts) | Instagram, and some videos elsewhere (YouTube from a home address, often), are only shown to signed-in accounts. | App: ☰ → Connected accounts |
 | **Create the DigitalOcean droplet for Uptime Kuma** | To be told when the Mac mini is down. | Go-live phase |
 | **Decide the Mac mini's restart behavior** | Docker on a Mac starts only after login, and FileVault blocks automatic login after a power cut. | Go-live phase |
 
@@ -20,11 +28,13 @@ Last updated: 13 Nov 2026 (after the moving guides and the one-script controls).
 
 | What | Size | Notes |
 |---|---|---|
-| **Go live on the Mac mini** | Medium | The steps are written: [MOVING-MAC.md](MOVING-MAC.md). Nobody has to register again. Still to build: Uptime Kuma and a troubleshooting guide. |
+| **Uptime Kuma and a troubleshooting guide** | Medium | The last pieces of going live. Kuma runs on the droplet and watches `/api/health`. The guide covers the Mac mini's restart notes. |
 | **Clips from very long videos** | Small | Clips are built. What's left: fetching only the part, so a video over the download limit can be clipped too. |
+| **Test videos for Facebook** | Small | YouTube, X, TikTok and Instagram ship with lists of test videos. Facebook has none, so its daily check can't run until links are added in System. |
 | **More progress scenes** | Small each | Seven are built: Demolition, Compressor, Voyage, Rocket, Black hole, Dominoes, Abduction, plus two calm ones. Scenes with ready-made 3D models (free CC0 packs such as Kenney or Quaternius) would need a model loader added. |
 | **Alerts per person** | Medium | Today every alert goes to the admin's ntfy topic. Members should get their own "video ready" and "account stopped working". |
 | **Platforms tab** | Small | An optional proxy per platform, for when a platform blocks your address. |
+| **"Download this backup" button** | Small | Getting a backup off the machine without R2 means copying it out by hand. |
 | **Pictures in the cookie how-to** | Small | The steps are text only. |
 | **More looks** | Small each | Eleven are built. Earlier sketches not built: chrome, arcade, deco, lava glass, notebook, receipt, graffiti. |
 
@@ -46,7 +56,7 @@ Last updated: 13 Nov 2026 (after the moving guides and the one-script controls).
 
 **SvelteKit or plain HTML/CSS/JavaScript**
 
-- The interface is plain files today and works well. Moving to SvelteKit would add a build step. Suggestion: stay as is unless the 3D scenes make the code hard to manage.
+- The interface is plain files, and the 3D scenes, admin panel and phone flow were all built that way without trouble. Moving to SvelteKit would add a build step. Suggestion: consider it settled (plain files) unless the code becomes hard to manage.
 
 **Cloudflare Access in front of the admin panel**
 
@@ -66,22 +76,20 @@ The first thing lost is the protection of having no open ports. R2 (or any S3-co
 
 | What | What's missing |
 |---|---|
-| **The Share button and the iPhone Shortcut** | Passkeys on the domain are confirmed (iPhone and Mac). The phone's Share button and the Shortcut can now be tried, and haven't been yet. |
-| **R2 storage** | Proven against a stand-in, not real Cloudflare R2. Check the download file name, the two bucket rules and the Share button with files in R2. |
-| **Moving to another computer** | Backup and restore were run on one computer. A full move between two machines hasn't been done. The Caddy web server passed requests through in a test, but has never fetched a real certificate. |
-| **Clips** | One real clip was made from an X video. "Start here / End here" was tried with a desktop browser, not on a phone. |
-| **New scenes and the look-up animation** | Confirmed to draw in every state by reading pixels. Nobody has watched them yet. |
-| **Recent list layouts** | List and Pictures were viewed in Zine, Midnight and Nordic at phone size, with a stand-in share sheet. Not yet on a real phone. |
-| **The clip timeline on a phone** | Dragging was checked with the keyboard in a desktop browser, not with a finger on a real phone. |
+| **Popups on iPhone** (fixed 18 Nov) | Check that a popup (for example Update in System) keeps its size and reacts to the first tap. |
+| **View as member** (18 Nov) | Checked in a desktop browser at phone size and by automated tests. Try it on your iPhone after the update. |
+| **The iPhone Shortcut** | The Share button works on the iPhone. The Shortcut hasn't been built and tried yet. |
+| **R2 storage** | In use, and the iPhone Share button works with it. Still to confirm: the file name when a video is downloaded. |
+| **Cloud copy of backups** | Should be running now that R2 is on. Check System → Backups says the last one went to both places. |
+| **Updating by itself** | The helper is connected on the Mac mini. Not yet run on a real Linux machine (the service files were generated and read, not run). |
+| **Moving to another computer** | The move to the Mac mini worked. The Caddy web server (for leaving Cloudflare) has never fetched a real certificate. |
+| **Clips** | One real clip was made from an X video. "Start here / End here" and the timeline were tried in a desktop browser, not with a finger on a phone. |
+| **New scenes and the look-up animation** | Confirmed to draw in every state by reading pixels. Not yet watched on a phone, nor the calm scenes from a phone's real "Reduce motion" setting. |
+| **Recent list layouts and the phone flow** | Checked in a desktop browser at phone size with a stand-in share sheet. On a real iPhone: Send or save, Save Video, a link pasted into WhatsApp, and building the Shortcut from the How it works page. |
 | **Pull down to reload** | Checked with simulated touches in a desktop browser. Try it in the home-screen app on your iPhone. |
-| **The phone flow** | "Send or save", sharing from the Recent list and the link card were checked in a desktop browser at phone size with a stand-in share sheet. On a real iPhone: try Send or save, Save Video, a link pasted into WhatsApp, and building the Shortcut from the How it works page. |
-| **Second-copy warning** | Covered by automated tests, and the check reaches the real domain. Two real copies have never been run at once to watch it fire. |
-| **Alerts** | Never sent to the real ntfy service. No topic is set yet. |
+| **Second-copy warning** | Covered by automated tests. Two real copies have never been run at once to watch it fire. |
 | **Connected accounts** | Never tried against a real sign-in wall with a real cookie file. |
-| **A real yt-dlp update arriving** | The installed version has been the newest all along. The install, test, switch and go-back steps were each run for real. |
-| **Cloud copy of backups** | Needs R2. The local daily backup and both restore commands were run for real. |
+| **A real yt-dlp update arriving** | The install, test, switch and go-back steps were each run for real, but a newer release arriving on its own hasn't been seen yet. |
 | **Facebook** | No link tried. Instagram worked once. TikTok worked for one public video and was refused for another. |
-| **3D scenes on a phone** | Viewed on the laptop only. Also unseen: a phone's real "Reduce motion" setting switching to the calm scenes. |
-| **Home-screen install** | Needs the `https://` address to try on a phone. |
-| **The looks** | Most screens were only viewed in one or two looks. Windows 95 and Clay are the likeliest to need touch-ups. The six classic looks were each viewed on the main screen only, plus one or two other screens. |
+| **The looks** | Most screens were only viewed in one or two looks. Windows 95 and Clay are the likeliest to need touch-ups. |
 | **Expiry after 1 hour and 48 hours** | Covered by automated tests only. |
