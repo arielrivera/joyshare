@@ -29,6 +29,7 @@ joyshare is a small private web app you run yourself: on your own computer, a Ra
 | **Sign-in** | Face ID / Touch ID (passkeys). No passwords. Only devices you approve get in. |
 | **Share links** | Expire after 48 hours. |
 | **Clips** | Share just a part of a video: give a start and an end, or tap while watching. |
+| **Credits** | Who made the video and its original link are saved inside every file. Optionally, a small "author · platform" credit in a corner of your videos. |
 | **Files** | Deleted automatically (after 48 hours by default). Nothing piles up. Videos can be kept on the computer's own disk or in Cloudflare R2. |
 | **Updates** | Optional: the computer checks GitHub on a schedule you pick, or when you press Update in the admin panel, runs the tests and only then puts the new code live. yt-dlp updates itself daily, with a self-test and rollback. |
 | **Size limit** | 200 MB per video by default. You can change it. |

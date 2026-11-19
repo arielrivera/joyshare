@@ -137,7 +137,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v6.12</span><span>Live, every phase built</span><span>Updated 18 Nov 2026</span><span>Admins and members</span><span><a href="https://github.com/arielrivera/joyshare/blob/main/docs/INFOGRAPHIC.md">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v6.13</span><span>Live, every phase built</span><span>Updated 19 Nov 2026</span><span>Admins and members</span><span><a href="https://github.com/arielrivera/joyshare/blob/main/docs/INFOGRAPHIC.md">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
@@ -310,6 +310,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
       </table></div>
       <p>Every output is H.264 video with AAC audio in MP4, set up to start playing before it fully downloads (<code>+faststart</code>). That format plays inline in iMessage, WhatsApp and every browser.</p>
       <p>If you ask for the same link and preset again while the file still exists, you get the existing file instead of a new download.</p>
+      <p><strong>Credits.</strong> Every file carries the video's title, its author and the original link in its details, at no cost. Each person can also turn on a small visible credit ("author · platform") drawn in the bottom-right corner, sized to fit even tall phone videos. That one means re-encoding, so it is off unless chosen, and files with and without it are kept apart.</p>
 
       <h3>Encoding speed</h3>
       <p>Inside Docker, ffmpeg uses the CPU only. That is unlikely to be a problem: most presets don't re-encode at all, and an Apple Silicon CPU converts 720p video several times faster than it plays. Real times so far on the server have been fast enough.</p>
@@ -616,6 +617,7 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>19 Nov 2026</time><div>v6.13. Credits: every video and audio file now carries its title, author and original link in its details. A new setting in the pencil panel adds a small "author · platform" credit in a corner of the videos a person makes (off by default, since it means re-encoding). A clip of a credited video keeps its one credit.</div></li>
         <li><time>18 Nov 2026</time><div>v6.12. Live on its own server, and the docs no longer assume a Mac mini at home: joyshare runs wherever Docker runs. Updates arrive from GitHub by themselves, or when the admin presses Update, only after the tests pass. The daily platform check picks a random test video from a list per platform (YouTube, X, TikTok, Instagram) and tries a second before alerting. Admins can view the app as a regular member on one device. Popups keep their size on iPhone and react to the first tap. Each video has a "…" menu (original link, delete with Undo), swipe left deletes in the Recent list, and expired videos are stamped in the grid. Uptime Kuma runs on a DigitalOcean droplet with one script to keep it going. New: a troubleshooting guide and two step-by-step architecture diagrams.</div></li>
         <li><time>15 Nov 2026</time><div>v6.11. Admin panel: People puts inviting first in its own box with the list below; System shows an animation while checking for updates; Videos shows each video's picture, has a search, and opens to the original link and every detail.</div></li>
         <li><time>15 Nov 2026</time><div>v6.10. The app added to the iPhone home screen can now be pulled down to reload, coming back to the same video, and says when a new version is ready. The open row in the Recent list has a darker background.</div></li>

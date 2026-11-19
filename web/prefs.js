@@ -12,7 +12,7 @@ const THEME_FONT = { acid: "warp", zine: "mono", clay: "fredoka", win95: "win", 
 const SCENE_CHOICES = ["random", "demolition", "compressor", "voyage", "rocket", "blackhole", "dominoes", "ufo", "none"];
 // scene: which 3D progress scene to show ("random", one of them, or "none").
 // motion: "auto" follows the device's Reduce Motion setting, "full" always shows the full scenes.
-const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto", sizes: "ask", size_pick: "easy", recent: "list" };
+const prefs = { name: "", font: "mono", theme: "zine", lang: "", scene: "random", motion: "auto", sizes: "ask", size_pick: "easy", recent: "list", credit: "off" };
 let defaultName = "vidshare";
 let prefsSignedIn = false;
 
@@ -27,6 +27,8 @@ if (prefs.sizes !== "auto") prefs.sizes = "ask";
 if (!["easy", "best", "720", "480", "audio"].includes(prefs.size_pick)) prefs.size_pick = "easy";
 // recent: how the Recent list is drawn, "list" (rows that open in place) or "grid" (pictures).
 if (prefs.recent !== "grid") prefs.recent = "list";
+// credit: "on" draws a small "author · platform" credit on this person's videos (made on the server).
+if (prefs.credit !== "on") prefs.credit = "off";
 
 function brandName() {
   return prefs.name || defaultName;
@@ -66,7 +68,7 @@ function setPrefs(changes) {
     fetch("/api/auth/prefs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion, sizes: prefs.sizes, size_pick: prefs.size_pick, recent: prefs.recent }),
+      body: JSON.stringify({ name: prefs.name, font: prefs.font, theme: prefs.theme, lang: prefs.lang, scene: prefs.scene, motion: prefs.motion, sizes: prefs.sizes, size_pick: prefs.size_pick, recent: prefs.recent, credit: prefs.credit }),
     }).catch(() => { /* saved locally; the account copy catches up next time */ });
   }, 500);
 }
@@ -85,6 +87,7 @@ function adoptAccountPrefs(status) {
     prefs.sizes = saved.sizes || "ask";
     prefs.size_pick = saved.size_pick || "easy";
     prefs.recent = saved.recent || "list";
+    prefs.credit = saved.credit || "off";
     if (saved.lang) prefs.lang = saved.lang;
     try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* private window */ }
   }

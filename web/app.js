@@ -1498,7 +1498,12 @@ $("size-mode").addEventListener("change", () => {
   const value = $("size-mode").value;
   setPrefs(value === "ask" ? { sizes: "ask" } : { sizes: "auto", size_pick: value });
 });
-$("open-style").addEventListener("click", () => { $("size-mode").value = sizeMode(); });
+$("open-style").addEventListener("click", () => {
+  $("size-mode").value = sizeMode();
+  $("credit-on").checked = prefs.credit === "on";
+});
+// A small visible credit (author · platform) on the videos this person makes from now on.
+$("credit-on").addEventListener("change", () => setPrefs({ credit: $("credit-on").checked ? "on" : "off" }));
 
 // ---------- reloading ----------
 // A page added to the iPhone home screen has no address bar and no pull-to-reload, so this adds one:

@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from . import backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store, twin
+from . import auth, backup, cleanup, config, cookies, db, engine, i18n, media, notify, presets, settings, storage, store, twin
 from .i18n import T
 
 log = logging.getLogger("joyshare.worker")
@@ -153,11 +153,16 @@ class Worker:
             # Same video and preset asked for again: hand back the file we already have.
             clip = presets.check_clip(job["clip_start"], job["clip_end"], item["duration"])
             clip_length = clip[1] - clip[0] if clip else None
-            out_key = presets.output_key(preset_id, target_mb, clip)
+            # The visible credit follows the person's setting at the time the video is made.
+            wants_credit = auth.get_prefs(conn, user_id)["credit"] == "on"
+            out_key = presets.output_key(preset_id, target_mb, clip, credit=wants_credit)
             existing = store.find_file(conn, user_id, media_id, "output", out_key)
             if existing:
                 finish(existing["id"], reused=True)
                 return
+
+            job_clip = clip                    # the range asked for, as the file will be named
+            draw_credit = has_credit = wants_credit
 
             # A clip is cut from the whole original, which is then kept for more clips of the same video.
             key = presets.source_key(preset_id, target_mb, clip_length or item["duration"])
@@ -184,6 +189,9 @@ class Worker:
                         fetched = config.TMP_DIR / f"{uuid.uuid4().hex}{Path(base['path']).suffix}"
                         storage.download(conn, base["path"], fetched)
                         source_path = fetched
+                    # A clip of a file that already shows the credit keeps it, and never gets a second one.
+                    if base["key"].endswith(presets.CREDIT_MARK):
+                        draw_credit, has_credit = False, True
                     # That file may itself be a clip: its key ends in "@start-end". Count from where it starts.
                     offset = float(base["key"].split("@")[1].split("-")[0]) if "@" in base["key"] else 0.0
                     clip = (round(clip[0] - offset, 1), round(clip[1] - offset, 1))
@@ -214,8 +222,12 @@ class Worker:
                 held.append(source_id)
 
             set_stage("converting")
+            tags = media.credit_tags(item["title"], item["uploader"], item["platform"],
+                                     item["webpage_url"] or item["url"])
+            text = media.credit_line(item["uploader"], item["platform"]) if draw_credit else None
             out = media.convert(source_path, config.OUTPUTS_DIR, preset_id, target_mb,
-                                on_progress, should_cancel, clip=clip)
+                                on_progress, should_cancel, clip=clip, tags=tags, credit=text)
+            out_key = presets.output_key(preset_id, target_mb, job_clip, credit=has_credit)
             size = out.stat().st_size
             if size > cfg["max_file_mb"] * MB:
                 out.unlink(missing_ok=True)

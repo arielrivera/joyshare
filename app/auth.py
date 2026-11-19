@@ -340,6 +340,7 @@ SIZES = ("ask", "auto")   # "ask": show the size step (the default); "auto": mak
 # With "auto", which size to make. "easy" picks one that is quick to send; the others are the presets by name.
 SIZE_PICKS = ("easy", "best", "720", "480", "audio")
 RECENT_VIEWS = ("list", "grid")   # how the Recent list is drawn: rows that open in place, or a grid of pictures
+CREDITS = ("off", "on")   # a small visible credit (author · platform) drawn on the person's videos
 
 
 def get_prefs(conn, user_id: int) -> dict:
@@ -356,6 +357,7 @@ def get_prefs(conn, user_id: int) -> dict:
         "sizes": saved.get("sizes") if saved.get("sizes") in SIZES else SIZES[0],
         "size_pick": saved.get("size_pick") if saved.get("size_pick") in SIZE_PICKS else SIZE_PICKS[0],
         "recent": saved.get("recent") if saved.get("recent") in RECENT_VIEWS else RECENT_VIEWS[0],
+        "credit": saved.get("credit") if saved.get("credit") in CREDITS else CREDITS[0],
     }
 
 
@@ -371,6 +373,7 @@ class PrefsBody(BaseModel):
     sizes: str | None = None
     size_pick: str | None = None
     recent: str | None = None
+    credit: str | None = None
 
 
 class RegisterOptionsBody(BaseModel):
@@ -427,7 +430,7 @@ def save_prefs(body: PrefsBody, auth: Auth = Depends(session_auth), conn=Depends
         saved["name"] = name  # empty means: back to the default name
     for field, allowed in (("font", FONTS), ("theme", THEMES), ("lang", LANGS), ("scene", SCENES), ("motion", MOTION),
                            ("sizes", SIZES), ("size_pick", SIZE_PICKS),
-                           ("recent", RECENT_VIEWS)):
+                           ("recent", RECENT_VIEWS), ("credit", CREDITS)):
         value = getattr(body, field)
         if value is not None:
             if value not in allowed:

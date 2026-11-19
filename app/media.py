@@ -272,13 +272,75 @@ def _scale(height: int) -> str:
     return f"scale=w=-2:h='min({height},trunc(ih/2)*2)'"
 
 
+# ---------- credits ----------
+# Every file carries a hidden credit in its details (title, author, original link). A person can also turn
+# on a small visible credit, drawn in the bottom-right corner; that one means re-encoding the video.
+
+CREDIT_FONTS = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",       # in the server image (fonts-dejavu-core)
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",          # a Mac, when running outside Docker
+)
+
+
+def credit_line(uploader: str | None, platform: str | None) -> str:
+    """The visible credit, e.g. "Brooklyn Nets · X". Short, one line, printable characters only."""
+    label = platforms.PLATFORMS.get(platform or "", {}).get("label", platform or "")
+    label = label.split(" (")[0]   # "X (Twitter)" -> "X"
+    who = " ".join("".join(ch for ch in word if ch.isprintable()) for word in (uploader or "").split()).strip()
+    if len(who) > 40:
+        who = who[:39].rstrip() + "…"
+    return f"{who} · {label}" if who and label else (who or (f"via {label}" if label else ""))
+
+
+def credit_tags(title: str | None, uploader: str | None, platform: str | None, url: str | None) -> dict:
+    """The hidden credit: what players and file browsers show as the file's details."""
+    label = platforms.PLATFORMS.get(platform or "", {}).get("label", platform or "")
+    tags = {"title": title, "artist": uploader,
+            "comment": " · ".join(x for x in (f"Original: {url}" if url else None, f"via {label}" if label else None) if x)}
+    return {k: " ".join(v.split())[:300] for k, v in tags.items() if v}
+
+
+def _credit_filter(text: str, out_height: int, out_width: int, workdir: Path) -> str:
+    """A drawtext filter for the visible credit. The text goes through a file, so no character in an
+    author's name can break the filter. Small: about 2.8% of the picture's height, and smaller still
+    when a long name would not fit across a tall phone video."""
+    textfile = workdir / "credit.txt"
+    textfile.write_text(text, encoding="utf-8")
+    fits_across = out_width * 0.85 / (max(len(text), 1) * 0.6)   # bold sans: a character is about 0.6 em wide
+    size = max(10, round(min(out_height * 0.028, fits_across)))
+    margin = max(6, round(min(out_height, out_width) * 0.025))
+    font = next((f for f in CREDIT_FONTS if Path(f).is_file()), None)
+    parts = [f"fontfile='{font}'"] if font else []
+    parts += [f"textfile='{textfile}'", "expansion=none", f"fontsize={size}", "fontcolor=white@0.92",
+              "box=1", "boxcolor=black@0.38", f"boxborderw={max(3, size // 3)}",
+              f"x=w-tw-{margin}", f"y=h-th-{margin}"]
+    return "drawtext=" + ":".join(parts)
+
+
+def _out_size(info: dict, wanted: int | None) -> tuple[int, int]:
+    """(height, width) the scale filter will produce: never more than the source, both even."""
+    h = info.get("height") or wanted or 720
+    out_h = (min(h, wanted) if wanted else h) // 2 * 2
+    ratio = (info.get("width") or 16) / (info.get("height") or 9)
+    return out_h, max(2, round(out_h * ratio / 2) * 2)
+
+
 def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
-            on_progress, should_cancel, clip: tuple[float, float] | None = None) -> Path:
+            on_progress, should_cancel, clip: tuple[float, float] | None = None,
+            tags: dict | None = None, credit: str | None = None) -> Path:
     """Turn a downloaded source into the finished file for a preset.
 
     clip = (start, end) in seconds keeps only that part. A clip is always re-encoded, so it starts and
     ends exactly where asked (copying without re-encoding can only cut at keyframes, seconds away).
+    tags = the hidden credit written into the file's details (see credit_tags).
+    credit = text for the visible credit in the corner, or None. Drawing it means re-encoding the video.
     """
+    with tempfile.TemporaryDirectory(dir=config.TMP_DIR if config.TMP_DIR.is_dir() else None) as work:
+        return _convert(src, out_dir, preset_id, target_mb, on_progress, should_cancel, clip,
+                        tags or {}, credit or None, Path(work))
+
+
+def _convert(src, out_dir, preset_id, target_mb, on_progress, should_cancel, clip, tags, credit, work) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     preset = presets.BY_ID[preset_id]
     info = probe(src)
@@ -294,6 +356,8 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
         common_in = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src)]
         duration = end - start
     common_out = ["-sn", "-dn", "-map_metadata", "-1", "-movflags", "+faststart"]
+    for field, value in tags.items():   # the hidden credit, in place of the source's own details
+        common_out += ["-metadata", f"{field}={value}"]
 
     if preset["kind"] == "audio":
         if not info["acodec"]:
@@ -307,7 +371,7 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
     if not info["vcodec"]:
         raise MediaError("No video was found in the download. Try Audio only.")
     out = out_dir / f"{name}.mp4"
-    video_ok = info["vcodec"] == "h264" and info["pix_fmt"] in OK_PIXEL_FORMATS and not clip
+    video_ok = info["vcodec"] == "h264" and info["pix_fmt"] in OK_PIXEL_FORMATS and not clip and not credit
     audio_ok = info["acodec"] in (None, "aac") and not clip
     maps = ["-map", "0:v:0", "-map", "0:a:0?"]
 
@@ -320,8 +384,10 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
         if video_ok:
             vargs = ["-c:v", "copy"]
         else:
-            vargs = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
-                     "-vf", _scale(preset["height"])]
+            vf = _scale(preset["height"])
+            if credit:
+                vf += "," + _credit_filter(credit, *_out_size(info, preset["height"]), work)
+            vargs = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-vf", vf]
         aargs = ["-c:a", "copy"] if audio_ok else ["-c:a", "aac", "-b:a", "128k"]
         _run_ffmpeg([*common_in, *maps, *vargs, *aargs, *common_out, str(out)],
                     duration, on_progress, should_cancel)
@@ -330,11 +396,14 @@ def convert(src: Path, out_dir: Path, preset_id: str, target_mb: int | None,
     # Fit a size: two-pass encode at a calculated bitrate, one retry if it overshoots.
     plan = presets.fit_plan(target_bytes, duration or 0, info["height"])
     video_kbps = plan.video_kbps
+    fit_vf = _scale(plan.height)
+    if credit:
+        fit_vf += "," + _credit_filter(credit, *_out_size(info, plan.height), work)
     with tempfile.TemporaryDirectory(dir=config.TMP_DIR) as tmp:
         passlog = str(Path(tmp) / "pass")
         for attempt in range(2):
             base = ["-c:v", "libx264", "-preset", "veryfast", "-b:v", f"{video_kbps}k",
-                    "-pix_fmt", "yuv420p", "-vf", _scale(plan.height), "-passlogfile", passlog]
+                    "-pix_fmt", "yuv420p", "-vf", fit_vf, "-passlogfile", passlog]
             _run_ffmpeg([*common_in, "-map", "0:v:0", "-an", "-sn", "-dn", *base, "-pass", "1",
                          "-f", "null", "/dev/null"],
                         duration, on_progress, should_cancel, start=0.0, span=0.45)

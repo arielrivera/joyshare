@@ -91,7 +91,13 @@ def check_clip(start, end, duration: float | None) -> tuple[float, float] | None
     return start, end
 
 
-def output_key(preset_id: str, target_mb: int | None = None, clip: tuple[float, float] | None = None) -> str:
-    """Names a finished file, so the same request reuses it. A clip's range is part of the name."""
+CREDIT_MARK = "+credit"   # ends the key of a file with the visible credit drawn on it
+
+
+def output_key(preset_id: str, target_mb: int | None = None, clip: tuple[float, float] | None = None,
+               credit: bool = False) -> str:
+    """Names a finished file, so the same request reuses it. A clip's range is part of the name, and so is
+    the visible credit: a file with it and one without are never handed out for each other."""
     key = f"fit-{int(target_mb)}" if preset_id == "fit" else preset_id
-    return f"{key}@{clip[0]:.1f}-{clip[1]:.1f}" if clip else key
+    key = f"{key}@{clip[0]:.1f}-{clip[1]:.1f}" if clip else key
+    return key + CREDIT_MARK if credit and BY_ID[preset_id]["kind"] != "audio" else key

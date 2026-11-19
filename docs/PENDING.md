@@ -15,6 +15,7 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 - **Updating by itself**: the update helper runs on the server, and the admin panel's Update button puts new code live after the tests pass.
 - **Platform checks** run at a random time each day, on a randomly picked test video from a list per platform (YouTube, X, TikTok, Instagram), with a second try before an alert.
 - **View as member**: an admin can use one device as a regular member, and back. Members can never switch.
+- **Credits on videos**: every file carries who made it and the original link in its details, and each person can turn on a small visible credit in a corner (pencil panel → Credit).
 - **Smaller things**: the "…" menu on every video (original link, delete with Undo), swipe left to delete in Recent, EXPIRED stamps in the grid, popups that keep their size on iPhone.
 
 ## 1. Things only you can do
@@ -77,6 +78,7 @@ The first thing lost is the protection of having no open ports. R2 (or any S3-co
 | What | What's missing |
 |---|---|
 | **Uptime Kuma's alert** | The monitor is green. Still to see: the ntfy alert arriving when joyshare stops answering (Kuma's Test button, or stop joyshare for two minutes). |
+| **Visible credit** (19 Nov) | Drawn and checked on generated test videos (wide and tall), and by automated tests. Turn it on and make a real video from each platform to see it on your phone. |
 | **Popups on iPhone** (fixed 18 Nov) | Check that a popup (for example Update in System) keeps its size and reacts to the first tap. |
 | **View as member** (18 Nov) | Checked in a desktop browser at phone size and by automated tests. Try it on your iPhone after the update. |
 | **The iPhone Shortcut** | The Share button works on the iPhone. The Shortcut hasn't been built and tried yet. |
