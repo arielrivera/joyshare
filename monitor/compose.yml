@@ -1,0 +1,25 @@
+# Uptime Kuma, the outside watcher for joyshare. Runs on a separate machine (the DigitalOcean droplet),
+# never next to joyshare itself: it has to keep working when joyshare's computer is down.
+# Controlled with ./kuma in this folder. Guide: docs/UPTIME-KUMA.md
+name: kuma
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:${KUMA_TAG:-2}
+    container_name: uptime-kuma
+    # Comes back by itself after a crash or a reboot (Docker itself starts with the system).
+    restart: unless-stopped
+    # Only reachable from the droplet itself. Open the dashboard through SSH: ./kuma tunnel
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - uptime-kuma:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  uptime-kuma:
+    name: uptime-kuma

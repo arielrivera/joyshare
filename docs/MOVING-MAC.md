@@ -93,7 +93,7 @@ Type `yes` when asked. The first time it builds the app, which takes a few minut
 
 - **System Settings → Energy**: turn on **Prevent automatic sleeping when the display is off** and **Start up automatically after a power failure**.
 - Docker Desktop only starts after someone signs in to the Mac. If the Mac restarts by itself (a power cut, an update), joyshare is down until you sign in. Automatic login fixes that, but macOS doesn't allow automatic login while FileVault is on. Pick one: FileVault off with automatic login, or FileVault on and you sign in after a restart.
-- Uptime Kuma (planned) will tell you when the site is down.
+- Uptime Kuma will tell you when the site is down ([UPTIME-KUMA.md](UPTIME-KUMA.md)).
 
 ## If you forget to stop the old one
 

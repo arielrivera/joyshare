@@ -63,6 +63,7 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 
 - **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut, troubleshooting
 - **[Cloudflare R2 guide](docs/R2.md)**: serving videos from R2, step by step
+- **[Uptime Kuma guide](docs/UPTIME-KUMA.md)**: a watcher on a small cloud server that alerts you when joyshare is down, with one script to set it up and keep it running
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
 - **Moving guides**: [to another Mac](docs/MOVING-MAC.md) and [to a Linux server](docs/MOVING-LINUX.md) (written for a cloud server; most steps apply to a Linux box or Raspberry Pi at home too), with or without Cloudflare, and what happens if the old computer is left running

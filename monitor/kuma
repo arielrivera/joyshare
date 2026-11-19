@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Uptime Kuma on the droplet: the one script to set it up, keep it running and back it up.
+# Run it on the droplet (Ubuntu), from this folder. Guide: docs/UPTIME-KUMA.md
+#
+#   sudo ./kuma setup                 First time: install Docker, firewall, start Kuma, daily backups and weekly updates
+#   ./kuma start | stop | restart     Start, stop or restart Kuma. Monitors and history are kept.
+#   ./kuma status                     Is it running, which version, when was the last backup
+#   ./kuma logs                       Follow what it is doing (Ctrl+C to leave)
+#   ./kuma update                     Get the newest Kuma 2.x and restart with it (backs up first)
+#   ./kuma backup                     Save monitors, settings and history to ./backups (keeps the newest 14)
+#   ./kuma restore FILE [--yes]       Replace everything with a file made by "backup"
+#   sudo ./kuma schedule on | off     Daily backup at 04:00 and weekly update on Sunday 05:00 (server time)
+#   ./kuma tunnel                     How to open the dashboard from your own computer
+#
+# Moving to a new droplet: "backup" here, copy the file over, "setup" there, then "restore" it.
+set -euo pipefail
+cd "$(dirname "$0")"
+HERE="$(pwd -P)"
+
+VOLUME="uptime-kuma"
+BACKUPS="$HERE/backups"
+KEEP=14
+CRON_FILE="/etc/cron.d/uptime-kuma"
+
+say() { printf '%s\n' "$*"; }
+die() { say "Error: $*" >&2; exit 1; }
+
+confirm() {
+  [[ "${ASSUME_YES:-0}" == "1" ]] && return 0
+  read -r -p "$1 Type yes to continue: " answer
+  [[ "$answer" == "yes" ]] || die "Stopped. Nothing was changed."
+}
+
+need_root() { [[ "$(id -u)" == "0" ]] || die "Run it with sudo: sudo ./kuma $*"; }
+need_docker() { command -v docker >/dev/null 2>&1 || die "Docker isn't installed yet. Run: sudo ./kuma setup"; }
+compose() { docker compose -f "$HERE/compose.yml" "$@"; }
+running() { [[ "$(docker inspect -f '{{.State.Running}}' uptime-kuma 2>/dev/null || true)" == "true" ]]; }
+version() { docker exec uptime-kuma node -p "require('/app/package.json').version" 2>/dev/null || echo unknown; }
+
+# A copy of the data volume as one .tar.gz. Kuma is paused for a few seconds so its database is copied whole.
+make_backup() {
+  mkdir -p "$BACKUPS"
+  local file="kuma-$(date +%Y%m%d-%H%M%S).tar.gz" was_running=0
+  running && was_running=1
+  (( was_running )) && compose stop >/dev/null
+  docker run --rm -v "$VOLUME:/data:ro" -v "$BACKUPS:/backup" alpine \
+    tar czf "/backup/$file" -C /data . || { (( was_running )) && compose start >/dev/null; die "The backup failed."; }
+  (( was_running )) && compose start >/dev/null
+  # Keep the newest $KEEP.
+  ls -1t "$BACKUPS"/kuma-*.tar.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+  say "Saved $BACKUPS/$file ($(du -h "$BACKUPS/$file" | cut -f1))."
+}
+
+case "${1:-}" in
+  setup)
+    need_root setup
+    say "Updating the package list…"
+    apt-get update -qq
+    if ! command -v docker >/dev/null 2>&1; then
+      say "Installing Docker (from get.docker.com)…"
+      curl -fsSL https://get.docker.com | sh
+    fi
+    # Docker starts with the system, and Kuma's restart rule brings Kuma back with it.
+    systemctl enable --now docker >/dev/null
+    say "Firewall: only SSH is reachable from the internet."
+    if command -v ufw >/dev/null 2>&1; then
+      ufw allow OpenSSH >/dev/null
+      ufw --force enable >/dev/null
+    fi
+    # Ubuntu installs security updates by itself when this package is on (it is on new droplets).
+    apt-get install -y -qq unattended-upgrades >/dev/null
+    chmod +x "$HERE/kuma"
+    compose pull -q
+    compose up -d
+    "$HERE/kuma" schedule on
+    say ""
+    say "Uptime Kuma is running. Next: ./kuma tunnel, then follow docs/UPTIME-KUMA.md to add the monitor."
+    ;;
+
+  start)
+    need_docker
+    compose up -d
+    ;;
+
+  stop)
+    need_docker
+    compose stop
+    say "Stopped. Monitors and history are kept. Start again with: ./kuma start"
+    ;;
+
+  restart)
+    need_docker
+    compose restart
+    ;;
+
+  status)
+    need_docker
+    compose ps
+    say ""
+    say "Version: $(version)"
+    say "Starts with the system: $(systemctl is-enabled docker 2>/dev/null || echo unknown) (Docker), restart rule $(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' uptime-kuma 2>/dev/null || echo unknown) (Kuma)"
+    latest="$(ls -1t "$BACKUPS"/kuma-*.tar.gz 2>/dev/null | head -n 1 || true)"
+    say "Last backup: ${latest:-none yet}"
+    say "Schedule: $([[ -f "$CRON_FILE" ]] && echo "on (daily backup, weekly update)" || echo off)"
+    ;;
+
+  logs)
+    need_docker
+    compose logs -f --tail 100
+    ;;
+
+  update)
+    need_docker
+    say "Backing up first…"
+    make_backup
+    compose pull -q
+    compose up -d
+    docker image prune -f >/dev/null
+    sleep 5   # give it a moment to start before asking its version
+    say "Running Uptime Kuma $(version)."
+    ;;
+
+  backup)
+    need_docker
+    make_backup
+    ;;
+
+  restore)
+    need_docker
+    file="${2:-}"
+    [[ -n "$file" && -f "$file" ]] || die "Give the backup file, for example: ./kuma restore backups/kuma-20261118-040000.tar.gz"
+    [[ "${3:-}" == "--yes" ]] && ASSUME_YES=1
+    confirm "This replaces every monitor, setting and all history with $(basename "$file")."
+    file="$(cd "$(dirname "$file")" && pwd -P)/$(basename "$file")"
+    compose stop >/dev/null 2>&1 || true
+    docker volume create "$VOLUME" >/dev/null
+    docker run --rm -v "$VOLUME:/data" -v "$(dirname "$file"):/backup:ro" alpine \
+      sh -c "find /data -mindepth 1 -delete && tar xzf \"/backup/$(basename "$file")\" -C /data"
+    compose up -d
+    say "Restored from $(basename "$file")."
+    ;;
+
+  schedule)
+    need_root "schedule ${2:-}"
+    case "${2:-}" in
+      on)
+        cat > "$CRON_FILE" <<EOF
+# Uptime Kuma upkeep, written by $HERE/kuma (turn off with: sudo ./kuma schedule off)
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 4 * * * root "$HERE/kuma" backup >> "$HERE/kuma.log" 2>&1
+0 5 * * 0 root "$HERE/kuma" update >> "$HERE/kuma.log" 2>&1
+EOF
+        chmod 644 "$CRON_FILE"
+        say "Scheduled: a backup every day at 04:00 and an update every Sunday at 05:00 (server time). Log: $HERE/kuma.log"
+        ;;
+      off)
+        rm -f "$CRON_FILE"
+        say "Schedule removed. Back up and update by hand: ./kuma backup, ./kuma update"
+        ;;
+      *) die "Use: sudo ./kuma schedule on | off" ;;
+    esac
+    ;;
+
+  tunnel)
+    ip="$(curl -fsS -4 --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
+    say "The dashboard only listens on the droplet itself. On your own computer, run:"
+    say ""
+    say "  ssh -L 3001:localhost:3001 $(id -un)@${ip:-YOUR_DROPLET_IP}"
+    say ""
+    say "Leave that open, then go to http://localhost:3001 in your browser."
+    ;;
+
+  *)
+    sed -n '2,/^set -euo/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'
+    exit 2
+    ;;
+esac

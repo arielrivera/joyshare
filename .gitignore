@@ -15,3 +15,7 @@ logs/
 .autoupdate.lock/
 .autoupdate-mode
 .autoupdate-fetched
+
+# Uptime Kuma on the droplet (monitor/kuma): its backups and log stay there
+monitor/backups/
+monitor/kuma.log

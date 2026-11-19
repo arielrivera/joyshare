@@ -21,14 +21,14 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 |---|---|---|
 | **Find out why YouTube failed the daily check (18 Nov)** | The alert's text says why. If it's "sign in to confirm you're not a bot", YouTube is refusing the Mac mini's address without a signed-in account: connect a spare YouTube account. | Admin → System, platform checks; app: ☰ → Connected accounts |
 | **Connect your accounts** (cookie files, ideally from spare accounts) | Instagram, and some videos elsewhere (YouTube from a home address, often), are only shown to signed-in accounts. | App: ☰ → Connected accounts |
-| **Create the DigitalOcean droplet for Uptime Kuma** | To be told when the Mac mini is down. | Go-live phase |
+| **Create the DigitalOcean droplet and run Uptime Kuma on it** | To be told when the Mac mini is down. One script (`monitor/kuma`) sets it up. | [UPTIME-KUMA.md](UPTIME-KUMA.md) |
 | **Decide the Mac mini's restart behavior** | Docker on a Mac starts only after login, and FileVault blocks automatic login after a power cut. | Go-live phase |
 
 ## 2. Still to build
 
 | What | Size | Notes |
 |---|---|---|
-| **Uptime Kuma and a troubleshooting guide** | Medium | The last pieces of going live. Kuma runs on the droplet and watches `/api/health`. The guide covers the Mac mini's restart notes. |
+| **A troubleshooting guide** | Small | The last piece of going live, covering the Mac mini's restart notes. (Uptime Kuma is ready: its guide and script are written, waiting for the droplet.) |
 | **Clips from very long videos** | Small | Clips are built. What's left: fetching only the part, so a video over the download limit can be clipped too. |
 | **Test videos for Facebook** | Small | YouTube, X, TikTok and Instagram ship with lists of test videos. Facebook has none, so its daily check can't run until links are added in System. |
 | **More progress scenes** | Small each | Seven are built: Demolition, Compressor, Voyage, Rocket, Black hole, Dominoes, Abduction, plus two calm ones. Scenes with ready-made 3D models (free CC0 packs such as Kenney or Quaternius) would need a model loader added. |
