@@ -2,7 +2,7 @@
 
 What is built, what is left, and how to continue. Written so that anyone (a person or an AI assistant) can pick the project up cold.
 
-Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reasons: [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) (source: `docs/proposal.html`) · [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) (source: `docs/infographic.html`) · [setup guide](SETUP.md)
+Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reasons: [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) (source: `docs/proposal.html`) · [infographic](INFOGRAPHIC.md) (source: `docs/infographic.html`, picture: `docs/infographic.png`) · [setup guide](SETUP.md)
 
 ## Where things stand
 
@@ -41,7 +41,7 @@ The `joyshare` script is the one place to start, stop, update, back up and retir
    - Server messages: write the English where it is used, add the Spanish to `ES` in `app/i18n.py`. Messages with changing parts use `T("... {n} ...", n=5)`. `tests/test_i18n.py` fails if Spanish is missing.
 3. **New screens use the existing look system.** Colors come from the theme variables in `web/style.css` (`--bg`, `--card`, `--ink`, `--edge`, `--hot`, `--zap`, `--pop`, `--shadow`). Check new screens in at least Void, Zine, Clay and Windows 95, at phone width.
 4. **Design choices: show sketches first, build after the owner picks** (see `docs/design/`).
-5. **Keep the living pages current.** After any decision or finished piece: update `docs/proposal.html` (bump the version, add a changelog line) and `docs/infographic.html` if the picture changed, then republish both artifacts. Update `docs/SETUP.md` and `README.md` when behavior changes.
+5. **Keep the living pages current.** After any decision or finished piece: update `docs/proposal.html` (bump the version, add a changelog line, republish its artifact) and `docs/infographic.html` if the picture changed. The infographic lives only in the repo: after editing it, run `tools/render_infographic.sh` to refresh `docs/infographic.png`. Update `docs/SETUP.md` and `README.md` when behavior changes.
 6. **Each person's data is theirs.** Every query filters by `user_id`. Members never see other people's videos, files, cookies or links.
 7. **Only known platforms.** Links are checked in `app/platforms.py`; never let the server fetch arbitrary addresses.
 8. **Tests for everything on the server.** Passkey tests use the software passkey in `tests/softauth.py`.

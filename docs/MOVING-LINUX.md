@@ -2,7 +2,7 @@
 
 For example a droplet at DigitalOcean or a server at Hetzner. Plan for about 30 minutes.
 
-See the whole picture first: [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) · Moving to another Mac instead? See [MOVING-MAC.md](MOVING-MAC.md).
+See the whole picture first: [infographic](INFOGRAPHIC.md) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) · Moving to another Mac instead? See [MOVING-MAC.md](MOVING-MAC.md).
 
 > **Not yet done for real.** The web server container was started in front of the app and passed requests through correctly. Getting a real certificate on a real server has not been tried yet. If a step doesn't match what you see, tell me what the screen shows.
 

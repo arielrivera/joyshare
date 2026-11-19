@@ -2,7 +2,7 @@
 
 For example from the computer you tried it on to a Mac that stays on as your joyshare server. Plan for about 15 minutes, with the site down for a few of them.
 
-See the whole picture first: [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) · Moving to a Linux server instead? See [MOVING-LINUX.md](MOVING-LINUX.md).
+See the whole picture first: [infographic](INFOGRAPHIC.md) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) · Moving to a Linux server instead? See [MOVING-LINUX.md](MOVING-LINUX.md).
 
 > **Done for real once**, from one Mac to another, with everyone staying signed in. If a step doesn't match what you see, tell me what the screen shows.
 

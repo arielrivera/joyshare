@@ -3,7 +3,7 @@
 > **Where this guide stands:** phase 3 in progress. It covers running joyshare on your own computer, signing in with passkeys, the admin panel and alerts.
 > Automatic updates, cloud storage, backups and going live on a domain are added as each is built.
 
-See the whole picture first: [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya)
+See the whole picture first: [infographic](INFOGRAPHIC.md) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya)
 
 ## What you need
 

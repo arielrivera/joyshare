@@ -11,7 +11,7 @@ joyshare is a small private web app you run yourself: on your own computer, a Ra
 
 ## How it works
 
-<a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD" title="joyshare at a glance: the whole picture"><img src="docs/basic-flow.svg" align="right" width="210" alt="Basic flow: 1, you paste a link. 2, the joyshare server makes the video. 3, Cloudflare R2 keeps it. 4, send it, save it or share a link. Tap to see the whole picture."></a>
+<a href="docs/INFOGRAPHIC.md" title="joyshare at a glance: the whole picture"><img src="docs/basic-flow.svg" align="right" width="210" alt="Basic flow: 1, you paste a link. 2, the joyshare server makes the video. 3, Cloudflare R2 keeps it. 4, send it, save it or share a link. Tap to see the whole picture."></a>
 
 1. **Paste a link** from X (Twitter), YouTube, TikTok, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
 2. **Pick a size.** joyshare shows how big the file will be before you commit: best quality (up to 1080p), 720p, 480p, shrunk to fit a size you pick, or audio only. Or cut just a clip.
@@ -86,7 +86,8 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
 - **Moving guides**: [to another Mac](docs/MOVING-MAC.md) and [to a Linux server](docs/MOVING-LINUX.md) (written for a cloud server; most steps apply to a Linux box or Raspberry Pi on your own network too), with or without Cloudflare, and what happens if the old computer is left running
-- **How it's built**: the project plan (`docs/proposal.html`) and a one-page visual of the process and stack (`docs/infographic.html`)
+- **[joyshare at a glance](docs/INFOGRAPHIC.md)**: one page with the process, where each part runs, the diagrams, how long things are kept and the stack
+- **How it's built**: the project plan (`docs/proposal.html`)
 
 ## Fair use
 
