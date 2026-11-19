@@ -56,10 +56,24 @@ case "${1:-}" in
     need_root setup
     say "Updating the package list…"
     apt-get update -qq
-    if ! command -v docker >/dev/null 2>&1; then
+    # Ubuntu's snap version of Docker has no docker.service and keeps its files elsewhere. Don't guess
+    # around it: say what it is and how to switch, since removing it would also remove its containers.
+    if command -v snap >/dev/null 2>&1 && snap list docker >/dev/null 2>&1; then
+      die "Docker on this droplet is the snap version (installed with \"snap install docker\").
+This script uses Docker's own packages, which start with the system as a normal service.
+
+1. See what the snap Docker is running now:   docker ps -a
+2. If that lists nothing you need, remove it:  sudo snap remove --purge docker
+   (this deletes its containers and their data, so only do it if the list was empty or unimportant)
+3. Run the setup again:                        sudo ./kuma setup"
+    fi
+    # Installs Docker when it's missing, or when only the docker command is here without its service.
+    if ! command -v docker >/dev/null 2>&1 || ! systemctl cat docker.service >/dev/null 2>&1; then
       say "Installing Docker (from get.docker.com)…"
       curl -fsSL https://get.docker.com | sh
     fi
+    systemctl cat docker.service >/dev/null 2>&1 \
+      || die "Docker's service still isn't there after installing. Send the output of: command -v docker; docker --version; systemctl status docker"
     # Docker starts with the system, and Kuma's restart rule brings Kuma back with it.
     systemctl enable --now docker >/dev/null
     say "Firewall: only SSH is reachable from the internet."

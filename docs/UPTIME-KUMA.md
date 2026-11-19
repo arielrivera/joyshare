@@ -130,6 +130,7 @@ Every monitor, notification, user and the history come back. Delete the old VM a
 | You see | Try |
 |---|---|
 | `Docker isn't installed yet` | `sudo ./kuma setup` |
+| `Unit file docker.service does not exist`, or setup says Docker is the snap version | The droplet has Ubuntu's snap Docker. Check `docker ps -a`; if nothing there matters, `sudo snap remove --purge docker` and run `sudo ./kuma setup` again |
 | `permission denied ... docker.sock` | Run as root, or add your user to the `docker` group: `sudo usermod -aG docker $USER`, then sign in again |
 | http://localhost:3001 doesn't open | The `ssh -L` window must stay open. Check Kuma runs: `./kuma status` |
 | Alerts every few minutes, but the site works | Raise Retries to 3, or check that joyshare's health page shows `"worker_alive":true` |
