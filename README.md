@@ -5,9 +5,9 @@
 Ever wanted to send a friend a video, but they don't have an account on X, TikTok, Instagram or wherever you found it?
 Ever seen something in your feed you wanted to keep on your own device before it disappears?
 
-joyshare is a small private web app you run yourself: on a computer at home, a Raspberry Pi, a cloud server, or anywhere else that runs Docker. Paste a link, get a video file you can send anywhere.
+joyshare is a small private web app you run yourself: on your own computer, a Raspberry Pi, a cloud server, or anywhere else that runs Docker. Paste a link, get a video file you can send anywhere.
 
-> **Status: in daily use.** Everything below works today, running on a Mac mini at home and reachable on its own domain. What's left is on the [pending list](docs/PENDING.md).
+> **Status: in daily use.** Everything below works today, running on its own server and reachable on its own domain. What's left is on the [pending list](docs/PENDING.md).
 
 ## How it works
 
@@ -20,7 +20,7 @@ joyshare is a small private web app you run yourself: on a computer at home, a R
 
 | | |
 |---|---|
-| **Runs on** | Wherever Docker runs: a Mac at home, a Linux box, a Raspberry Pi (64-bit, not tested yet) or a cloud server. Moving between them is a guided job. |
+| **Runs on** | Wherever Docker runs: a Mac, a Linux box, a Raspberry Pi (64-bit, not tested yet) or a cloud server. Moving between them is a guided job. |
 | **Works from** | iPhone, Android, Mac, Windows. Anything with a browser. |
 | **Sign-in** | Face ID / Touch ID (passkeys). No passwords. Only devices you approve get in. |
 | **Share links** | Expire after 48 hours. |
@@ -35,13 +35,27 @@ joyshare is a small private web app you run yourself: on a computer at home, a R
 | **Make it yours** | English and Spanish, eleven looks and a choice of lettering, per person. |
 | **Powered by** | [yt-dlp](https://github.com/yt-dlp/yt-dlp), ffmpeg, FastAPI, SQLite, Three.js, plain JavaScript |
 
+## How it fits together
+
+**How a video gets to you**, step by step:
+
+<p align="center"><img src="docs/architecture-flow.svg" alt="1: you paste a link on your phone or computer. 2: Cloudflare's domain and tunnel pass it on to the joyshare server's web app. 3: you pick a size, and the worker takes over. 4: the worker fetches the video from X, YouTube, TikTok, Instagram or Facebook. 5: it uploads the finished file to Cloudflare R2. 6: you Send or save it from R2. 7: a friend opens the share link, also served from R2."></p>
+
+Videos never travel back through the tunnel: the worker puts each finished file in R2, and phones and friends download it from there.
+
+**What keeps it running**: alerts, updates and backups.
+
+<p align="center"><img src="docs/architecture-upkeep.svg" alt="Alerts: the joyshare server (video ready, problems) and Uptime Kuma on a DigitalOcean droplet (site stopped answering) send through ntfy to your phone. New versions: GitHub's new code goes to the update helper, which runs the tests and restarts the server once they pass; PyPI is checked daily for new yt-dlp versions. Backups: the server's database is copied to Cloudflare R2 every day." width="440"></p>
+
+Both diagrams are drawn with [D2](https://d2lang.com) from [docs/architecture-flow.d2](docs/architecture-flow.d2) and [docs/architecture-upkeep.d2](docs/architecture-upkeep.d2); after a change, render them again with the command at the top of each file.
+
 ## What you need
 
-- Somewhere that stays on, with **Docker** installed: a Mac mini or a Raspberry Pi at home, or a small cloud server
-- To use it away from home: a **domain name** (about $10–15 a year), plus either a free **Cloudflare** account (reachable from anywhere without opening ports on your router) or, on a cloud server, the built-in Caddy web server
+- Somewhere that stays on, with **Docker** installed: a spare Mac or PC, a Raspberry Pi, or a small cloud server
+- To use it from anywhere: a **domain name** (about $10–15 a year), plus either a free **Cloudflare** account (reachable from anywhere without opening ports on your router) or, on a cloud server, the built-in Caddy web server
 - Optional: the free **ntfy** app on your phone for alerts
 
-**Home or cloud?** A computer at home is the easiest choice for downloading: platforms, YouTube most of all, often block the addresses of cloud providers. A cloud server works too, and the [Linux guide](docs/MOVING-LINUX.md) explains how to deal with that.
+**Your own connection or the cloud?** A computer on your own internet connection is the easiest choice for downloading: platforms, YouTube most of all, often block the addresses of cloud providers. A cloud server works too, and the [Linux guide](docs/MOVING-LINUX.md) explains how to deal with that.
 
 ## Setting it up
 
@@ -66,7 +80,7 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 - **[Uptime Kuma guide](docs/UPTIME-KUMA.md)**: a watcher on a small cloud server that alerts you when joyshare is down, with one script to set it up and keep it running
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
 - **[Roadmap](docs/ROADMAP.md)**: what is built, what is left, and how to continue
-- **Moving guides**: [to another Mac](docs/MOVING-MAC.md) and [to a Linux server](docs/MOVING-LINUX.md) (written for a cloud server; most steps apply to a Linux box or Raspberry Pi at home too), with or without Cloudflare, and what happens if the old computer is left running
+- **Moving guides**: [to another Mac](docs/MOVING-MAC.md) and [to a Linux server](docs/MOVING-LINUX.md) (written for a cloud server; most steps apply to a Linux box or Raspberry Pi on your own network too), with or without Cloudflare, and what happens if the old computer is left running
 - **How it's built**: the project plan (`docs/proposal.html`) and a one-page visual of the process and stack (`docs/infographic.html`)
 
 ## Fair use

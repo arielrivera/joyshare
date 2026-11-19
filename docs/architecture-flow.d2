@@ -1,0 +1,52 @@
+# joyshare: how a video gets to you, step by step
+# Source of docs/architecture-flow.svg. After editing, render it again with:
+#   d2 --layout=elk --theme=0 --dark-theme=200 --pad=30 docs/architecture-flow.d2 docs/architecture-flow.svg
+direction: right
+
+classes: {
+  lane: {style: {border-radius: 18; stroke-width: 2; font-size: 20; bold: true}}
+  you: {style: {fill: "#ffffff"; stroke: "#1f4fd8"; stroke-width: 2; border-radius: 12; font-size: 17; font-color: "#141a24"}}
+  cf: {style: {fill: "#ffffff"; stroke: "#c25e00"; stroke-width: 2; border-radius: 12; font-size: 17; font-color: "#141a24"}}
+  server: {style: {fill: "#ffffff"; stroke: "#1d7a4c"; stroke-width: 2; border-radius: 12; font-size: 17; font-color: "#141a24"}}
+  out: {style: {fill: "#ffffff"; stroke: "#8a94a6"; stroke-width: 2; stroke-dash: 4; border-radius: 12; font-size: 16; font-color: "#141a24"}}
+  step: {style: {stroke: "#141a24"; stroke-width: 2; font-size: 16; bold: true; font-color: "#141a24"}}
+}
+
+phone: "Your phone or computer" {
+  class: lane
+  style: {fill: "#e6ecfc"; stroke: "#1f4fd8"}
+  paste: "You paste\na video link" {class: you}
+  get: "You Send or save it" {class: you}
+  friend: "A friend opens\nthe share link" {class: you}
+  get -> friend: {style.opacity: 0}
+}
+
+cloud: "Cloudflare" {
+  class: lane
+  style: {fill: "#fcefe0"; stroke: "#c25e00"}
+  icon: https://cdn.simpleicons.org/cloudflare
+  door: "Domain + tunnel\nthe way in" {class: cf}
+  r2: "R2\nkeeps the video" {class: cf; shape: cylinder}
+}
+
+server: "joyshare server" {
+  class: lane
+  style: {fill: "#e3f3ea"; stroke: "#1d7a4c"}
+  icon: https://cdn.simpleicons.org/docker
+  web: "Web app\nchecks the link,\nshows the sizes" {class: server}
+  worker: "Worker\ndownloads and converts" {class: server}
+}
+
+net: "The internet" {
+  class: lane
+  style: {fill: "#f1f3f6"; stroke: "#8a94a6"}
+  platform: "X, YouTube, TikTok,\nInstagram, Facebook" {class: out}
+}
+
+phone.paste -> cloud.door: "1  paste" {class: step}
+cloud.door -> server.web: "2  passes it on" {class: step}
+server.web -> server.worker: "3  pick a size" {class: step}
+server.worker -> net.platform: "4  fetch" {class: step}
+cloud.r2 <- server.worker: "5  upload" {class: step}
+phone.get <- cloud.r2: "6  Send or save" {class: step}
+phone.friend <- cloud.r2: "7  share link" {class: step}
