@@ -1,10 +1,10 @@
 # Moving joyshare to another Mac
 
-For example from your laptop to the Mac mini. Plan for about 15 minutes, with the site down for a few of them.
+For example from the computer you tried it on to a Mac that stays on as your joyshare server. Plan for about 15 minutes, with the site down for a few of them.
 
 See the whole picture first: [infographic](https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD) · [project plan](https://claude.ai/artifact/Y8hfga81tr1HFhsTYAk9ya) · Moving to a Linux server instead? See [MOVING-LINUX.md](MOVING-LINUX.md).
 
-> **Not yet done for real.** The backup and restore commands were run on one computer. A full move between two Macs has not been done yet. If a step doesn't match what you see, tell me what the screen shows.
+> **Done for real once**, from one Mac to another, with everyone staying signed in. If a step doesn't match what you see, tell me what the screen shows.
 
 ## What moves and what doesn't
 
