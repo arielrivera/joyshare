@@ -1,31 +1,31 @@
 # [Optional] Watching joyshare from outside: Uptime Kuma
 
-joyshare can tell you about problems it notices itself (a platform breaking, a failed update, a full disk). It can't tell you when it's down: when the Mac mini is off, your home internet is out, or the Cloudflare Tunnel stopped. For that you need a watcher somewhere else. This guide sets up [Uptime Kuma](https://github.com/louislam/uptime-kuma) on a small DigitalOcean droplet, checking joyshare every minute and sending an ntfy alert to your phone when it stops answering.
+joyshare can tell you about problems it notices itself (a platform breaking, a failed update, a full disk). It can't tell you when it's down: when the Mac mini is off, your home internet is out, or the Cloudflare Tunnel stopped. For that you need a watcher somewhere else. This guide sets up [Uptime Kuma](https://github.com/louislam/uptime-kuma) on a small cloud vm, checking joyshare every minute and sending an ntfy alert to your phone when it stops answering.
 
-Plan for about 20 minutes. Everything for the droplet lives in the [`monitor/`](../monitor) folder: `compose.yml` (the container) and `kuma` (the one script to set up, run, update and back it up).
+Plan for about 20 minutes. Everything for the VM lives in the [`monitor/`](../monitor) folder: `compose.yml` (the container) and `kuma` (the one script to set up, run, update and back it up).
 
 ## What you need
 
-- A **DigitalOcean droplet** running **Ubuntu** (24.04 or newer). The smallest size is plenty: Kuma uses about 150 MB of memory.
-- To sign in to it with **SSH** from your Mac (DigitalOcean sets that up when you create the droplet with your SSH key).
+- A **Cloud vm** running **Ubuntu** (24.04 or newer). The smallest size is plenty: Kuma uses about 150 MB of memory.
+- To sign in to it with **SSH** from your Mac (... with your SSH key ?).
 - Your **ntfy topic** (the one in joyshare's Admin → Alerts), or a new one just for "site down" alerts.
 
-## 1. Put the files on the droplet
+## 1. Put the files on the vm
 
 From the joyshare folder on your Mac:
 
 ```bash
-scp -r monitor root@YOUR_DROPLET_IP:~/
+scp -r monitor root@YOUR_VM_IP:~/
 ```
 
-(If the GitHub repository is public, `git clone https://github.com/arielrivera/joyshare.git` on the droplet works too; then use `~/joyshare/monitor` below.)
+(If the GitHub repository is public, `git clone https://github.com/arielrivera/joyshare.git` on the vm works too; then use `~/joyshare/monitor` below.)
 
 ## 2. Set it up
 
-Sign in to the droplet and run the setup:
+Sign in to the vm and run the setup:
 
 ```bash
-ssh root@YOUR_DROPLET_IP
+ssh root@YOUR_VM_IP
 ```
 
 ```bash
@@ -44,13 +44,13 @@ Running it again is safe: it only fixes what's missing.
 
 ## 3. Open the dashboard
 
-The dashboard only listens on the droplet itself, so strangers can't even find its login page. You reach it through your SSH connection. On your **Mac**:
+The dashboard only listens on the VM itself, so strangers can't even find its login page. You reach it through your SSH connection. On your **Mac**:
 
 ```bash
-ssh -L 3001:localhost:3001 root@YOUR_DROPLET_IP
+ssh -L 3001:localhost:3001 root@YOUR_VM_IP
 ```
 
-Leave that window open and go to http://localhost:3001. (`./kuma tunnel` on the droplet prints this command with the right address.)
+Leave that window open and go to http://localhost:3001. (`./kuma tunnel` on the VM prints this command with the right address.)
 
 The first time, Kuma asks which database to use: pick the built-in **SQLite**. Then create your Kuma user. This is Kuma's own sign-in, separate from joyshare's passkeys.
 
@@ -84,7 +84,7 @@ Tick **Default enabled** and **Apply on all existing monitors**, press **Test**,
 
 ## 6. Keeping it running
 
-Run these on the droplet, from `~/monitor`:
+Run these on the VM, from `~/monitor`:
 
 | Command | What it does |
 |---|---|
@@ -108,22 +108,22 @@ Nothing extra to do after setup: Docker is a system service that starts at boot,
 
 ### Backups
 
-The daily backup pauses Kuma for a few seconds while it copies the database, so one check may be skipped. Backups stay on the droplet; to keep a copy off it, from your **Mac**:
+The daily backup pauses Kuma for a few seconds while it copies the database, so one check may be skipped. Backups stay on the vm; to keep a copy off it, from your **Mac**:
 
 ```bash
-scp "root@YOUR_DROPLET_IP:~/monitor/backups/kuma-*.tar.gz" ~/Downloads/
+scp "root@YOUR_VM_IP:~/monitor/backups/kuma-*.tar.gz" ~/Downloads/
 ```
 
-DigitalOcean's own droplet backups (a paid option) also cover it.
+DigitalOcean's own VM backups (a paid option) also cover it.
 
-### Moving to a new droplet, or starting over
+### Moving to a new VM, or starting over
 
-1. On the old droplet: `./kuma backup`, then copy the newest file to your Mac (above).
-2. Create the new droplet and do steps 1 and 2 of this guide there.
+1. On the old VM: `./kuma backup`, then copy the newest file to your Mac (above).
+2. Create the new VM and do steps 1 and 2 of this guide there.
 3. Copy the backup up: `scp ~/Downloads/kuma-….tar.gz root@NEW_IP:~/monitor/backups/`
-4. On the new droplet: `./kuma restore backups/kuma-….tar.gz`
+4. On the new VM: `./kuma restore backups/kuma-….tar.gz`
 
-Every monitor, notification, user and the history come back. Delete the old droplet afterwards, or you get every alert twice.
+Every monitor, notification, user and the history come back. Delete the old VM afterwards, or you get every alert twice.
 
 ## If something is off
 
