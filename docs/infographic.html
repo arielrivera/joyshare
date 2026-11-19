@@ -141,7 +141,7 @@ footer a { color: var(--accent); }
     <h2 id="h-places">Where things run</h2>
     <p class="sub">The app runs on your joyshare server, wherever that is. Cloudflare is the front door. A small cloud server watches from outside.</p>
     <div class="places">
-      <div class="place you"><span class="tag">Your devices</span><h3>iPhone, Mac, any browser</h3><ul><li>Home-screen app (PWA)</li><li>Passkey sign-in</li><li>ntfy app for alerts</li></ul></div>
+      <div class="place you"><span class="tag">Your devices</span><h3>iPhone, computer, any browser</h3><ul><li>Home-screen app (PWA)</li><li>Passkey sign-in</li><li>ntfy app for alerts</li></ul></div>
       <div class="place cf"><span class="tag">Cloudflare</span><h3>Front door and storage</h3><ul><li>Your domain and DNS</li><li>Tunnel to the joyshare server</li><li>R2 bucket for videos and backup copies</li></ul></div>
       <div class="place home"><span class="tag">Server</span><h3>joyshare server</h3><ul><li>Any computer with Docker: a Mac, Linux, a Pi or a cloud server</li><li>Docker: web + admin, worker, cloudflared</li><li>SQLite + media in one data volume</li><li>Scheduler: cleanup, disk checks, daily yt-dlp update, platform checks and backups</li><li>Update helper: pulls new code from GitHub, tests it, restarts</li></ul></div>
       <div class="place do"><span class="tag">DigitalOcean</span><h3>Uptime Kuma</h3><ul><li>Checks the health page every minute</li><li>Also checks the worker is alive</li><li>Alerts through ntfy if the server goes quiet</li></ul></div>
