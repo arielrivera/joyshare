@@ -9,6 +9,7 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 - **Live on the Mac mini** at its own domain, with the Cloudflare Tunnel. The laptop is retired.
 - **Cloudflare R2** is set up, tested and serving videos. `JOYSHARE_SECRET` is set.
 - **The iPhone Share button** works with the real app.
+- **Uptime Kuma** runs on the DigitalOcean droplet and watches joyshare's health page every minute ([UPTIME-KUMA.md](UPTIME-KUMA.md)).
 - **Alerts** reach your phone through ntfy (the daily platform check sent one on 18 Nov).
 - **Updating by itself**: the update helper runs on the Mac mini, and the admin panel's Update button puts new code live after the tests pass.
 - **Platform checks** run at a random time each day, on a randomly picked test video from a list per platform (YouTube, X, TikTok, Instagram), with a second try before an alert.
@@ -21,14 +22,13 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 |---|---|---|
 | **Find out why YouTube failed the daily check (18 Nov)** | The alert's text says why. If it's "sign in to confirm you're not a bot", YouTube is refusing the Mac mini's address without a signed-in account: connect a spare YouTube account. | Admin → System, platform checks; app: ☰ → Connected accounts |
 | **Connect your accounts** (cookie files, ideally from spare accounts) | Instagram, and some videos elsewhere (YouTube from a home address, often), are only shown to signed-in accounts. | App: ☰ → Connected accounts |
-| **Create the DigitalOcean droplet and run Uptime Kuma on it** | To be told when the Mac mini is down. One script (`monitor/kuma`) sets it up. | [UPTIME-KUMA.md](UPTIME-KUMA.md) |
 | **Decide the Mac mini's restart behavior** | Docker on a Mac starts only after login, and FileVault blocks automatic login after a power cut. | Go-live phase |
 
 ## 2. Still to build
 
 | What | Size | Notes |
 |---|---|---|
-| **A troubleshooting guide** | Small | The last piece of going live, covering the Mac mini's restart notes. (Uptime Kuma is ready: its guide and script are written, waiting for the droplet.) |
+| **A troubleshooting guide** | Small | The last piece of going live, covering the Mac mini's restart notes. |
 | **Clips from very long videos** | Small | Clips are built. What's left: fetching only the part, so a video over the download limit can be clipped too. |
 | **Test videos for Facebook** | Small | YouTube, X, TikTok and Instagram ship with lists of test videos. Facebook has none, so its daily check can't run until links are added in System. |
 | **More progress scenes** | Small each | Seven are built: Demolition, Compressor, Voyage, Rocket, Black hole, Dominoes, Abduction, plus two calm ones. Scenes with ready-made 3D models (free CC0 packs such as Kenney or Quaternius) would need a model loader added. |
@@ -76,6 +76,7 @@ The first thing lost is the protection of having no open ports. R2 (or any S3-co
 
 | What | What's missing |
 |---|---|
+| **Uptime Kuma's alert** | The monitor is green. Still to see: the ntfy alert arriving when joyshare stops answering (Kuma's Test button, or stop joyshare for two minutes). |
 | **Popups on iPhone** (fixed 18 Nov) | Check that a popup (for example Update in System) keeps its size and reacts to the first tap. |
 | **View as member** (18 Nov) | Checked in a desktop browser at phone size and by automated tests. Try it on your iPhone after the update. |
 | **The iPhone Shortcut** | The Share button works on the iPhone. The Shortcut hasn't been built and tried yet. |

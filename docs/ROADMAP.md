@@ -13,7 +13,7 @@ Short summary of what's pending: [PENDING.md](PENDING.md). Full plan with reason
 | — | Redesign: one-step flow, looks, fonts, English/Spanish, custom name, compact top bar | **Done**, on `main` |
 | 3 | Admin panel, alerts, updates, R2 storage, backups, connected accounts | **Done**, on `main` (a small Platforms tab is left) |
 | 4 | 3D progress scenes, app icon and home-screen install, share page look | **Done**: seven scenes, two calm ones, install, share look (more scenes optional) |
-| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | **Live** on the Mac mini (domain, tunnel, R2, alerts, self-updates). Left: run Uptime Kuma on the droplet, troubleshooting guide |
+| 5 | Go live on the Mac mini with the domain, Cloudflare Tunnel, Uptime Kuma | **Live** on the Mac mini (domain, tunnel, R2, alerts, self-updates). Uptime Kuma watches it from the droplet. Left: troubleshooting guide |
 
 Branches build on each other: `phase-1-core` → `phase-2-access` → `ui-redesign`. `main` on GitHub holds everything up to connected accounts (pushed 12 Nov 2026). Later work is on its own branch until the owner asks for a push.
 
@@ -269,7 +269,8 @@ Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus chec
 - [ ] Cloudflare Tunnel container in `docker-compose.yml`; set `JOYSHARE_PUBLIC_URL` to the https address; read the visitor's address from Cloudflare's header for the failed-attempt limit.
 - [x] Every device registers its passkey again on the real domain (passkeys are tied to the address).
 - [x] Uptime Kuma in a container for the DigitalOcean droplet, watching `/api/health` for `"worker_alive":true`, alerting through ntfy: `monitor/compose.yml`, the `monitor/kuma` script (setup, start/stop, update, backup/restore, daily backup and weekly update by cron) and `docs/UPTIME-KUMA.md`.
-- [ ] Owner: create the droplet and run `sudo ./kuma setup` there. The script has not been run on a real droplet yet.
+- [x] Running on the DigitalOcean droplet (18 Nov 2026), set up with `sudo ./kuma setup`; the keyword monitor is green.
+- [ ] Not yet seen: Kuma's ntfy alert when joyshare stops answering.
 - [ ] `docs/TROUBLESHOOTING.md`. Mac mini notes: Docker starts only after login, and FileVault blocks automatic login after a power cut.
 - [x] iPhone checks: passkey and the Share button work.
 - [ ] iPhone checks still open: the size where the Share button stops working, and the Shortcut.
