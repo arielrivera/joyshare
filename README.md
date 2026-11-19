@@ -11,10 +11,14 @@ joyshare is a small private web app you run yourself: on your own computer, a Ra
 
 ## How it works
 
+<a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD" title="joyshare at a glance: the whole picture"><img src="docs/basic-flow.svg" align="right" width="210" alt="Basic flow: 1, you paste a link. 2, the joyshare server makes the video. 3, Cloudflare R2 keeps it. 4, send it, save it or share a link. Tap to see the whole picture."></a>
+
 1. **Paste a link** from X (Twitter), YouTube, TikTok, Instagram or Facebook. On an iPhone you can send it straight from the share sheet.
 2. **Pick a size.** joyshare shows how big the file will be before you commit: best quality (up to 1080p), 720p, 480p, shrunk to fit a size you pick, or audio only. Or cut just a clip.
 3. **Watch something fun** while it works. Progress is a small 3D scene: a tower being demolished, a rocket launch, a black hole, a cow meeting a flying saucer, falling dominoes. Calmer scenes play when your device asks for reduced motion.
 4. **Send it.** Share it to WhatsApp or iMessage, download it, or copy a link your friend can open in any browser. No account needed on their side.
+
+<br clear="right">
 
 ## Quick facts
 

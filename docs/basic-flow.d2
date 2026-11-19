@@ -1,0 +1,29 @@
+# joyshare: the small "Basic flow" card beside "How it works" in the README. It links to the infographic.
+# Source of docs/basic-flow.svg. After editing, render it again with:
+#   d2 --layout=elk --theme=0 --pad=16 docs/basic-flow.d2 docs/basic-flow.svg
+direction: down
+
+classes: {
+  you: {style: {fill: "#e6ecfc"; stroke: "#1f4fd8"; stroke-width: 2; border-radius: 12; font-size: 17; bold: true; font-color: "#141a24"}}
+  cf: {style: {fill: "#fcefe0"; stroke: "#c25e00"; stroke-width: 2; border-radius: 12; font-size: 17; bold: true; font-color: "#141a24"}}
+  server: {style: {fill: "#e3f3ea"; stroke: "#1d7a4c"; stroke-width: 2; border-radius: 12; font-size: 17; bold: true; font-color: "#141a24"}}
+  step: {style: {stroke: "#141a24"; stroke-width: 2}}
+}
+
+card: "BASIC FLOW" {
+  style: {fill: "#ffffff"; stroke: "#141a24"; stroke-width: 2; border-radius: 16; font-size: 20; bold: true; font-color: "#1f4fd8"; shadow: true}
+
+  paste: "1  You paste a link" {class: you; width: 240}
+  make: "2  The joyshare server\nmakes the video" {class: server; width: 240}
+  keep: "3  Cloudflare R2\nkeeps it" {class: cf; width: 240}
+  send: "4  Send it, save it\nor share a link" {class: you; width: 240}
+  more: "See the whole picture →" {
+    shape: text
+    style: {font-size: 16; bold: true; font-color: "#1f4fd8"; underline: true}
+  }
+
+  paste -> make: {class: step}
+  make -> keep: {class: step}
+  keep -> send: {class: step}
+  send -> more: {style.opacity: 0}
+}

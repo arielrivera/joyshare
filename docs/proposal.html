@@ -87,6 +87,10 @@ dl.gloss dt { font-weight: 600; padding-right: 20px; }
 dl.gloss dd { color: var(--ink); }
 dl.gloss dd .why { display: block; color: var(--muted); font-size: 14.5px; margin-top: 4px; }
 
+.arch { margin: 12px 0; background: #ffffff; border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: center; overflow-x: auto; }
+.arch figcaption { justify-self: start; font: 600 14px/1.3 var(--font-body); color: #586374; }
+.arch img { width: 100%; height: auto; }
+.arch img.tall { max-width: 420px; }
 pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 12px 0; }
 pre.code { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 13px/1.6 var(--font-mono); margin: 12px 0; }
 
@@ -133,13 +137,13 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
   <main>
     <header class="top" id="overview">
-      <div class="eyebrow"><span>Proposal v6.11</span><span>Phases 1 and 2 built</span><span>Updated 12 Nov 2026</span><span>Single user</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
+      <div class="eyebrow"><span>Proposal v6.12</span><span>Live, every phase built</span><span>Updated 18 Nov 2026</span><span>Admins and members</span><span><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a></span></div>
       <h1>joy<span>share</span></h1>
       <p class="lede">A private web app on your own server. Paste a video link from your phone or any computer, choose a size, and get back an MP4 to send with WhatsApp or iMessage, or a 48-hour link your friends can open in a browser.</p>
       <ol class="flow">
         <li><div>Open the home-screen app on your iPhone, or use the iOS share sheet shortcut. Unlock with Face ID.</div></li>
-        <li><div>Paste an X (Twitter) or YouTube link. The server reads the video's details and shows the title, author, length and the <strong>estimated size for each preset</strong>.</div></li>
-        <li><div>Pick a preset, such as Share 720p, Small 480p or Fit under 25 MB. Anything over 200 MB is refused.</div></li>
+        <li><div>Paste a link from X (Twitter), YouTube, TikTok, Instagram or Facebook. The server reads the video's details and shows the title, author, length and the <strong>estimated size for each preset</strong>.</div></li>
+        <li><div>Pick a size, such as Share 720p, Small 480p or one shrunk to fit a size you choose, or cut just a clip. Anything over 200 MB is refused.</div></li>
         <li><div>Watch live progress. When it finishes you see the real file size, and you can make it smaller or sharper and run it again.</div></li>
         <li><div>Send it: <strong>Share</strong> opens the iPhone share sheet (WhatsApp, Messages, Save to Photos), <strong>Download</strong> saves the file, and <strong>Copy link</strong> gives friends a 48-hour viewing page.</div></li>
       </ol>
@@ -151,26 +155,27 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
       <div class="table-wrap"><table>
         <thead><tr><th>Part</th><th>Choice</th><th>Status</th><th>Alternatives</th></tr></thead>
         <tbody>
-          <tr><td>Packaging</td><td>Docker Compose, with all data in one Docker volume</td><td><span class="pill rec">Recommended</span></td><td>Native install with systemd</td></tr>
-          <tr><td>Development</td><td>Your laptop (Apple Silicon, Docker), at localhost</td><td><span class="pill decided">Decided</span></td><td></td></tr>
-          <tr><td>Main host</td><td>Mac mini at home, using the Docker already installed on it</td><td><span class="pill decided">Decided</span></td><td>Hetzner CX22; DigitalOcean; Raspberry Pi 5</td></tr>
+          <tr><td>Packaging</td><td>Docker Compose, with all data in one Docker volume, controlled by one script (<code>./joyshare</code>)</td><td><span class="pill decided">Decided</span></td><td>Native install with systemd</td></tr>
+          <tr><td>Development</td><td>Any computer with Docker, at localhost</td><td><span class="pill decided">Decided</span></td><td></td></tr>
+          <tr><td>Main host</td><td>Any computer that runs Docker. Running on a Mac today; a Linux server, a Raspberry Pi or a cloud server work the same way.</td><td><span class="pill decided">Decided</span></td><td>Hetzner CX22; DigitalOcean; Raspberry Pi 5</td></tr>
           <tr><td>Public access</td><td>Cloudflare Tunnel (no open ports, no static IP needed)</td><td><span class="pill rec">Recommended</span></td><td>Static IP + Caddy HTTPS; dynamic DNS + port forwarding; Tailscale</td></tr>
           <tr><td>Web server</td><td>None. The tunnel connects straight to the app, which also serves the interface files.</td><td><span class="pill rec">Recommended</span></td><td>Caddy in front. <strong>Required if you ever stop using Cloudflare</strong>: the move guide and the admin panel's System page will both say so.</td></tr>
           <tr><td>Backend</td><td>Python 3.12 + FastAPI, using yt-dlp as a library</td><td><span class="pill rec">Recommended</span></td><td>Node (Fastify), Go</td></tr>
           <tr><td>Background jobs</td><td>One worker process reading a jobs table in SQLite</td><td><span class="pill rec">Recommended</span></td><td>Redis + arq, Redis + RQ</td></tr>
           <tr><td>Scheduled tasks</td><td>A scheduler inside the worker container: cleanup, disk check, yt-dlp update, backup, heartbeat</td><td><span class="pill rec">Recommended</span></td><td>Cron on the host (doesn't move with the app)</td></tr>
           <tr><td>Video encoding</td><td>CPU inside the container first. Optional Mac helper for hardware encoding, with automatic fallback, only if measured too slow.</td><td><span class="pill rec">Recommended</span></td><td>Run the worker outside Docker on the Mac</td></tr>
-          <tr><td>yt-dlp updates</td><td>Automatic daily check with a self-test and rollback, plus an "Update now" button in the admin panel</td><td><span class="pill rec">Recommended</span></td><td>Rebuild the container by hand</td></tr>
+          <tr><td>yt-dlp updates</td><td>Automatic daily check with a self-test and rollback, plus an "Update now" button in the admin panel</td><td><span class="pill decided">Built</span></td><td>Rebuild the container by hand</td></tr>
+          <tr><td>App updates</td><td>The server checks GitHub on a schedule, or when the admin presses Update, runs the tests on the new code, waits for videos being made, and only then restarts with it</td><td><span class="pill decided">Built</span></td><td>Update by hand with <code>./joyshare update</code></td></tr>
           <tr><td>Users and roles</td><td>Two roles: Admin (you) and Member. Every job and file belongs to a user.</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Admin panel</td><td>Stats, logs, limits, storage switch, devices, updates</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Database</td><td>SQLite in WAL mode</td><td><span class="pill rec">Recommended</span></td><td>Postgres</td></tr>
-          <tr><td>Frontend</td><td>Plain HTML, CSS and JavaScript for now, with Three.js for the animated progress scenes. Whether to move to SvelteKit is still open.</td><td><span class="pill open">Open</span></td><td>React + Vite + react-three-fiber</td></tr>
+          <tr><td>Frontend</td><td>Plain HTML, CSS and JavaScript, with Three.js for the animated progress scenes. Everything since was built this way without trouble, so SvelteKit is no longer planned.</td><td><span class="pill decided">Decided</span></td><td>SvelteKit; React + Vite + react-three-fiber</td></tr>
           <tr><td>Live progress</td><td>Server-Sent Events (SSE)</td><td><span class="pill rec">Recommended</span></td><td>WebSockets, polling</td></tr>
           <tr><td>Login</td><td>Passkeys (Face ID / Touch ID), sign-up closed after your first device</td><td><span class="pill rec">Recommended</span></td><td>Cloudflare Access: skipped at launch (confirmed). If added later, only in front of the admin panel.</td></tr>
           <tr><td>Alerts</td><td>ntfy push notifications (iPhone app)</td><td><span class="pill decided">Decided</span></td><td>Pushover, Telegram bot, email</td></tr>
-          <tr><td>Uptime check</td><td>Uptime Kuma in a container on a small DigitalOcean droplet</td><td><span class="pill decided">Decided</span></td><td>healthchecks.io</td></tr>
-          <tr><td>Backups</td><td>Nightly database copy to Cloudflare R2</td><td><span class="pill rec">Recommended</span></td><td>Backblaze B2</td></tr>
-          <tr><td>Video delivery</td><td>Build serving from the server first. Add an R2 setting, and turn it on before going live through the tunnel.</td><td><span class="pill decided">Decided</span></td><td></td></tr>
+          <tr><td>Uptime check</td><td>Uptime Kuma in a container on a small DigitalOcean droplet, set up and kept running with one script (<code>monitor/kuma</code>)</td><td><span class="pill decided">Decided</span></td><td>healthchecks.io</td></tr>
+          <tr><td>Backups</td><td>Daily database copy on the server and in Cloudflare R2</td><td><span class="pill decided">Built</span></td><td>Backblaze B2</td></tr>
+          <tr><td>Video delivery</td><td>From Cloudflare R2 (in use). Serving from the server stays available for a server on your own network.</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Share link expiry</td><td>48 hours</td><td><span class="pill decided">Decided</span></td><td></td></tr>
           <tr><td>Size limit</td><td>200 MB per output</td><td><span class="pill decided">Decided</span></td><td></td></tr>
         </tbody>
@@ -179,32 +184,20 @@ pre.code { background: var(--surface); border: 1px solid var(--line); border-rad
 
     <section id="architecture">
       <h2>Architecture</h2>
-      <p class="sub">Your devices never talk to the server's IP. They reach your domain at Cloudflare, and the server holds an outgoing connection open to Cloudflare. That is why the server can move anywhere.</p>
-<pre class="mermaid">
-flowchart LR
-  P["iPhone / Mac / any browser"] -->|HTTPS| CF["Cloudflare edge<br/>your domain"]
-  F["Friend opening a share link"] -->|HTTPS| CF
-  CF <-->|"outbound tunnel"| T["cloudflared"]
-  subgraph Host["Mac mini at home (or any host)"]
-    T --> W["Web app<br/>FastAPI + interface + admin"]
-    W <--> DB[("SQLite<br/>jobs, media, devices, logs")]
-    K["Worker<br/>yt-dlp + ffmpeg"] <--> DB
-    K --> M[("Data volume<br/>media files")]
-    W --> M
-    J["Scheduler in the worker<br/>cleanup, disk, yt-dlp update"] --> M
-  end
-  K -->|"upload when R2 is on"| R2[("Cloudflare R2<br/>signed 48 h links")]
-  F -.->|"video file, R2 mode"| R2
-  K -->|"done / failed"| N["ntfy → your iPhone"]
-  J -->|"disk ≥ 90%"| N
-  K -->|"heartbeat"| H["Uptime Kuma<br/>DigitalOcean"]
-  H -->|"site down or silent"| N
-</pre>
+      <p class="sub">Your devices never talk to the server's IP. They reach your domain at Cloudflare, and the server holds an outgoing connection open to Cloudflare. That is why the server can move anywhere. The numbers follow one video from your link to your friends.</p>
+      <figure class="arch">
+        <figcaption>How a video gets to you</figcaption>
+        <img src="architecture-flow.svg" alt="1: you paste a link on your phone or computer. 2: Cloudflare's domain and tunnel pass it on to the joyshare server's web app. 3: you pick a size, and the worker takes over. 4: the worker fetches the video from X, YouTube, TikTok, Instagram or Facebook. 5: it uploads the finished file to Cloudflare R2. 6: you Send or save it from R2. 7: a friend opens the share link, also served from R2." loading="lazy">
+      </figure>
+      <figure class="arch">
+        <figcaption>What keeps it running</figcaption>
+        <img class="tall" src="architecture-upkeep.svg" alt="Alerts: the joyshare server and Uptime Kuma on a DigitalOcean droplet send through ntfy to your phone. New versions: GitHub's new code goes to the update helper, which runs the tests and restarts the server; PyPI is checked daily for new yt-dlp versions. Backups: the server's database is copied to Cloudflare R2 every day." loading="lazy">
+      </figure>
     </section>
 
     <section id="portability">
       <h2>Hosting and moving the server</h2>
-      <p>The goal is to move from Hetzner to a Mac mini to a Raspberry Pi in about ten minutes, with the domain following on its own. Two choices make that work: everything ships as Docker containers, and the domain is tied to a Cloudflare Tunnel, not to an IP address.</p>
+      <p>The goal is to move between a Mac, a Linux server, a cloud server or a Raspberry Pi in about fifteen minutes, with the domain following on its own. Two choices make that work: everything ships as Docker containers, and the domain is tied to a Cloudflare Tunnel, not to an IP address.</p>
 
       <h3>Docker containers</h3>
       <div class="compare">
@@ -231,23 +224,23 @@ flowchart LR
 
       <h3>Moving to a new machine</h3>
       <ol class="flow">
-        <li><div>Install Docker on the new machine (OrbStack on a Mac).</div></li>
+        <li><div>Install Docker on the new machine (Docker Desktop on a Mac).</div></li>
         <li><div>On the old machine run <code>./joyshare backup</code>. It stops the app and packs the data volume and <code>.env</code> into one file.</div></li>
-        <li><div>Copy that file over, then run <code>./joyshare restore</code> and <code>docker compose up -d</code>.</div></li>
+        <li><div>Copy that file and <code>.env</code> over, then run <code>./joyshare restore</code>. It starts everything.</div></li>
         <li><div>The tunnel signs in with the same token and Cloudflare sends your domain to the new machine. No DNS change.</div></li>
-        <li><div>Turn off the old machine. Run only one copy at a time, or two copies would split the database.</div></li>
+        <li><div>Run <code>./joyshare retire</code> on the old machine so it stays off. Two copies at once would split the database; joyshare notices and alerts if it happens. The steps are in <code>docs/MOVING-MAC.md</code> and <code>docs/MOVING-LINUX.md</code>.</div></li>
       </ol>
 
-      <h3>Home internet without a static IP</h3>
-      <p>The tunnel solves this. Your home machine opens an outgoing connection to Cloudflare, so your home IP can change as often as it likes, you don't forward any ports on your router, and it works even when your ISP shares one public IP across customers (CGNAT). The fallback without Cloudflare is a dynamic DNS script that updates your domain's IP every five minutes, plus port forwarding on the router. That works on most home connections, but not behind CGNAT.</p>
+      <h3>An internet connection without a static IP</h3>
+      <p>The tunnel solves this. Your server opens an outgoing connection to Cloudflare, so its IP can change as often as it likes, you don't forward any ports on your router, and it works even when your ISP shares one public IP across customers (CGNAT). The fallback without Cloudflare is a dynamic DNS script that updates your domain's IP every five minutes, plus port forwarding on the router. That works on most connections, but not behind CGNAT.</p>
 
       <h3>Notes per host</h3>
       <div class="table-wrap"><table>
         <thead><tr><th>Host</th><th>Good for</th><th>Watch out for</th></tr></thead>
         <tbody>
           <tr><td>Hetzner CX22</td><td>Always on, fast network, 20 TB monthly traffic</td><td>Data-center IP. YouTube may ask for sign-in, so you may need cookies.</td></tr>
-          <tr><td>Mac mini</td><td>Home IP, so far fewer blocks. Fast CPU.</td><td>Turn off sleep and turn on "start after power failure". Home upload speed limits how fast friends' links load.</td></tr>
-          <tr><td>Raspberry Pi 5</td><td>Cheap, quiet, home IP</td><td>Use a USB or NVMe SSD, not a microSD card. It has no hardware H.264 encoder, so re-encoding is slow. Prefer presets that don't re-encode.</td></tr>
+          <tr><td>A Mac on your own connection</td><td>Residential IP, so far fewer blocks. Fast CPU.</td><td>Turn off sleep and turn on "start after power failure". With videos in R2, your connection's upload speed doesn't matter when friends watch.</td></tr>
+          <tr><td>Raspberry Pi 5</td><td>Cheap, quiet, residential IP</td><td>Use a USB or NVMe SSD, not a microSD card. It has no hardware H.264 encoder, so re-encoding is slow. Prefer presets that don't re-encode.</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -260,14 +253,15 @@ flowchart LR
         <li><strong>Adding a device.</strong> A signed-in device creates a QR code that works once, for 10 minutes. This is also how family members get added later.</li>
         <li><strong>iCloud sync.</strong> Your passkey syncs through iCloud Keychain, so any device on your Apple ID can sign in. Windows and Android devices use the QR flow.</li>
         <li><strong>iOS Shortcut and scripts.</strong> Each gets its own access token, listed and revocable on a Devices page.</li>
-        <li><strong>Optional extra lock.</strong> Cloudflare Access (free for up to 50 users) can require an email code before anyone reaches the login page. Share links under <code>/v/</code> stay outside it so friends can open them.</li>
+        <li><strong>View as member.</strong> An admin can use one device as a regular member, to see exactly what members get, and switch back. The server only allows it for admins.</li>
+        <li><strong>No extra lock.</strong> Cloudflare Access was skipped. If added later, only in front of the admin panel; share links under <code>/v/</code> would stay outside it.</li>
         <li><strong>Share links.</strong> These are the only public pages: a random 128-bit ID, a 48-hour expiry, and a viewer page with a thumbnail preview for WhatsApp and iMessage.</li>
       </ul>
     </section>
 
     <section id="cookies">
       <h2>Connected accounts (cookies)</h2>
-      <p>Each user can upload a cookie file per platform under <strong>Settings → Connected accounts</strong>. It is optional.</p>
+      <p>Each user can upload a cookie file per platform under <strong>☰ → Connected accounts</strong>. It is optional.</p>
       <ul>
         <li><strong>Private to each user.</strong> A cookie file is used only for the downloads of the person who uploaded it. It is never shared with other users, and no one else can see it in the app, including the admin.</li>
         <li><strong>Stored encrypted</strong> in the data folder, and removable at any time with one tap.</li>
@@ -297,7 +291,7 @@ flowchart LR
           <tr><td>X (Twitter)</td><td>1</td><td>Most used. Videos are usually already H.264 MP4, so most presets need no re-encode. Public posts work without login. Sensitive or protected posts need your cookies.</td></tr>
           <tr><td>TikTok</td><td>Added</td><td>Works for public videos. Usually already H.264 MP4. TikTok refuses some videos by region.</td></tr>
           <tr><td>YouTube</td><td>1</td><td>Best quality is often VP9 or AV1, so we choose MP4 streams or convert them. The platform most likely to block data-center IPs.</td></tr>
-          <tr><td>Instagram</td><td>1, untested</td><td>Built in phase 1 and labeled "experimental" until tested. Usually needs cookies.</td></tr>
+          <tr><td>Instagram</td><td>1</td><td>Works for public posts without signing in. Many posts need cookies.</td></tr>
           <tr><td>Facebook</td><td>1, untested</td><td>Built in phase 1 and labeled "experimental" until tested. Public videos mostly work. Others need cookies.</td></tr>
         </tbody>
       </table></div>
@@ -307,19 +301,19 @@ flowchart LR
       <div class="table-wrap"><table>
         <thead><tr><th>Preset</th><th>What it does</th><th>Re-encode?</th></tr></thead>
         <tbody>
-          <tr><td>Original</td><td>Best available quality, packaged as MP4</td><td>Only if the source isn't H.264</td></tr>
+          <tr><td>Best quality</td><td>Up to 1080p, packaged as MP4</td><td>Only if the source isn't H.264</td></tr>
           <tr><td>Share 720p</td><td>Downloads the platform's own 720p version</td><td>Usually no</td></tr>
           <tr><td>Small 480p</td><td>Downloads the platform's own 480p version</td><td>Usually no</td></tr>
-          <tr><td>Fit under X MB</td><td>Calculates the bitrate needed for your target size</td><td>Yes</td></tr>
+          <tr><td>Fit a size</td><td>Calculates the bitrate needed for the size you pick</td><td>Yes</td></tr>
           <tr><td>Audio only</td><td>M4A audio, which plays in iMessage and WhatsApp. In phase 1.</td><td>Usually no</td></tr>
         </tbody>
       </table></div>
       <p>Every output is H.264 video with AAC audio in MP4, set up to start playing before it fully downloads (<code>+faststart</code>). That format plays inline in iMessage, WhatsApp and every browser.</p>
       <p>If you ask for the same link and preset again while the file still exists, you get the existing file instead of a new download.</p>
 
-      <h3>Encoding speed on the Mac mini</h3>
-      <p>Inside Docker, ffmpeg uses the CPU only. That is unlikely to be a problem: most presets don't re-encode at all, and an Apple Silicon CPU converts 720p video several times faster than it plays. We measure real times on the Mac mini before adding anything.</p>
-      <p>If it does prove slow, the plan is an optional <strong>Mac encoder helper</strong>: a small program running on macOS itself, outside Docker, that uses the Mac's own ffmpeg and hardware encoder (VideoToolbox). The worker checks at startup whether the helper is there. If it is missing, or a hardware encode fails, the job runs on the CPU in the container. One trade-off: hardware encoding is faster but gives slightly lower quality at small file sizes, so "Fit under X MB" stays on the CPU encoder.</p>
+      <h3>Encoding speed</h3>
+      <p>Inside Docker, ffmpeg uses the CPU only. That is unlikely to be a problem: most presets don't re-encode at all, and an Apple Silicon CPU converts 720p video several times faster than it plays. Real times so far on the server have been fast enough.</p>
+      <p>If it does prove slow, the plan is an optional <strong>Mac encoder helper</strong>: a small program running on macOS itself, outside Docker, that uses the Mac's own ffmpeg and hardware encoder (VideoToolbox). The worker checks at startup whether the helper is there. If it is missing, or a hardware encode fails, the job runs on the CPU in the container. One trade-off: hardware encoding is faster but gives slightly lower quality at small file sizes, so "Fit a size" stays on the CPU encoder.</p>
     </section>
 
     <section id="delivery">
@@ -327,15 +321,15 @@ flowchart LR
       <p>Every video is first made on the server and saved in the data volume. The only question is where phones fetch the file from. The share link (<code>yourdomain.com/v/…</code>) and its viewer page look the same either way.</p>
       <div class="compare">
         <div>
-          <h3>Mode A: from the server <span class="pill rec">Built first</span></h3>
+          <h3>Mode A: from the server <span class="pill rec">Available</span></h3>
           <ul>
             <li>Phones get the page and the video from the server.</li>
-            <li>Used for development on your laptop and testing on the home network.</li>
+            <li>For trying it out, a server on your own network, or a server with its own web server (Caddy) instead of the tunnel.</li>
             <li>Nothing extra to set up.</li>
           </ul>
         </div>
         <div>
-          <h3>Mode B: from R2 <span class="pill decided">Live setting</span></h3>
+          <h3>Mode B: from R2 <span class="pill decided">In use</span></h3>
           <ul>
             <li>When a job finishes, the worker also uploads the MP4 to an R2 bucket.</li>
             <li>The viewer page, your own Share and Download buttons, and the player all use signed R2 links. Each link is created fresh when the page is opened and lasts about an hour. The share page itself stops working after 48 hours.</li>
@@ -360,7 +354,7 @@ flowchart LR
         </tbody>
       </table></div>
       <p>All of these times and limits can be changed in the admin panel.</p>
-      <p>A cleanup task runs every 5 minutes, and once at startup. It runs on a scheduler built into the worker container, not as a cron job on the Mac, so it moves with the app and needs no host setup. It deletes expired files and checks disk use. At <strong>90% full</strong> it sends an alert. At 95% it stops accepting new jobs until space is freed.</p>
+      <p>A cleanup task runs every 5 minutes, and once at startup. It runs on a scheduler built into the worker container, not as a cron job on the host, so it moves with the app and needs no host setup. It deletes expired files and checks disk use. At <strong>90% full</strong> it sends an alert. At 95% it stops accepting new jobs until space is freed.</p>
     </section>
 
     <section id="alerts">
@@ -377,9 +371,12 @@ flowchart LR
           <tr><td>New device added</td><td>High</td><td>Device name and time</td></tr>
           <tr><td>Repeated failed sign-ins</td><td>High</td><td>Count and IP</td></tr>
           <tr><td>yt-dlp updated or update failed</td><td>Low / High</td><td>Old and new version</td></tr>
-          <tr><td>Nightly platform check failed</td><td>High</td><td>Which platform stopped working, found by a nightly test download of one known video per platform</td></tr>
+          <tr><td>Daily platform check failed</td><td>High</td><td>Which platform stopped working. Each day, at a random time, a randomly picked test video per platform is looked up, with a second try before an alert</td></tr>
+          <tr><td>App update steps</td><td>Low / High</td><td>New code found, waiting for videos, live now, or tests failed (the running version stays)</td></tr>
+          <tr><td>A second copy is running</td><td>Urgent</td><td>Two computers answer at the same address, usually after a move</td></tr>
+          <tr><td>Cloud storage upload failed</td><td>High</td><td>The video stayed on the server instead, and why</td></tr>
           <tr><td>Backup failed</td><td>High</td><td>Error</td></tr>
-          <tr><td>Server not responding</td><td>Urgent</td><td>Sent by Uptime Kuma on DigitalOcean when the site stops answering or the worker heartbeat stops, so it works even if the Mac mini is down</td></tr>
+          <tr><td>Server not responding</td><td>Urgent</td><td>Sent by Uptime Kuma on DigitalOcean when the site stops answering or the worker heartbeat stops, so it works even when the server itself is down</td></tr>
         </tbody>
       </table></div>
       <p>We use the free public ntfy.sh server with a long random topic name and an access token, so alerts still arrive when your server is the thing that's broken.</p>
@@ -394,12 +391,12 @@ flowchart LR
           <tr><td>Overview</td><td>Jobs today and this week, success rate, jobs per platform, queue, disk and R2 use, yt-dlp version, last backup, last heartbeat</td></tr>
           <tr><td>Jobs</td><td>Full history with filters, error details, retry, delete a file now</td></tr>
           <tr><td>Share links</td><td>Active links, view counts, time left, revoke early</td></tr>
-          <tr><td>Users and devices</td><td>Users, roles, per-user stats, passkeys and tokens with last-used time, invite a device or person, disable a user, sign out everywhere</td></tr>
+          <tr><td>Users and devices</td><td>Users, roles, per-user stats, passkeys and tokens with last-used time, invite a device or person, disable a user, sign out everywhere. Admins can also view the app as a member.</td></tr>
           <tr><td>Limits</td><td>Max file size, max video length, jobs at once, how long originals, outputs and links are kept, disk alert levels, platforms on or off</td></tr>
           <tr><td>Storage</td><td>Local or R2 switch, R2 setup guide and connection test, space used</td></tr>
-          <tr><td>Platforms</td><td>Platforms on or off, optional proxy, nightly check results. Cookies are not here: each user manages their own under Settings → Connected accounts.</td></tr>
+          <tr><td>Platforms</td><td><em>Not built yet.</em> Platforms on or off, optional proxy. The daily check results and test videos are on System for now. Cookies are not here: each user manages their own under Settings → Connected accounts.</td></tr>
           <tr><td>Alerts</td><td>Each ntfy event on or off, a "send test alert" button</td></tr>
-          <tr><td>System</td><td>yt-dlp: current and latest version, Update now, auto-update on or off. Logs viewer. Database size and row counts. Back up now. Pause new jobs.</td></tr>
+          <tr><td>System</td><td>App updates from GitHub (Update, with each step reported). yt-dlp: current and latest version, Update now, auto-update on or off, go back a version. Daily platform checks with each platform's test videos. Backups: Back up now, daily on or off. Pause new jobs.</td></tr>
         </tbody>
       </table></div>
       <h3>How yt-dlp updates itself</h3>
@@ -409,11 +406,11 @@ flowchart LR
         <li><div>The worker finishes its current job, restarts, and runs a test download.</div></li>
         <li><div>If the test fails, it goes back to the previous version and sends an alert. If it passes, you get a low-priority "updated" alert.</div></li>
       </ol>
-      <h3>Also planned</h3>
+      <h3>Also in place</h3>
       <ul>
-        <li><strong>Lockout recovery.</strong> If you lose every passkey, a command on the server (<code>./joyshare reset-admin</code>) prints a new one-time setup code.</li>
+        <li><strong>Lockout recovery.</strong> If you lose every passkey, <code>./joyshare setup-code</code> on the server prints a new one-time code.</li>
         <li><strong>Last admin protection.</strong> The only admin can't be removed or demoted.</li>
-        <li><strong>Per-user limits.</strong> Ready for family members: daily job count and size limits per user.</li>
+        <li><strong>Per-user limits</strong> (still planned): daily job count and size limits per person.</li>
         <li><strong>Settings live in the database</strong>, so changes apply right away and travel with a backup. Secrets such as R2 keys are stored encrypted.</li>
       </ul>
     </section>
@@ -447,7 +444,7 @@ flowchart LR
       <dl class="gloss">
         <dt>OrbStack</dt>
         <dd>A Mac app that runs Docker containers, as a replacement for Docker Desktop. It starts faster and uses less memory and battery. Free for personal use. Downsides: Mac only, closed source, and from a small company.
-          <span class="why">Optional. Your laptop already has Docker, which works fine. It's worth considering on the Mac mini because it runs all day.</span></dd>
+          <span class="why">Optional. Docker Desktop works fine. Worth considering on a Mac that runs all day.</span></dd>
 
         <dt>Cloudflare Access</dt>
         <dd>A sign-in gate that runs at Cloudflare, before a visitor reaches your server. You list the allowed email addresses. A visitor enters their email, gets a one-time code, and is let through for a set time, for example 30 days. Free for up to 50 users.
@@ -455,7 +452,7 @@ flowchart LR
 
         <dt>Residential proxy</dt>
         <dd>A paid service that sends your server's requests out through an ordinary home internet connection somewhere else. YouTube or Instagram then see a home IP instead of a data-center IP and block it far less. yt-dlp supports it with one setting (<code>--proxy</code>). They usually charge per GB, a few dollars per GB.
-          <span class="why">Only needed if the cloud server keeps getting blocked. Hosting at home gives you a residential IP for free.</span></dd>
+          <span class="why">Only needed if a cloud server keeps getting blocked. A server on your own internet connection already has a residential IP, for free.</span></dd>
 
         <dt>Cloudflare Tunnel</dt>
         <dd>A small program (<code>cloudflared</code>) on your server opens an outgoing, encrypted connection to Cloudflare. Visitors go to your domain at Cloudflare, and Cloudflare passes the traffic down that connection. Your server needs no public IP, no open ports and no router setup. <strong>Free.</strong> It needs your domain's DNS to be hosted on Cloudflare, which is also free.
@@ -475,7 +472,7 @@ flowchart LR
 
         <dt>SvelteKit (static)</dt>
         <dd>Svelte is a frontend framework that compiles your components into small, plain JavaScript. SvelteKit adds pages and routing. The "static" build outputs ordinary HTML, CSS and JS files with no Node server in production. Three.js draws the 3D progress scenes.
-          <span class="why">Small downloads that load fast on a phone, less code than React for the same UI, and nothing extra to run on the server. If you already know React, React + Vite is just as good.</span></dd>
+          <span class="why">Considered, not used: the interface stayed plain HTML, CSS and JavaScript, which needs no build step.</span></dd>
 
         <dt>SSE (Server-Sent Events)</dt>
         <dd>A browser feature where the page keeps one normal HTTP request open and the server pushes small updates down it, like "downloading 42%". It reconnects automatically.
@@ -500,7 +497,8 @@ flowchart LR
       <div class="table-wrap"><table>
         <thead><tr><th>Item</th><th>Cost</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>Mac mini at home</td><td class="num">€0</td><td>Electricity only</td></tr>
+          <tr><td>Your own computer as the server</td><td class="num">€0</td><td>Electricity only</td></tr>
+          <tr><td>Or a cloud server instead</td><td class="num">≈ $5–6 / month</td><td>The smallest size works; platforms may block it more</td></tr>
           <tr><td>DigitalOcean droplet (Uptime Kuma)</td><td class="num">≈ $4–6 / month</td><td>Smallest droplet is enough</td></tr>
           <tr><td>Domain</td><td class="num">≈ $10–15 / year</td><td>Any registrar. Cloudflare sells at cost.</td></tr>
           <tr><td>Cloudflare DNS + Tunnel + Access</td><td class="num">Free</td><td></td></tr>
@@ -521,10 +519,10 @@ flowchart LR
         <li><span class="pill risk">Load</span> Limits on length and size, at most 2 jobs at once, and fast ffmpeg settings.</li>
         <li><span class="pill risk">Phone UX</span> Three.js loads only when needed and pauses when the tab is hidden. "Reduce motion" turns it off.</li>
         <li><span class="pill risk">Legal</span> Personal use only. Share links are unlisted and expire.</li>
-        <li><span class="pill risk">Domain</span> Passkeys are tied to the domain name. Pick the final domain before registering devices, because changing it later means registering every device again. Passkeys made on the laptop at localhost don't carry over.</li>
-        <li><span class="pill risk">Mac restart</span> Docker on a Mac starts only after someone logs in. With FileVault disk encryption on, the Mac mini can't log in by itself after a power cut, so the app stays down until you do. Uptime Kuma will alert you. The setup guide covers the options.</li>
+        <li><span class="pill risk">Domain</span> Passkeys are tied to the domain name. Pick the final domain before registering devices, because changing it later means registering every device again. Passkeys made at localhost don't carry over.</li>
+        <li><span class="pill risk">Mac restart</span> Docker on a Mac starts only after someone logs in. With FileVault disk encryption on, a Mac can't log in by itself after a power cut, so the app stays down until you do. On Linux, Docker starts by itself. Uptime Kuma will alert you, and the troubleshooting guide covers the options.</li>
         <li><span class="pill risk">Cookies</span> Use a spare account for platform cookies, not your main one. Platforms sometimes restrict accounts used for automated downloads.</li>
-        <li><span class="pill risk">Share sheet</span> The iPhone Share button has to load the whole file into memory first. That is fine for typical clips but may fail near 200 MB. Large files will offer Download and Copy link only, with the cut-off set after testing on your iPhone.</li>
+        <li><span class="pill risk">Share sheet</span> The iPhone Share button works. It has to load the whole file into memory first, so it may fail near 200 MB; the size where it stops working hasn't been found yet.</li>
       </ul>
     </section>
 
@@ -548,7 +546,7 @@ flowchart LR
       </table></div>
       <ul>
         <li>Every output is H.264 + AAC MP4 (or AAC M4A) with fast start, checked with ffprobe.</li>
-        <li>Not tested yet: Instagram and Facebook, the iPhone share sheet, and anything on the Mac mini.</li>
+        <li>Not tested yet at the time: Instagram and Facebook, the iPhone share sheet, and anything on the main server.</li>
         <li>The interface is plain on purpose. It is a single page of HTML for now; the SvelteKit interface and 3D scenes come in the look-and-feel phase.</li>
       </ul>
     </section>
@@ -597,18 +595,20 @@ flowchart LR
     <section id="roadmap">
       <h2>Build plan</h2>
       <ol class="flow">
-        <li><div><strong>Core, on your laptop.</strong> <span class="pill decided">Built</span> Docker Compose, FastAPI, worker with its scheduler, SQLite with users and settings tables, X and YouTube (tested), Instagram and Facebook (built, untested), all presets including audio only, size check, cleanup, a plain UI, storage in Mode A.</div></li>
+        <li><div><strong>Core.</strong> <span class="pill decided">Built</span> Docker Compose, FastAPI, worker with its scheduler, SQLite with users and settings tables, X and YouTube (tested), Instagram and Facebook (built, untested), all presets including audio only, size check, cleanup, a plain UI, storage in Mode A.</div></li>
         <li><div><strong>Access.</strong> <span class="pill decided">Built</span> Passkeys, admin and member roles, device QR flow, tokens, iOS Shortcut. Test from the iPhone through a temporary dev tunnel.</div></li>
         <li><div><strong>Admin panel and ops.</strong> <span class="pill decided">Built</span> All admin pages, ntfy events, disk checks, worker heartbeat, nightly backups and platform check, yt-dlp auto-update, the R2 storage setting and setup guide.</div></li>
-        <li><div><strong>Look and feel.</strong> <span class="pill rec">Started</span> The interface design, the Three.js progress scenes (first three: Demolition, Compressor, Voyage), PWA icon and full-screen mode, share viewer page.</div></li>
-        <li><div><strong>Go live.</strong> Move to the Mac mini with the move guide (the first real test of it), turn on R2, connect the Cloudflare Tunnel, set up Uptime Kuma on DigitalOcean.</div></li>
+        <li><div><strong>Look and feel.</strong> <span class="pill decided">Built</span> Eleven looks, seven 3D progress scenes plus two calm ones, the home-screen app, the share page in the sender's look.</div></li>
+        <li><div><strong>Go live.</strong> <span class="pill decided">Built</span> Moved to its own server with the move guide, R2 on, the Cloudflare Tunnel connected, Uptime Kuma watching from DigitalOcean, updates arriving from GitHub by themselves.</div></li>
       </ol>
       <h3>Documentation written alongside the code</h3>
       <ul>
-        <li><code>README.md</code>: the repo's front page. Short and fun: what joyshare is for, how it works in four steps, quick facts, what you need, a three-command setup, and links to the deeper guides. A first draft exists.</li>
-        <li><code>docs/SETUP.md</code> (first draft written, covers running it on your own computer): domain, Cloudflare, server, first passkey, ntfy and the iOS Shortcut, step by step</li>
+        <li><code>README.md</code>: the repo's front page. Short and fun: what joyshare is for, how it works in four steps, quick facts, what you need, a three-command setup, and links to the deeper guides. Written, with the two diagrams.</li>
+        <li><code>docs/SETUP.md</code> (written): domain, Cloudflare, server, first passkey, ntfy and the iOS Shortcut, step by step</li>
         <li><code>docs/MOVING-MAC.md</code> and <code>docs/MOVING-LINUX.md</code>: moving to another Mac or to a Linux cloud server, with the Cloudflare Tunnel or with the built-in web server (Caddy), and what happens if the old computer is left running</li>
-        <li><code>docs/TROUBLESHOOTING.md</code>: blocked platforms, cookies, a full disk, the tunnel being down, a lost passkey</li>
+        <li><code>docs/TROUBLESHOOTING.md</code> (written): the site being down, restarts, every alert, platforms and cookies, sign-in, updates, putting data back</li>
+        <li><code>docs/UPTIME-KUMA.md</code> (written): the outside watcher on a droplet, with one script to set it up and keep it running</li>
+        <li>Architecture diagrams (<code>docs/architecture-flow.d2</code> and <code>docs/architecture-upkeep.d2</code>, drawn with D2), shown in the README, the infographic and above</li>
         <li><a href="https://claude.ai/artifact/4xiMLuHT4FMxgrjYRsVFKD">Infographic</a> of the process and stack (source: <code>docs/infographic.html</code>), linked from every guide and updated with the plan</li>
       </ul>
     </section>
@@ -616,6 +616,7 @@ flowchart LR
     <section id="changelog">
       <h2>Changelog</h2>
       <ul class="log">
+        <li><time>18 Nov 2026</time><div>v6.12. Live on its own server, and the docs no longer assume a Mac mini at home: joyshare runs wherever Docker runs. Updates arrive from GitHub by themselves, or when the admin presses Update, only after the tests pass. The daily platform check picks a random test video from a list per platform (YouTube, X, TikTok, Instagram) and tries a second before alerting. Admins can view the app as a regular member on one device. Popups keep their size on iPhone and react to the first tap. Each video has a "…" menu (original link, delete with Undo), swipe left deletes in the Recent list, and expired videos are stamped in the grid. Uptime Kuma runs on a DigitalOcean droplet with one script to keep it going. New: a troubleshooting guide and two step-by-step architecture diagrams.</div></li>
         <li><time>15 Nov 2026</time><div>v6.11. Admin panel: People puts inviting first in its own box with the list below; System shows an animation while checking for updates; Videos shows each video's picture, has a search, and opens to the original link and every detail.</div></li>
         <li><time>15 Nov 2026</time><div>v6.10. The app added to the iPhone home screen can now be pulled down to reload, coming back to the same video, and says when a new version is ready. The open row in the Recent list has a darker background.</div></li>
         <li><time>15 Nov 2026</time><div>v6.9. The Recent list has two layouts, switched with icons beside its heading and remembered on the account: a list whose rows open in place (Send or save, Copy link, Clip, Download), and a grid of pictures. Clip from the list opens the video with the clip timeline.</div></li>
