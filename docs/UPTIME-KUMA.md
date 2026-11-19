@@ -114,7 +114,7 @@ The daily backup pauses Kuma for a few seconds while it copies the database, so 
 scp "root@YOUR_VM_IP:~/monitor/backups/kuma-*.tar.gz" ~/Downloads/
 ```
 
-DigitalOcean's own VM backups (a paid option) also cover it.
+Cloud provider's own VM backups (a paid option) also cover it.
 
 ### Moving to a new VM, or starting over
 
