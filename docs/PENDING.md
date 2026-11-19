@@ -9,6 +9,7 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 - **Live on its own server** at its own domain, with the Cloudflare Tunnel. The first computer it ran on is retired.
 - **Cloudflare R2** is set up, tested and serving videos. `JOYSHARE_SECRET` is set.
 - **The iPhone Share button** works with the real app.
+- **A troubleshooting guide**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md), from "the site is down" to putting data back.
 - **Uptime Kuma** runs on the DigitalOcean droplet and watches joyshare's health page every minute ([UPTIME-KUMA.md](UPTIME-KUMA.md)).
 - **Alerts** reach your phone through ntfy (the daily platform check sent one on 18 Nov).
 - **Updating by itself**: the update helper runs on the server, and the admin panel's Update button puts new code live after the tests pass.
@@ -28,7 +29,6 @@ Last updated: 18 Nov 2026 (after random platform test videos, "View as member" a
 
 | What | Size | Notes |
 |---|---|---|
-| **A troubleshooting guide** | Small | The last piece of going live, covering what to check when the server stops answering, and its restart notes. |
 | **Clips from very long videos** | Small | Clips are built. What's left: fetching only the part, so a video over the download limit can be clipped too. |
 | **Test videos for Facebook** | Small | YouTube, X, TikTok and Instagram ship with lists of test videos. Facebook has none, so its daily check can't run until links are added in System. |
 | **More progress scenes** | Small each | Seven are built: Demolition, Compressor, Voyage, Rocket, Black hole, Dominoes, Abduction, plus two calm ones. Scenes with ready-made 3D models (free CC0 packs such as Kenney or Quaternius) would need a model loader added. |

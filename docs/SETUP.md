@@ -388,46 +388,4 @@ Two containers run from the same image:
 
 ## Troubleshooting
 
-**"That code isn't valid"**
-Codes work once and expire (setup code: 24 hours, device codes: 10 minutes). Create a new one. After 10 wrong tries joyshare makes you wait a few minutes.
-
-**"This device already has a passkey for your account"**
-Nothing is wrong. Passkeys travel between your own devices through your password manager: one made on your iPhone shows up on your Mac through iCloud Keychain. Skip registering and press **Sign in with a passkey**.
-
-**"The passkey prompt was closed"**
-The Touch ID or Face ID window was dismissed or timed out. Press the button again.
-
-**"That passkey isn't registered here"**
-The passkey belongs to another address (for example it was made at `localhost` and you're now on the domain), or the device was removed. Register the device again with a new code.
-
-**It keeps asking "Confirm it's you"**
-Adding devices, inviting people and creating tokens need a passkey check from the last 10 minutes. That's on purpose.
-
-**"Cannot connect to the Docker daemon"**
-Docker isn't running. Open Docker Desktop and wait for it to finish starting, then try again.
-
-**The page looks half-updated after an update**
-This should no longer happen: scripts and styles get a new address with every update. If you ever see it, reload the page once.
-
-**"A second copy is running" (alert, or a red warning on the Overview tab)**
-joyshare is running on two computers that answer at the same address, usually after a move. People look signed out at random and videos go missing. On the computer that should no longer run it: `./joyshare retire`. More in [MOVING-MAC.md](MOVING-MAC.md).
-
-**The page doesn't load**
-Run `./joyshare status`. Both `web` and `worker` should say "Up". If not, `./joyshare logs web` shows why. If port 8080 is taken by another app, set `JOYSHARE_PORT=8081` in `.env` and start again.
-
-**"… only shows this video to signed-in accounts"**
-The platform wants a login for that video. Connect an account for that platform under **☰ → Connected accounts**.
-
-**"… didn't accept your connected account"**
-The cookies expired or the platform signed that browser out. Export a fresh cookie file and upload it again.
-
-**"No video was found at that link"**
-The post may have no video, or it was deleted. Open the link in a browser to check.
-
-**A platform suddenly stops working**
-Platforms change often and yt-dlp releases fixes quickly. joyshare checks for a new yt-dlp once a day, tests it, and switches to it by itself. To check right away, open **Admin panel → System** and press **Check for updates now**. If an update made things worse, **Go back to version …** on the same tab undoes it.
-
-The System tab also shows the daily platform checks: one known video per platform is looked up about once a day, at a different time each day (12 to 36 hours after the last check), and you get an alert when one stops working. The tab shows when the next one is due.
-
-**A job sits at "Waiting in line"**
-The worker isn't running. Check `docker compose logs worker`.
+Everything about problems is in one place now: [TROUBLESHOOTING.md](TROUBLESHOOTING.md). It covers the site being down, restarts, every alert, videos and platforms, signing in, updates and putting data back.

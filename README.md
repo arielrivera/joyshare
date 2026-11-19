@@ -75,7 +75,8 @@ The full walkthrough is in the [setup guide](docs/SETUP.md).
 
 ## Dig deeper
 
-- **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut, troubleshooting
+- **[Setup guide](docs/SETUP.md)**: running it, registering devices, inviting people, the iPhone Shortcut
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: the site is down, after a restart, what each alert means, videos, sign-in, updates, putting data back
 - **[Cloudflare R2 guide](docs/R2.md)**: serving videos from R2, step by step
 - **[Uptime Kuma guide](docs/UPTIME-KUMA.md)**: a watcher on a small cloud server that alerts you when joyshare is down, with one script to set it up and keep it running
 - **[What's pending](docs/PENDING.md)**: a short summary of everything left
