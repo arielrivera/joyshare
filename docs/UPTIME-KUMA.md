@@ -1,4 +1,4 @@
-# Watching joyshare from outside: Uptime Kuma
+# [Optional] Watching joyshare from outside: Uptime Kuma
 
 joyshare can tell you about problems it notices itself (a platform breaking, a failed update, a full disk). It can't tell you when it's down: when the Mac mini is off, your home internet is out, or the Cloudflare Tunnel stopped. For that you need a watcher somewhere else. This guide sets up [Uptime Kuma](https://github.com/louislam/uptime-kuma) on a small DigitalOcean droplet, checking joyshare every minute and sending an ntfy alert to your phone when it stops answering.
 
