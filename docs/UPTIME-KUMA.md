@@ -62,7 +62,7 @@ The first time, Kuma asks which database to use: pick the built-in **SQLite**. T
 |---|---|
 | Monitor Type | **HTTP(s) - Keyword** |
 | Friendly Name | joyshare |
-| URL | `https://vids.arielrivera.app/api/health` |
+| URL | `https://your-domain.example/api/health` (your joyshare address, plus `/api/health`) |
 | Keyword | `"worker_alive":true` |
 | Heartbeat Interval | 60 seconds |
 | Retries | 2 (so one slow answer doesn't wake you) |

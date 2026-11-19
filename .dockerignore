@@ -6,3 +6,8 @@ docs
 .pytest_cache
 .DS_Store
 monitor
+backups
+logs
+*_notes.txt
+.retired
+.autoupdate*

@@ -174,7 +174,7 @@ The idea: the person gives a start and an end, and only that part is made and sh
 Rough size: step 1 and 2 about a day of work; step 3 about half a day, plus checking each platform.
 
 ## Phase 5: go live — started by the owner
-- [x] Domain and Cloudflare Tunnel are up (`https://vids.arielrivera.app`), with `JOYSHARE_PUBLIC_URL` set in `.env`.
+- [x] Domain and Cloudflare Tunnel are up, with `JOYSHARE_PUBLIC_URL` set in `.env` to the https address.
 - [x] The app accepts more than one address (`config.ORIGINS`, `auth.site()`): the main one plus `http://localhost:PORT` on the server. Passkeys, the cross-site check and the cookie's https flag follow the address in use.
 - [x] The real visitor address is read from Cloudflare's header (only when the request comes from a private network), so the failed-attempt limit is per visitor, not shared by everyone behind the tunnel.
 - [x] `tunnel` service in `docker-compose.yml` (profile `tunnel`), reaching the app as `http://web:8080`. The owner still runs a separate `cloudflared` container and has to switch over.
